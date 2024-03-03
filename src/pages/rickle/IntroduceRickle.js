@@ -117,16 +117,6 @@ const ethExchangeCoin = [
 ];
 const bscExchangeCoin = [
   {
-    e: "YieldFields",
-    img: img1,
-    link: "https://yieldfields.finance/swap?outputCurrency=0xeCa15e1BbFF172D545Dd6325F3Bae7b737906737",
-  },
-  {
-    e: "CryptoSwap",
-    img: img1,
-    link: "https://cryptoswapdex.com/swap?outputCurrency=0xeCa15e1BbFF172D545Dd6325F3Bae7b737906737",
-  },
-  {
     e: "PancakeSwap",
     img: img1,
     link: "https://pancakeswap.finance/swap?outputCurrency=0xeCa15e1BbFF172D545Dd6325F3Bae7b737906737&chainId=56",
