@@ -35,7 +35,7 @@ export default function EventOnDiscord() {
               }}
             >
               <Link
-                href="https://discord.gg/rickletoken"
+                href="https://discord.gg/rickle-897546129108008960"
                 underline="none"
                 target="_blank"
                 sx={{ display: "flex", alignItems: "center" }}
@@ -69,7 +69,7 @@ export default function EventOnDiscord() {
               }}
             >
               <Link
-                href="https://discord.gg/rickletoken"
+                href="https://discord.gg/rickle-897546129108008960"
                 underline="none"
                 target="_blank"
                 sx={{ display: "flex", alignItems: "center" }}
@@ -106,7 +106,7 @@ export default function EventOnDiscord() {
               }}
             >
               <Link
-                href="https://discord.gg/rickletoken"
+                href="https://discord.gg/rickle-897546129108008960"
                 underline="none"
                 target="_blank"
                 sx={{ display: "flex", alignItems: "center" }}
@@ -156,7 +156,7 @@ export default function EventOnDiscord() {
                 lineHeight: "20px",
               }}
             >
-              TRIVIA MONDAY
+              
             </Typography>
             <Typography
               sx={{
@@ -166,8 +166,7 @@ export default function EventOnDiscord() {
                 lineHeight: "20px",
               }}
             >
-              Join us for Trivia on Discord. Correct answers = Rickle in your
-              pocket!
+              
             </Typography>
           </Grid>
 
