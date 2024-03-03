@@ -1,12 +1,12 @@
 import React from "react";
 
 import { Grid, Typography } from "@mui/material";
-
+import OurCommunity from "./special/OurCommunity";
 import Rickle from "./../../assets/rickle.png";
 import RickleImage from "./../../assets/rickle_full_image.png";
 import BottomRadiusBlack from "./../../assets/bottom_radius.png";
 
-export default function RickleSpacial() {
+export default function RickleSpecial() {
   return (
     <>
       <Grid
@@ -76,47 +76,31 @@ export default function RickleSpacial() {
             allows us to provide innovative, next generation services and help
             build the future of decentralized finance.
           </Typography>
-          <Typography
-            className="gradient-text"
-            sx={{
-              fontSize: { lg: "54px", md: "45px", xs: "34px" },
-              textAlign: { xs: "center", md: "end" },
-              my: { lg: 6, md: 4, xs: 3 },
-            }}
-          >
-            OUR COMMUNITY
-          </Typography>
-          <Grid
-            container
-            justifyContent={{ xs: "center", md: "end" }}
-            pr={{ xs: 0, md: "18px", lg: "30px" }}
-            pb={{ xs: 5 }}
-          >
-            <iframe
-              title="discord"
-              src="https://discord.com/widget?id=897546129108008960&amp;theme=dark"
-              width="350"
-              height="350"
-              frameBorder="0"
-            ></iframe>
-          </Grid>
+          <OurCommunity />
         </Grid>
-        <div
-          style={{
-            height: "14px",
-            width: "100%",
-            background:
-              "linear-gradient(90deg, #851910 0%, #FB261E 52.53%, #E87465 100%)",
-          }}
-        ></div>
+        <RedDivider />
       </Grid>
-      <Grid container>
-        <img
-          src={BottomRadiusBlack}
-          alt=""
-          style={{ width: "100%", height: "auto" }}
-        />
-      </Grid>
+      <BlackDivider />
     </>
   );
 }
+function RedDivider() {
+  return (
+    <div
+      style={{
+        height: "14px",
+        width: "100%",
+        background:
+          "linear-gradient(90deg, #851910 0%, #FB261E 52.53%, #E87465 100%)",
+      }}
+    ></div>);
+}
+function BlackDivider() {
+  return <Grid container>
+    <img
+      src={BottomRadiusBlack}
+      alt=""
+      style={{ width: "100%", height: "auto" }} />
+  </Grid>;
+}
+

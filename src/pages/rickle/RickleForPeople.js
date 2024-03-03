@@ -21,7 +21,7 @@ export default function RickleForPeople() {
             <Typography
               className="gradient-text"
               sx={{
-                fontSize: "20px",
+                fontSize: "28px",
                 letterSpacing: "2px",
                 mt: { xs: 5, md: 0 },
                 textAlign: { xs: "center", md: "inherit" },
@@ -97,11 +97,11 @@ export default function RickleForPeople() {
                   fontWeight: "400",
                   letterSpacing: "2.1px",
                 }}
-                href="https://dropbox.blockchange.services/rickle/Rickle-Whitepaper-Dec-2021.pdf"
+                href="../Rickle-Whitepaper.pdf"
                 target="_blank"
                 variant="outlined"
               >
-                DOWNLOAD WHITEPAPER
+                READ THE WHITEPAPER
               </Button>
             </Grid>
           </Grid>

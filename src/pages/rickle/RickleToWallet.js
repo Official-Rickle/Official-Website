@@ -18,14 +18,14 @@ export default function RickleToWallet({ addIconToWallet }) {
     >
       <Typography
         textAlign={"center"}
-        sx={{ color: "white", fontSize: "30px", letterSpacing: "1.2px" }}
+        sx={{ color: "white", fontSize: "28px", letterSpacing: "1.2px" }}
       >
         Add Rickle to Your Wallet...
       </Typography>
       <Grid container gap={2.5} justifyContent="center" py={2}>
         <Grid item md={3} xs={7} gap={1}>
           <Paper
-            onClick={addIconToWallet.bind(this, "bsc")}
+            onClick={() => addIconToWallet("bsc")}
             elevation={0}
             sx={{
               borderRadius: "20px",
@@ -54,7 +54,7 @@ export default function RickleToWallet({ addIconToWallet }) {
         <Grid item md={3} xs={7}>
           <Paper
             elevation={0}
-            onClick={addIconToWallet.bind(this, "xdai")}
+            onClick={() => addIconToWallet("xdai")}
             sx={{
               borderRadius: "20px",
               py: 1,
@@ -85,7 +85,7 @@ export default function RickleToWallet({ addIconToWallet }) {
         <Grid item md={3} xs={7}>
           <Paper
             elevation={0}
-            onClick={() => addIconToWallet.bind(this, "matic") }
+            onClick={() => addIconToWallet("matic") }
             sx={{
               borderRadius: "20px",
               py: 1,

@@ -4,19 +4,19 @@ import IntroduceRickle from "./IntroduceRickle";
 import ReceiveAirdrops from "./ReceiveAirdrops";
 import RickleFooter from "./RickleFooter";
 import RickleForPeople from "./RickleForPeople";
-import RickleSpacial from "./RickleSpacial";
+import RickleSpecial from "./RickleSpecial";
 import TeamCommunity from "./TeamCommunity";
 
 export default function RickleMainPage() {
   return (
-    <>
-      <RickleSpacial />
+    <React.Fragment>
+      <RickleSpecial />
       <RickleForPeople />
       <IntroduceRickle />
       <TeamCommunity />
       <EventOnDiscord />
-      <ReceiveAirdrops />
+      {/*<ReceiveAirdrops />*/}
       <RickleFooter />
-    </>
+    </React.Fragment>
   );
 }

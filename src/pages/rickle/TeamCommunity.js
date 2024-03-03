@@ -24,7 +24,7 @@ function TeamCommunity() {
               mt: { xs: 2, md: 0 },
             }}
           >
-            Our Team
+            Our Team is
           </Typography>
           <Typography
             className="gradient-text"

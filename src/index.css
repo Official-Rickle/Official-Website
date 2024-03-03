@@ -11,3 +11,8 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+@keyframes spin {
+  from {transform:rotateY(0deg);}
+  to {transform:rotateY(360deg);}
+}
