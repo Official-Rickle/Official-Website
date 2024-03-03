@@ -16,8 +16,7 @@ import Matic from "./../../assets/polygon.svg";
 import Binance from "./../../assets/binance.svg";
 import Gnosis from "./../../assets/gnosis.svg";
 import RickleToWallet from "./RickleToWallet";
-import CryptoSwapDex from "./../../assets/CryptoSwapDex.png";
-import YieldFields from "./../../assets/YieldFields.jpg";
+
 const tokenAddress = {
   eth: "0x0ff80a1708191c0da8aa600fa487f7ac81d7818c",
   bsc: "0xeca15e1bbff172d545dd6325f3bae7b737906737",
@@ -88,107 +87,80 @@ const ethExchangeCoin = [
   {
     e: "PancakeSwap",
     img: img1,
-    link:
-      "https://pancakeswap.finance/swap?outputCurrency=0x0ff80a1708191c0da8aa600fa487f7ac81d7818c"
+    link: "https://pancakeswap.finance/swap?outputCurrency=0x0ff80a1708191c0da8aa600fa487f7ac81d7818c"
   },
   {
     e: "SushiSwap",
     img: img2,
-    link:
-      "https://app.sushi.com/swap?outputCurrency=0x0ff80a1708191c0da8aa600fa487f7ac81d7818c&chainId=1"
+    link: "https://app.sushi.com/swap?outputCurrency=0x0ff80a1708191c0da8aa600fa487f7ac81d7818c&chainId=1"
   },
   {
     e: "Matcha",
     img: img3,
-    link:
-      "https://matcha.xyz/markets/1/0x0ff80a1708191c0da8aa600fa487f7ac81d7818c/0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    link: "https://matcha.xyz/markets/1/0x0ff80a1708191c0da8aa600fa487f7ac81d7818c/0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
   },
   {
     e: "UniSwap",
     img: img4,
-    link:
-      "https://app.uniswap.org/#/swap?chain=mainnet&outputCurrency=0x0ff80a1708191c0da8aa600fa487f7ac81d7818c"
+    link: "https://app.uniswap.org/#/swap?chain=mainnet&outputCurrency=0x0ff80a1708191c0da8aa600fa487f7ac81d7818c"
   },
   {
     e: "ParaSwap",
     img: img5,
-    link:
-      "https://app.paraswap.io/#/?network=ethereum&outputCurrency=0x0ff80a1708191c0da8aa600fa487f7ac81d7818c"
+    link: "https://app.paraswap.io/#/?network=ethereum&outputCurrency=0x0ff80a1708191c0da8aa600fa487f7ac81d7818c"
   },
   {
     e: "1Inch",
     img: img6,
-    link:
-      "https://app.1inch.io/#/1/swap/ETH/0x0ff80a1708191c0da8aa600fa487f7ac81d7818c"
+    link: "https://app.1inch.io/#/1/swap/ETH/0x0ff80a1708191c0da8aa600fa487f7ac81d7818c"
   }
 ];
 const bscExchangeCoin = [
   {
-    e: "YieldFields",
-    img: YieldFields,
-    link:
-      "https://yieldfields.finance/swap?outputCurrency=0xeCa15e1BbFF172D545Dd6325F3Bae7b737906737"
-  },
-  {
-    e: "CryptoSwapDex",
-    img: CryptoSwapDex,
-    link:
-      "https://cryptoswapdex.com/swap?outputCurrency=0xeCa15e1BbFF172D545Dd6325F3Bae7b737906737"
-  },
-  {
     e: "PancakeSwap",
     img: img1,
-    link:
-      "https://pancakeswap.finance/swap?outputCurrency=0xeCa15e1BbFF172D545Dd6325F3Bae7b737906737&chainId=56"
+    link: "https://pancakeswap.finance/swap?outputCurrency=0xeCa15e1BbFF172D545Dd6325F3Bae7b737906737&chainId=56"
   },
   {
     e: "SushiSwap",
     img: img2,
-    link:
-      "https://app.sushi.com/swap?outputCurrency=0xeCa15e1BbFF172D545Dd6325F3Bae7b737906737&chainId=56"
+    link: "https://app.sushi.com/swap?outputCurrency=0xeCa15e1BbFF172D545Dd6325F3Bae7b737906737&chainId=56"
   },
   {
     e: "Matcha",
     img: img3,
-    link:
-      "https://matcha.xyz/markets/56/0xeca15e1bbff172d545dd6325f3bae7b737906737"
+    link: "https://matcha.xyz/markets/56/0xeca15e1bbff172d545dd6325f3bae7b737906737"
   },
   {
     e: "1Inch",
     img: img6,
-    link:
-      "https://app.1inch.io/#/56/swap/BNB/0xeCa15e1BbFF172D545Dd6325F3Bae7b737906737"
+    link: "https://app.1inch.io/#/56/swap/BNB/0xeCa15e1BbFF172D545Dd6325F3Bae7b737906737"
   }
 ];
 
 const rickleData = [
   {
-    link:
-      "https://etherscan.io/token/0x0ff80a1708191c0da8aa600fa487f7ac81d7818c",
+    link: "https://etherscan.io/token/0x0ff80a1708191c0da8aa600fa487f7ac81d7818c",
     img: EtherScan,
     text: "EtherScan"
   },
   {
-    link:
-      "https://blockscout.com/xdai/mainnet/address/0x2dF5912439d2D14d04a7742346508505288eF367",
+    link: "https://blockscout.com/xdai/mainnet/address/0x2dF5912439d2D14d04a7742346508505288eF367",
     img: Gnosis,
     text: "Gnosis"
   },
   {
-    link:
-      "https://polygonscan.com/token/0x9fDC23fe295104Ac55fef09363c56451D0E37CFA",
+    link: "https://polygonscan.com/token/0x9fDC23fe295104Ac55fef09363c56451D0E37CFA",
     img: Matic,
     text: "Polygon"
   },
   {
-    link:
-      "https://bscscan.com/token/0xeca15e1bbff172d545dd6325f3bae7b737906737",
+    link: "https://bscscan.com/token/0xeca15e1bbff172d545dd6325f3bae7b737906737",
     img: Binance,
     text: "Binance"
   },
   {
-    link:
-      "https://explorer.harmony.one/address/0x32EB48b083acCe94d994CE885d9AB295c081f884",
+    link: "https://explorer.harmony.one/address/0x32EB48b083acCe94d994CE885d9AB295c081f884",
     img: Gnosis,
     text: "Harmony One"
   }
@@ -395,7 +367,7 @@ function IntroduceRickle() {
                   m: 3
                 }}
               >
-                {Object.keys(tokenAddress).map((k, i) =>
+                {Object.keys(tokenAddress).map((k, i) => (
                   <Grid item key={i} display="flex" alignItems="center">
                     <img
                       src={RickleLogo}
@@ -431,7 +403,7 @@ function IntroduceRickle() {
                       </Typography>
                     </Tooltip>
                   </Grid>
-                )}
+                ))}
               </Paper>
             </Grid>
           </Grid>
@@ -471,138 +443,141 @@ function IntroduceRickle() {
 
 export default IntroduceRickle;
 function BinanceDeFiExchanges() {
-  return <Grid container sx={{ background: "#000000" }} justifyContent="center">
-    <Paper
-      elevation={0}
-      sx={{ my: 5, px: 2.2, border: "7px solid #C121A4" }}
-    >
-      <Grid
-        item
-        container
-        gap={7}
-        alignItems="center"
-        justifyContent="center"
-        align="center"
-        p={3}
-      >
-        <Grid item xs={12}>
-          <Typography variant="h3" color="red">
-            Binance DeFi Exchanges
-          </Typography>
-        </Grid>
+  return (
+    <Grid container sx={{ background: "#000000" }} justifyContent="center">
+      <Paper elevation={0} sx={{ my: 5, px: 2.2, border: "7px solid #C121A4" }}>
+        <Grid
+          item
+          container
+          gap={7}
+          alignItems="center"
+          justifyContent="center"
+          align="center"
+          p={3}
+        >
+          <Grid item xs={12}>
+            <Typography variant="h3" color="red">
+              Binance DeFi Exchanges
+            </Typography>
+          </Grid>
 
-        {bscExchangeCoin.map((item, index) => <Grid item key={index} gap={7} alignItems="center" p={1.5}>
-          <Grid item gap={2} alignContent="center">
-            <a href={item.link} target="_blank" rel="noreferrer">
-              <img
-                src={item.img}
-                alt=""
-                width={"60px"}
-                style={{ cursor: "pointer" }} />
-            </a>
-          </Grid>
-          <Grid item gap={3} alignItems="center" p={3}>
-            {item.e}
-          </Grid>
+          {bscExchangeCoin.map((item, index) => (
+            <Grid item key={index} gap={7} alignItems="center" p={1.5}>
+              <Grid item gap={2} alignContent="center">
+                <a href={item.link} target="_blank" rel="noreferrer">
+                  <img
+                    src={item.img}
+                    alt=""
+                    width={"60px"}
+                    style={{ cursor: "pointer" }}
+                  />
+                </a>
+              </Grid>
+              <Grid item gap={3} alignItems="center" p={3}>
+                {item.e}
+              </Grid>
+            </Grid>
+          ))}
         </Grid>
-        )}
-      </Grid>
-    </Paper>
-  </Grid>;
+      </Paper>
+    </Grid>
+  );
 }
 
 function RickleOnBlockExplorers() {
-  return <Grid
-    py={5}
-    container
-    sx={{ background: "#000000" }}
-    justifyContent="center"
-  >
+  return (
     <Grid
-      item
-      md={8}
+      py={5}
       container
-      mx={1}
-      py={2}
+      sx={{ background: "#000000" }}
       justifyContent="center"
-      sx={{ border: "1px solid white", borderRadius: "20px", p: 3 }}
-    >
-      <Grid item xs={12} textAlign="center">
-        <Typography variant="h6" color="red">
-          Rickle on DeFi Block Explorers
-        </Typography>
-      </Grid>
-
-      {rickleData.map((item, index) => {
-        return (
-          <Grid
-            key={index}
-            item
-            xs={12}
-            md={6}
-            sm={4}
-            lg={2}
-            py={{ xs: 1, lg: 0 }}
-          >
-            <Link
-              href={item.link}
-              underline="none"
-              target="_blank"
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}
-            >
-              <img src={item.img} alt="" width={"20px"} />
-              <Typography sx={{ color: "white", ml: 1 }}>
-                {item.text}
-              </Typography>
-            </Link>
-          </Grid>
-        );
-      })}
-    </Grid>
-  </Grid>;
-}
-
-function EthereumDeFiExchanges() {
-  return <Grid container sx={{ background: "#000000" }} justifyContent="center">
-    <Paper
-      elevation={0}
-      sx={{ my: 5, px: 2.2, border: "7px solid #C121A4" }}
     >
       <Grid
         item
+        md={8}
         container
-        gap={7}
-        alignItems="center"
+        mx={1}
+        py={2}
         justifyContent="center"
-        align="center"
-        p={3}
+        sx={{ border: "1px solid white", borderRadius: "20px", p: 3 }}
       >
-        <Grid item xs={12}>
-          <Typography variant="h3" color="red">
-            Ethereum DeFi Exchanges
+        <Grid item xs={12} textAlign="center">
+          <Typography variant="h6" color="red">
+            Rickle on DeFi Block Explorers
           </Typography>
         </Grid>
-        {ethExchangeCoin.map((item, index) => <Grid item key={index} gap={7} alignItems="center" p={1.5}>
-          <Grid item gap={2} alignContent="center">
-            <a href={item.link} target="_blank" rel="noreferrer">
-              <img
-                src={item.img}
-                alt=""
-                width={"60px"}
-                style={{ cursor: "pointer" }} />
-            </a>
-          </Grid>
-          <Grid item gap={3} alignItems="center" p={3}>
-            {item.e}
-          </Grid>
-        </Grid>
-        )}
+
+        {rickleData.map((item, index) => {
+          return (
+            <Grid
+              key={index}
+              item
+              xs={12}
+              md={6}
+              sm={4}
+              lg={2}
+              py={{ xs: 1, lg: 0 }}
+            >
+              <Link
+                href={item.link}
+                underline="none"
+                target="_blank"
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+              >
+                <img src={item.img} alt="" width={"20px"} />
+                <Typography sx={{ color: "white", ml: 1 }}>
+                  {item.text}
+                </Typography>
+              </Link>
+            </Grid>
+          );
+        })}
       </Grid>
-    </Paper>
-  </Grid>;
+    </Grid>
+  );
 }
 
+function EthereumDeFiExchanges() {
+  return (
+    <Grid container sx={{ background: "#000000" }} justifyContent="center">
+      <Paper elevation={0} sx={{ my: 5, px: 2.2, border: "7px solid #C121A4" }}>
+        <Grid
+          item
+          container
+          gap={7}
+          alignItems="center"
+          justifyContent="center"
+          align="center"
+          p={3}
+        >
+          <Grid item xs={12}>
+            <Typography variant="h3" color="red">
+              Ethereum DeFi Exchanges
+            </Typography>
+          </Grid>
+          {ethExchangeCoin.map((item, index) => (
+            <Grid item key={index} gap={7} alignItems="center" p={1.5}>
+              <Grid item gap={2} alignContent="center">
+                <a href={item.link} target="_blank" rel="noreferrer">
+                  <img
+                    src={item.img}
+                    alt=""
+                    width={"60px"}
+                    style={{ cursor: "pointer" }}
+                  />
+                </a>
+              </Grid>
+              <Grid item gap={3} alignItems="center" p={3}>
+                {item.e}
+              </Grid>
+            </Grid>
+          ))}
+        </Grid>
+      </Paper>
+    </Grid>
+  );
+}
