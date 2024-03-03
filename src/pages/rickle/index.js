@@ -15,7 +15,7 @@ export default function RickleMainPage() {
       <IntroduceRickle />
       <TeamCommunity />
       <EventOnDiscord />
-      <ReceiveAirdrops />
+      {/*<ReceiveAirdrops />*/}
       <RickleFooter />
     </>
   );
