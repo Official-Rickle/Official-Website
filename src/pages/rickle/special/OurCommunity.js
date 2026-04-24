@@ -58,7 +58,7 @@ export default function OurCommunity() {
               background:
                 "linear-gradient(90deg, #851910 0%, #FB261E 52.53%, #E87465 100%)"
             }}
-            href="https://discord.gg/rickle-897546129108008960"
+            href="https://discord.gg/g59PgG2kK9"
           >
             Join Us
           </Link>
