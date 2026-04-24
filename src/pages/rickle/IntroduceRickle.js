@@ -38,7 +38,7 @@ const chainParams = {
     blockExplorerUrls: ["https://etherscan.io/"]
   },
   bsc: {
-    chainId: ethers.utils.hexlify(56),
+    chainId: ethers.toBeHex(56),
     chainName: "Binance Smart Chain - Mainnet",
     nativeCurrency: {
       name: "Binance coin (Smart chain)",
@@ -49,7 +49,7 @@ const chainParams = {
     blockExplorerUrls: ["https://bscscan.com/"]
   },
   xdai: {
-    chainId: ethers.utils.hexlify(100),
+    chainId: ethers.toBeHex(100),
     chainName: "xDai",
     nativeCurrency: {
       name: "xDai",
@@ -60,7 +60,7 @@ const chainParams = {
     blockExplorerUrls: ["https://blockscout.com/"]
   },
   matic: {
-    chainId: ethers.utils.hexlify(137),
+    chainId: ethers.toBeHex(137),
     chainName: "Matic Mainnet",
     nativeCurrency: {
       name: "Matic",
@@ -71,7 +71,7 @@ const chainParams = {
     blockExplorerUrls: ["https://polygonscan.com/"]
   },
   harmony: {
-    chainId: ethers.utils.hexlify(1666600000),
+    chainId: ethers.toBeHex(1666600000),
     chainName: "Harmony One Mainnet",
     nativeCurrency: {
       name: "Harmony One",
