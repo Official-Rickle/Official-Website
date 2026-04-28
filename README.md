@@ -1,1 +1,0 @@
-# Rickle Official Website Application

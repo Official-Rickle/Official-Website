@@ -1,1 +1,1997 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"/><link rel="icon" href="https://rickletoken.com/favicon.ico"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="theme-color" content="#000000"/><meta name="description" content="Bringing decentralized finance to the common person."/><link rel="apple-touch-icon" href="https://rickletoken.com/logo192.png"/><link rel="manifest" href="https://rickletoken.com/manifest.json"/><link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet"/><title>Rickle</title><script defer="defer" src="/static/js/main.b739ed54.js"></script><link href="/static/css/main.94d12f26.css" rel="stylesheet"></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"></div></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
+
+  <!-- Primary SEO -->
+  <title>Rickle — Live Trust Position</title>
+  <meta name="description" content="Bringing decentralized finance to the common person." />
+  <meta name="author" content="Rickle" />
+  <meta name="robots" content="index, follow" />
+  <meta name="keywords" content="Rickle, DeFi, decentralized finance, crypto, trust position, Ethereum, BSC, Polygon, xDai" />
+  <link rel="canonical" href="https://rickletoken.com/" />
+
+  <!-- Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/logo192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/logo512.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="/logo192.png" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Rickle" />
+  <meta property="og:url" content="https://rickletoken.com/" />
+  <meta property="og:title" content="Rickle — Live Trust Position" />
+  <meta property="og:description" content="Bringing decentralized finance to the common person." />
+  <meta property="og:image" content="https://rickletoken.com/assets/og-image.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Rickle — Bringing decentralized finance to the common person." />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://rickletoken.com/" />
+  <meta name="twitter:title" content="Rickle — Live Trust Position" />
+  <meta name="twitter:description" content="Bringing decentralized finance to the common person." />
+  <meta name="twitter:image" content="https://rickletoken.com/assets/og-image.png" />
+  <meta name="twitter:image:alt" content="Rickle — Bringing decentralized finance to the common person." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #000000;
+      --bg-2: #050505;
+      --surface: #0c0c0c;
+      --surface-2: #111111;
+      --surface-hover: #161616;
+      --hairline: #1c1c1c;
+      --hairline-strong: #262626;
+
+      --text: #f0f0f0;
+      --text-soft: #cfcfcf;
+      --text-muted: #888888;
+      --text-dim: #555555;
+
+      --red: #e94545;
+      --coral: #ff6f61;
+      --pink: #e91e63;
+
+      --silver: linear-gradient(180deg, #ffffff 0%, #b8b8b8 50%, #ffffff 100%);
+      --silver-green: linear-gradient(180deg, #d6e8d8 0%, #7a9b85 50%, #d6e8d8 100%);
+      --gold-gradient: linear-gradient(180deg, #fff5cf 0%, #c9a227 50%, #fff5cf 100%);
+      --gradient-stripe: linear-gradient(90deg, rgba(255,122,108,0) 0%, #ff6f61 25%, #e91e63 50%, #ff6f61 75%, rgba(255,122,108,0) 100%);
+
+      --c-burned:  #e94545;     /* red */
+      --c-locked:  #6f1f1f;     /* maroon */
+      --c-trust:   #d4af37;     /* gold */
+      --c-lps:     #8fb89e;     /* silver-green */
+      --c-wallets: #4caf50;     /* green */
+
+      --sans: 'Inter', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, monospace;
+    }
+    /* Top-of-page loading bar — visible while runAudit() is fetching from
+       chain RPCs + CoinGecko (a few seconds end-to-end). Removed when the
+       audit completes (success or error). */
+    #loading-bar {
+      position: fixed; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--surface);
+      z-index: 9999; overflow: hidden;
+      transition: opacity 320ms ease;
+    }
+    #loading-bar::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent 0%, var(--coral) 35%, #c9a227 65%, transparent 100%);
+      animation: ld-slide 1.3s linear infinite;
+    }
+    #loading-bar.done { opacity: 0; pointer-events: none; }
+    @keyframes ld-slide {
+      from { transform: translateX(-100%); }
+      to   { transform: translateX(100%); }
+    }
+    /* Inline pulsing dot beside the "loading…" timestamp. Hidden once
+       the timestamp swaps to a real UTC value. */
+    .loading-pulse {
+      display: inline-block; width: 6px; height: 6px;
+      margin-left: 4px; vertical-align: middle;
+      background: var(--coral); border-radius: 50%;
+      animation: ld-pulse 1.1s ease-in-out infinite;
+    }
+    .loading-pulse.done { display: none; }
+    @keyframes ld-pulse {
+      0%, 100% { opacity: 0.25; transform: scale(0.85); }
+      50%      { opacity: 1;    transform: scale(1.15); }
+    }
+    /* "Reading Live Chain Data" banner — sits above Supply Exhaustion while
+       runAudit() is pulling RPC + CoinGecko data. Stays visible after the
+       audit completes; just settles into a calm "complete" state (no more
+       sweep, marker turns gold, pills all checked) so the data sources
+       remain disclosed. */
+    .scan-banner {
+      position: relative;
+      margin: 4px 0 18px;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, var(--surface) 0%, var(--bg-2) 100%);
+      border: 1px solid var(--hairline-strong);
+      border-radius: 4px;
+      overflow: hidden;
+      transition: border-color 420ms ease;
+    }
+    .scan-banner::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--coral) 30%, #c9a227 50%, var(--coral) 70%, transparent 100%);
+      background-size: 50% 100%;
+      animation: scan-sweep 2.6s linear infinite;
+    }
+    @keyframes scan-sweep {
+      from { background-position: -100% 0; }
+      to   { background-position:  200% 0; }
+    }
+    .scan-banner .scan-marker {
+      display: inline-block; width: 8px; height: 8px;
+      background: var(--coral); border-radius: 50%;
+      margin-right: 10px; vertical-align: middle;
+      animation: ld-pulse 1.1s ease-in-out infinite;
+      box-shadow: 0 0 12px rgba(255, 111, 97, 0.5);
+      transition: background 420ms ease, box-shadow 420ms ease;
+    }
+    /* Settled "complete" state — keeps the panel as a permanent disclosure
+       of which networks were scanned, but stops the active animations. */
+    #scan-section.complete .scan-banner { border-color: rgba(201, 162, 39, 0.35); }
+    #scan-section.complete .scan-banner::before {
+      background: linear-gradient(90deg, transparent 0%, #c9a227 50%, transparent 100%);
+      background-size: 100% 100%;
+      animation: none;
+    }
+    #scan-section.complete .scan-marker {
+      background: #d4af37;
+      box-shadow: 0 0 10px rgba(201, 162, 39, 0.55);
+      animation: none;
+    }
+    .scan-banner .scan-headline {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      letter-spacing: 2.4px; text-transform: uppercase;
+      color: var(--text); display: inline-block;
+    }
+    .scan-banner .scan-sub {
+      font-size: 11px; color: var(--text-muted);
+      margin-left: 8px;
+    }
+    .scan-banner .scan-pills {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin: 12px 0 8px;
+    }
+    .scan-banner .scan-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 9px;
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--text-muted);
+      background: var(--bg-2);
+      border: 1px solid var(--hairline);
+      border-radius: 2px;
+      transition: color 240ms ease, background 240ms ease, border-color 240ms ease;
+    }
+    .scan-banner .scan-pill::before {
+      content: ''; width: 5px; height: 5px; flex-shrink: 0;
+      background: var(--coral); border-radius: 50%;
+      animation: ld-pulse 1.1s ease-in-out infinite;
+    }
+    .scan-banner .scan-pill.done {
+      color: #d4af37;
+      border-color: rgba(201, 162, 39, 0.45);
+      background: rgba(201, 162, 39, 0.07);
+    }
+    .scan-banner .scan-pill.done::before {
+      content: '✓'; width: auto; height: auto;
+      color: #d4af37; font-size: 11px; line-height: 1;
+      background: transparent; border-radius: 0;
+      animation: none;
+    }
+    .scan-banner .scan-status {
+      font-family: var(--mono); font-size: 11px;
+      color: var(--text-soft);
+      margin-top: 6px; min-height: 14px;
+      letter-spacing: 0.3px;
+      transition: opacity 240ms ease;
+    }
+    .scan-banner .scan-status::before {
+      content: '> '; color: var(--coral); font-weight: 700;
+    }
+    .scan-banner .scan-progress {
+      margin-top: 12px;
+      height: 3px;
+      background: var(--bg-2);
+      border-radius: 2px;
+      overflow: hidden;
+      position: relative;
+    }
+    .scan-banner .scan-progress .fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--coral) 0%, #c9a227 100%);
+      box-shadow: 0 0 12px rgba(255, 111, 97, 0.55);
+      transition: width 360ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .scan-banner .scan-meta {
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: var(--mono); font-size: 10px;
+      color: var(--text-muted); letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+    .scan-banner .scan-meta b {
+      color: var(--text); font-weight: 700;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0;
+      background: radial-gradient(ellipse 800px 500px at 50% -100px, #1f0a0a 0%, #000 70%), var(--bg);
+      color: var(--text); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+    a { color: var(--coral); text-decoration: none; }
+    a:hover { color: #fff; }
+    .page { max-width: 980px; margin: 0 auto; padding: 44px 22px 64px; }
+
+    .top { text-align: center; margin-bottom: 28px; }
+    .logo { width: 110px; height: 110px; display: block; margin: 0 auto 18px;
+      filter: drop-shadow(0 0 30px rgba(233, 69, 69, 0.25)) drop-shadow(0 0 60px rgba(120, 30, 200, 0.15)); }
+    .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 3.5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 14px; }
+    .eyebrow .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--red); box-shadow: 0 0 10px var(--red); margin: 0 6px 1px; vertical-align: middle; animation: pulse 2s ease-in-out infinite; }
+    .eyebrow .live { color: var(--text); }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.35;} }
+    .top h1 { font-weight: 900; font-size: clamp(30px, 5vw, 46px); line-height: 1; letter-spacing: -0.5px; margin: 0 0 8px; text-transform: uppercase; color: var(--red); }
+    .top h2 { font-weight: 700; font-size: clamp(15px, 2.2vw, 20px); line-height: 1.2; letter-spacing: 1px; margin: 0; text-transform: uppercase; color: var(--text); }
+    .stripe { height: 2px; background: var(--gradient-stripe); margin: 26px 0; border-radius: 2px; opacity: 0.85; }
+
+    .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .section-head h2 { font-size: 18px; font-weight: 800; letter-spacing: 2.5px; text-transform: uppercase; color: var(--red); margin: 0; }
+    .section-head .meta { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); }
+
+    /* Supply exhaustion */
+    .exhaustion { display: grid; grid-template-columns: 220px 1fr; gap: 28px; align-items: center; background: var(--surface); border: 1px solid var(--hairline); border-radius: 4px; padding: 24px 26px; }
+    .gauge-wrap { position: relative; width: 200px; height: 200px; margin: 0 auto; }
+    .gauge-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .gauge-wrap svg circle.seg { transition: opacity 0.2s, stroke-width 0.2s; cursor: pointer; }
+    .gauge-wrap svg circle.seg:hover { opacity: 0.85; }
+    .gauge-wrap svg circle.seg-inner { transition: opacity 0.2s; cursor: pointer; }
+    .gauge-wrap svg circle.seg-inner:hover { opacity: 0.85; }
+    .gauge-wrap .center { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; pointer-events: none; }
+    .gauge-wrap .pct { font-size: 22px; font-weight: 800; line-height: 1; letter-spacing: -0.3px; background: var(--silver); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .gauge-wrap .pct-sub { margin-top: 4px; font-size: 8px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--text-muted); }
+    .exhaustion-stats h3 { font-size: 13px; font-weight: 800; letter-spacing: 2.5px; text-transform: uppercase; color: var(--red); margin: 0 0 8px; }
+    .exhaustion-stats p { font-size: 12.5px; color: var(--text-soft); line-height: 1.55; margin: 0 0 14px; max-width: 64ch; }
+    .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    @media (min-width: 720px) { .legend.legend-5 { grid-template-columns: repeat(5, 1fr); } }
+    .legend-item { position: relative; padding: 9px 12px 10px 14px; background: var(--bg-2); border: 1px solid var(--hairline); border-radius: 3px; min-width: 0; cursor: help; transition: border-color 0.15s, background 0.15s; }
+    .legend-item:hover { border-color: var(--coral); background: var(--surface-hover); }
+    .legend-item .swatch { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 2px 0 0 2px; }
+    .legend-item .swatch.burned  { background: var(--c-burned); }
+    .legend-item .swatch.locked  { background: var(--c-locked); }
+    .legend-item .swatch.trust   { background: var(--gold-gradient); }
+    .legend-item .swatch.lps     { background: var(--silver-green); }
+    .legend-item .swatch.wallets { background: var(--c-wallets); }
+    .legend-item .top-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 5px; line-height: 1; }
+    .legend-item .l { font-size: 9px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--text-muted); }
+    .legend-item .pct-tag { font-size: 10px; font-weight: 600; color: var(--text-dim); font-variant-numeric: tabular-nums; letter-spacing: 0.3px; }
+    .legend-item .v { display: flex; align-items: baseline; gap: 5px; color: var(--text); font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; line-height: 1.1; white-space: nowrap; min-width: 0; }
+    .legend-item .v .unit { font-size: 10px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.5px; }
+    .target-line { font-size: 11px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; padding-top: 10px; border-top: 1px solid var(--hairline); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .target-line b { color: var(--coral); font-weight: 700; }
+    .target-line .l { color: var(--text-muted); }
+    .target-line .terminal-reached { display: inline-flex; align-items: center; gap: 6px; }
+    .target-line .terminal-reached b { color: #4caf50; }
+    .target-line .terminal-reached .check { width: 14px; height: 14px; color: #4caf50; flex-shrink: 0; }
+
+    /* Founders */
+    .founders { background: var(--surface); border: 1px solid var(--hairline); border-radius: 4px; overflow: hidden; }
+    .founders .founder { display: grid; grid-template-columns: 1.4fr 2fr 1fr; gap: 16px; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--hairline); font-size: 13px; }
+    .founders .founder:last-child { border-bottom: none; }
+    .founders .name { color: var(--text); font-weight: 700; }
+    .founders .name small { display: block; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); margin-top: 3px; font-weight: 500; }
+    .founders .addr { font-family: var(--mono); font-size: 11px; color: var(--text-soft); word-break: break-all; }
+    .founders .addr a { color: var(--text-soft); border-bottom: 1px dotted var(--hairline-strong); }
+    .founders .addr a:hover { color: var(--coral); border-bottom-color: var(--coral); }
+    .founders .holdings { text-align: right; font-variant-numeric: tabular-nums; }
+    .founders .holdings .total { color: var(--text); font-weight: 700; font-size: 14px; }
+    .founders .holdings .total small { font-size: 10px; font-weight: 500; color: var(--text-muted); margin-left: 4px; letter-spacing: 0.5px; }
+    .founders .holdings .ahwa-total { font-size: 11px; font-weight: 600; color: var(--text-soft); margin-top: 3px; }
+    .founders .holdings .breakdown { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; margin-top: 5px; font-size: 10px; }
+    .founders .holdings .breakdown span { color: var(--text-muted); }
+    .founders .holdings .breakdown b { color: var(--text-soft); font-weight: 600; }
+    .ahwa { background: var(--surface); border: 1px solid var(--hairline); border-radius: 4px; overflow: hidden; }
+    .ahwa .ahwa-row { display: grid; grid-template-columns: 1.4fr 2fr 1fr; gap: 16px; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--hairline); font-size: 13px; }
+    .ahwa .ahwa-row:last-child { border-bottom: none; }
+    .ahwa .ahwa-row.total { background: rgba(233, 69, 69, 0.05); font-weight: 700; }
+    .ahwa .name { color: var(--text); font-weight: 700; }
+    .ahwa .name small { display: block; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); margin-top: 3px; font-weight: 500; }
+    .ahwa .addr { font-family: var(--mono); font-size: 11px; color: var(--text-soft); word-break: break-all; }
+    .ahwa .addr a { color: var(--text-soft); border-bottom: 1px dotted var(--hairline-strong); }
+    .ahwa .addr a:hover { color: var(--coral); border-bottom-color: var(--coral); }
+    .ahwa .holdings { text-align: right; font-variant-numeric: tabular-nums; }
+    .ahwa .holdings .total-amt { color: var(--text); font-weight: 700; font-size: 14px; }
+    .ahwa .holdings .total-amt small { font-size: 10px; font-weight: 500; color: var(--text-muted); margin-left: 4px; letter-spacing: 0.5px; }
+    .ahwa-pools { background: var(--surface); border: 1px solid var(--hairline); border-radius: 4px; overflow: hidden; }
+    .ahwa-pools .pool-row { display: grid; grid-template-columns: 1fr 1.4fr 1.4fr; gap: 12px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--hairline); font-size: 12px; }
+    .ahwa-pools .pool-row:last-child { border-bottom: none; }
+    .ahwa-pools .pool-row.header { background: var(--bg-2); font-size: 10px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+    .ahwa-pools .pool-pair { font-weight: 700; color: var(--text); }
+    .ahwa-pools .pool-pair small { display: block; font-size: 10px; font-weight: 500; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+    .ahwa-pools .pool-pair a { color: var(--text-soft); border-bottom: 1px dotted var(--hairline-strong); font-family: var(--mono); font-weight: 500; font-size: 10px; }
+    .ahwa-pools .pool-pair a:hover { color: var(--coral); }
+    .ahwa-pools .pool-reserves { text-align: right; color: var(--text-soft); font-variant-numeric: tabular-nums; }
+    .ahwa-pools .pool-reserves b { color: var(--text); font-weight: 700; }
+    /* Strategic Reserve */
+    .strat-reserve { background: var(--surface); border: 1px solid var(--hairline); border-radius: 4px; padding: 18px 20px; }
+    .strat-reserve .header-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--hairline); }
+    .strat-reserve .label { font-size: 10px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px; }
+    .strat-reserve .addr { font-family: var(--mono); font-size: 11px; color: var(--text-soft); word-break: break-all; }
+    .strat-reserve .addr a { color: var(--text-soft); border-bottom: 1px dotted var(--hairline-strong); }
+    .strat-reserve .addr a:hover { color: var(--coral); border-bottom-color: var(--coral); }
+    .strat-reserve .total-cap { text-align: right; font-variant-numeric: tabular-nums; }
+    .strat-reserve .total-cap .v { color: var(--text); font-weight: 800; font-size: 18px; }
+    .strat-reserve .total-cap .l { font-size: 9px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 2px; }
+    .strat-reserve .holdings { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding: 8px 0; font-size: 12px; }
+    .strat-reserve .asset { background: var(--bg-2); border: 1px solid var(--hairline); border-radius: 3px; padding: 10px 12px; }
+    .strat-reserve .asset .sym { color: var(--text); font-weight: 700; font-size: 13px; }
+    .strat-reserve .asset .amt { color: var(--text-soft); font-variant-numeric: tabular-nums; margin-top: 4px; }
+    .strat-reserve .asset .usd { color: var(--text-muted); font-size: 11px; margin-top: 3px; font-variant-numeric: tabular-nums; }
+    .strat-reserve .note { font-size: 11px; color: var(--text-dim); letter-spacing: 0.5px; padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--hairline); }
+
+    /* Multisig */
+    .multisig { background: var(--surface); border: 1px solid var(--hairline); border-radius: 4px; padding: 18px 20px; }
+    .multisig .row { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; }
+    .multisig .key { font-size: 10px; letter-spacing: 2.4px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+    .multisig .addr { font-family: var(--mono); font-size: 13px; color: var(--text-soft); word-break: break-all; }
+    .multisig .chains { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--hairline); }
+    .chip { font-family: var(--mono); font-size: 11px; color: var(--text-soft); padding: 6px 12px; border: 1px solid var(--hairline-strong); background: var(--bg-2); border-radius: 2px; text-decoration: none; transition: all 0.18s ease; }
+    .chip:hover { color: #fff; border-color: var(--coral); background: var(--surface-2); }
+    .chip strong { color: var(--coral); margin-right: 6px; font-weight: 700; }
+
+    /* Backing ratio */
+    .backing { background: var(--surface); border: 1px solid var(--hairline); border-radius: 4px; overflow: hidden; }
+    .backing .row { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1.4fr; gap: 16px; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--hairline); font-size: 13px; }
+    .backing .row.header { background: var(--bg-2); font-size: 10px; letter-spacing: 2.2px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+    .backing .row:last-child { border-bottom: none; }
+    .backing .row.total { background: rgba(233, 69, 69, 0.05); font-weight: 700; }
+    .backing .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+    .backing .num small {
+      display: block;
+      color: var(--text-dim);
+      font-size: 11px;
+      font-weight: 500;
+      margin-top: 4px;
+      letter-spacing: 0.2px;
+      line-height: 1.5;
+    }
+    .backing .header .num { color: var(--text-muted); }
+    .backing .chain-cell { display: flex; align-items: center; gap: 12px; }
+    .backing-bar { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
+    .backing-bar .bar { flex: 1; max-width: 140px; height: 6px; background: var(--hairline); border-radius: 2px; overflow: hidden; position: relative; }
+    .backing-bar .bar > div { height: 100%; background: linear-gradient(90deg, var(--coral) 0%, var(--pink) 100%); border-radius: 2px; }
+    .backing-bar .bar::after { content: ''; position: absolute; top: -2px; bottom: -2px; left: 90.91%; width: 1px; background: var(--text-muted); opacity: 0.5; }
+    .backing-bar .pct { font-weight: 700; min-width: 52px; text-align: right; }
+
+    /* Trust per-chain table */
+    .trust-table { background: var(--surface); border: 1px solid var(--hairline); border-radius: 4px; overflow: hidden; }
+    .trust-head, .trust-row > summary, .trust-total { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr 22px; gap: 14px; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--hairline); }
+    .trust-head { background: var(--bg-2); font-size: 10px; letter-spacing: 2.2px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+    .trust-head .num { text-align: right; }
+    .trust-row { border-bottom: 1px solid var(--hairline); }
+    .trust-row:last-of-type { border-bottom: none; }
+    .trust-row > summary { list-style: none; cursor: pointer; border-bottom: none; transition: background 0.15s; font-size: 13px; }
+    .trust-row > summary::-webkit-details-marker { display: none; }
+    .trust-row > summary::marker { display: none; }
+    .trust-row > summary:hover { background: var(--surface-hover); }
+    .trust-row[open] > summary { background: var(--surface-2); }
+    .trust-row .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); font-weight: 600; }
+    .trust-row .num small, .trust-total .num small { display: block; color: var(--text-dim); font-size: 10px; font-weight: 500; margin-top: 2px; letter-spacing: 0.4px; }
+    .trust-row .chev { width: 14px; height: 14px; color: var(--text-muted); transition: transform 0.18s; }
+    .trust-row[open] .chev { transform: rotate(90deg); color: var(--coral); }
+    .trust-row .chain-cell { display: flex; align-items: center; gap: 12px; }
+    .chain-tag { width: 34px; height: 34px; display: grid; place-items: center; font-family: var(--mono); font-size: 9px; font-weight: 700; color: var(--text-soft); border: 1px solid var(--hairline-strong); border-radius: 50%; background: var(--surface-2); letter-spacing: 0.3px; overflow: hidden; flex-shrink: 0; }
+    .chain-tag.has-logo { padding: 3px; }
+    .chain-tag img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .chain-name { color: var(--text); font-weight: 600; }
+
+    .trust-row .detail { padding: 14px 18px 18px; background: var(--surface-2); border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
+    .trust-row .block { margin-top: 12px; }
+    .trust-row .block:first-child { margin-top: 0; }
+    .trust-row .blk-label { font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 8px; }
+    .trust-row .lp-count { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.5px; margin-left: 6px; }
+
+    /* Mini stacked-bar with silver-green for Locked */
+    .mini-viz { background: var(--bg-2); border: 1px solid var(--hairline); border-radius: 3px; padding: 12px; }
+    .mini-bar { display: flex; height: 14px; border-radius: 2px; overflow: hidden; background: var(--hairline); }
+    .mini-bar > span { display: block; height: 100%; transition: opacity 0.2s; cursor: help; }
+    .mini-bar > span:hover { opacity: 0.85; }
+    .mini-bar > .seg-burned  { background: var(--c-burned); }
+    .mini-bar > .seg-locked  { background: var(--c-locked); }
+    .mini-bar > .seg-trust   { background: var(--gold-gradient); }
+    .mini-bar > .seg-lps     { background: var(--silver-green); }
+    .mini-bar > .seg-wallets { background: var(--c-wallets); }
+    .mini-legend { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 10px; font-size: 11px; }
+    .mini-legend > div { display: flex; align-items: center; gap: 6px; color: var(--text-muted); }
+    .mini-legend .dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+    .mini-legend .dot.burned  { background: var(--c-burned); }
+    .mini-legend .dot.locked  { background: var(--c-locked); }
+    .mini-legend .dot.trust   { background: var(--gold-gradient); }
+    .mini-legend .dot.lps     { background: var(--silver-green); }
+    .mini-legend .dot.wallets { background: var(--c-wallets); }
+    .mini-legend .v { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .mini-supply { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--hairline); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); }
+    .mini-supply b { display: block; color: var(--text); font-family: var(--sans); font-weight: 700; font-size: 13px; letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; margin-top: 3px; }
+
+    /* lists */
+    .lp-list { display: grid; gap: 4px; }
+    .lp-list.scrollable { max-height: 240px; overflow-y: auto; padding-right: 4px; }
+    .lp-list.scrollable::-webkit-scrollbar { width: 6px; }
+    .lp-list.scrollable::-webkit-scrollbar-track { background: transparent; }
+    .lp-list.scrollable::-webkit-scrollbar-thumb { background: var(--hairline-strong); border-radius: 3px; }
+    .lp-list.scrollable::-webkit-scrollbar-thumb:hover { background: var(--coral); }
+    .lp { display: grid; grid-template-columns: 1.4fr 1.2fr 1fr; gap: 12px; padding: 8px 12px; background: var(--bg-2); border: 1px solid var(--hairline); border-radius: 2px; font-size: 12px; align-items: center; }
+    .lp .lp-name { color: var(--text); font-weight: 600; }
+    .lp .lp-name a { color: var(--text); border-bottom: 1px dotted var(--hairline-strong); }
+    .lp .lp-name a:hover { color: var(--coral); border-bottom-color: var(--coral); }
+    .lp .lp-pair { color: var(--text-muted); font-family: var(--mono); font-size: 11px; }
+    .lp .lp-pair a { color: var(--text-muted); border-bottom: 1px dotted var(--hairline-strong); }
+    .lp .lp-pair a:hover { color: var(--coral); }
+    .lp .lp-amt { text-align: right; color: var(--text-soft); font-variant-numeric: tabular-nums; font-size: 12px; }
+    .lp .lp-sub { grid-column: 1 / -1; margin-top: 4px; padding-top: 6px; border-top: 1px dashed var(--hairline); display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .lp .lp-sub .tag { display: inline-flex; align-items: center; gap: 6px; }
+    .lp .lp-sub .tag .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+    .lp .lp-sub .tag.locked .dot { background: var(--c-locked); }
+    .lp .lp-sub .tag.burned .dot { background: var(--c-burned); }
+    .empty-note { padding: 10px 12px; background: var(--bg-2); border: 1px dashed var(--hairline-strong); border-radius: 2px; font-size: 12px; color: var(--text-muted); }
+
+    .trust-total { background: rgba(233, 69, 69, 0.05); font-size: 13px; font-weight: 700; border-bottom: none; }
+    .trust-total .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+
+    .governance { background: var(--surface); border: 1px solid var(--hairline); border-radius: 4px; padding: 22px; text-align: center; }
+    .governance .badge { display: inline-block; padding: 6px 14px; border: 1px solid var(--hairline-strong); border-radius: 2px; font-family: var(--mono); font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--coral); margin-bottom: 14px; }
+    .governance p { font-size: 13px; color: var(--text-soft); max-width: 540px; margin: 0 auto 18px; line-height: 1.55; }
+    .guardians { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .guardian { background: var(--bg-2); border: 1px solid var(--hairline); border-radius: 2px; padding: 12px 8px; font-size: 11px; color: var(--text-soft); }
+    .guardian .num { display: block; font-family: var(--mono); font-size: 9px; color: var(--text-dim); margin-bottom: 6px; }
+
+    .pagefoot { margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--hairline); display: flex; justify-content: space-between; gap: 12px; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); }
+
+    .err { color: var(--red); font-size: 11px; }
+
+    @media (max-width: 720px) {
+      .exhaustion { grid-template-columns: 1fr; gap: 18px; padding: 18px; }
+      .legend { grid-template-columns: 1fr; }
+      .guardians { grid-template-columns: repeat(2, 1fr); }
+      .multisig .row { grid-template-columns: 1fr; gap: 8px; }
+      .backing .row, .trust-head, .trust-row > summary, .trust-total { grid-template-columns: 1fr; gap: 6px; }
+      .backing .row .num, .trust-row .num { text-align: left; }
+      .lp { grid-template-columns: 1fr; gap: 4px; }
+      .mini-legend { grid-template-columns: repeat(2, 1fr); }
+      .mini-supply { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="loading-bar"></div>
+  <div class="page">
+    <header class="top">
+      <img class="logo" src="assets/rickle.png" alt="Rickle">
+      <div class="eyebrow">Rickle <span class="dot"></span> <span class="live">LIVE TRUST POSITION</span> <span style="margin-left:6px;">· <span id="audit-time">loading…</span><span class="loading-pulse" id="loading-pulse"></span></span></div>
+      <h1>Decentralized Trust Fund</h1>
+      <h2>A Decentralized Bank</h2>
+    </header>
+
+    <div class="stripe"></div>
+
+    <div id="scan-section">
+      <div class="section-head"><h2>Reading Live Chain Data</h2><span class="meta">Realtime · No Cache · Direct From RPC</span></div>
+      <div class="scan-banner">
+        <div>
+          <span class="scan-marker"></span>
+          <span class="scan-headline">Scanning On-Chain State</span>
+          <span class="scan-sub">7 networks · 50+ contracts · live balances, prices &amp; pool reserves</span>
+        </div>
+        <div class="scan-pills" id="scan-pills">
+          <span class="scan-pill" data-key="ETH">ETH</span>
+          <span class="scan-pill" data-key="BSC">BSC</span>
+          <span class="scan-pill" data-key="POL">POL</span>
+          <span class="scan-pill" data-key="ARB">ARB</span>
+          <span class="scan-pill" data-key="GNO">GNO</span>
+          <span class="scan-pill" data-key="BASE">BASE</span>
+          <span class="scan-pill" data-key="STABLE">STABLE</span>
+          <span class="scan-pill" data-key="PRICES">PRICES</span>
+        </div>
+        <div class="scan-status" id="scan-status">Connecting to RPC nodes…</div>
+        <div class="scan-progress"><div class="fill" id="scan-fill"></div></div>
+        <div class="scan-meta">
+          <span>Progress · <b id="scan-progress-text">0 / 8</b></span>
+          <span id="scan-progress-pct">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="exhaustion">
+      <div>
+        <div class="gauge-wrap">
+          <svg id="gauge" viewBox="0 0 220 220">
+            <defs>
+              <linearGradient id="ringSilverGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%"  stop-color="#d6e8d8"/>
+                <stop offset="50%" stop-color="#7a9b85"/>
+                <stop offset="100%" stop-color="#d6e8d8"/>
+              </linearGradient>
+              <linearGradient id="ringGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%"  stop-color="#fff5cf"/>
+                <stop offset="50%" stop-color="#c9a227"/>
+                <stop offset="100%" stop-color="#fff5cf"/>
+              </linearGradient>
+            </defs>
+            <circle cx="110" cy="110" r="92" fill="none" stroke="#1a1a1a" stroke-width="14"/>
+            <!-- Order clockwise from 12 o'clock: Trust, LPs, Wallets, Locked, Burned -->
+            <circle id="seg-trust"   class="seg" cx="110" cy="110" r="92" fill="none" stroke="url(#ringGold)"           stroke-width="14" stroke-dasharray="0 578.05"><title>Trust</title></circle>
+            <circle id="seg-lps"     class="seg" cx="110" cy="110" r="92" fill="none" stroke="url(#ringSilverGreen)"    stroke-width="14" stroke-dasharray="0 578.05"><title>LPs</title></circle>
+            <circle id="seg-wallets" class="seg" cx="110" cy="110" r="92" fill="none" stroke="#4caf50"                  stroke-width="14" stroke-dasharray="0 578.05"><title>Wallets</title></circle>
+            <circle id="seg-locked"  class="seg" cx="110" cy="110" r="92" fill="none" stroke="#6f1f1f"                  stroke-width="14" stroke-dasharray="0 578.05"><title>Locked</title></circle>
+            <circle id="seg-burned"  class="seg" cx="110" cy="110" r="92" fill="none" stroke="#e94545"                  stroke-width="14" stroke-dasharray="0 578.05"><title>Burned</title></circle>
+            <!-- Inner ring: active float only (Trust + LPs + Wallets). Retired
+                 supply (Burned + Locked) excluded so the live distribution is
+                 readable instead of being squashed by the dominant red wedge. -->
+            <circle cx="110" cy="110" r="68" fill="none" stroke="#1a1a1a" stroke-width="9"/>
+            <circle id="seg-inner-trust"   class="seg-inner" cx="110" cy="110" r="68" fill="none" stroke="url(#ringGold)"        stroke-width="9" stroke-dasharray="0 427.26"><title>Trust · active float</title></circle>
+            <circle id="seg-inner-lps"     class="seg-inner" cx="110" cy="110" r="68" fill="none" stroke="url(#ringSilverGreen)" stroke-width="9" stroke-dasharray="0 427.26"><title>LPs · active float</title></circle>
+            <circle id="seg-inner-wallets" class="seg-inner" cx="110" cy="110" r="68" fill="none" stroke="#4caf50"               stroke-width="9" stroke-dasharray="0 427.26"><title>Wallets · active float</title></circle>
+          </svg>
+          <div class="center">
+            <div>
+              <div class="pct" id="pct-supply">—</div>
+              <div class="pct-sub">RKL Total Supply</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="exhaustion-stats">
+        <h3>Supply Exhaustion · Consolidated</h3>
+        <p>A programmatic buy-back-and-burn permanently retires float toward the 90% terminal target. Trust assets accrue value separately — the trust grows; the float shrinks. Outer ring breaks down full supply; inner ring zooms in on active float (Trust + LPs + Wallets, retired tokens excluded). Hover any segment or card for detail.</p>
+        <div class="legend legend-5">
+          <div class="legend-item"><span class="swatch burned"></span><div class="top-row"><span class="l">Burned</span><span class="pct-tag" id="cons-burned-pct">—</span></div><div class="v" id="cons-burned">—</div></div>
+          <div class="legend-item"><span class="swatch locked"></span><div class="top-row"><span class="l">Locked</span><span class="pct-tag" id="cons-locked-pct">—</span></div><div class="v" id="cons-locked">—</div></div>
+          <div class="legend-item"><span class="swatch trust"></span><div class="top-row"><span class="l">Trust</span><span class="pct-tag" id="cons-trust-pct">—</span></div><div class="v" id="cons-trust">—</div></div>
+          <div class="legend-item"><span class="swatch lps"></span><div class="top-row"><span class="l">LPs</span><span class="pct-tag" id="cons-lps-pct">—</span></div><div class="v" id="cons-lps">—</div></div>
+          <div class="legend-item"><span class="swatch wallets"></span><div class="top-row"><span class="l">Wallets</span><span class="pct-tag" id="cons-wallets-pct">—</span></div><div class="v" id="cons-wallets">—</div></div>
+        </div>
+        <div class="target-line">
+          <span><span class="l">Current Retired ·</span> <b id="cons-retired-pct">—</b></span>
+          <span class="terminal-reached"><span class="l">Terminal Reached ·</span> <b>90%</b> <svg class="check" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5 L6.5 12 L13 4.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="stripe"></div>
+
+    <div class="section-head"><h2>Unified Multisig</h2><span class="meta">Single Address · Five Chains</span></div>
+    <div class="multisig">
+      <div class="row">
+        <div class="key">Address</div>
+        <div class="addr">0x40e4Da770530E960AE671634d14625F29e3dDb12</div>
+      </div>
+      <div class="chains">
+        <a class="chip" href="https://etherscan.io/address/0x40e4Da770530E960AE671634d14625F29e3dDb12" target="_blank" rel="noopener"><strong>ETH</strong>Etherscan</a>
+        <a class="chip" href="https://bscscan.com/address/0x40e4Da770530E960AE671634d14625F29e3dDb12" target="_blank" rel="noopener"><strong>BSC</strong>BscScan</a>
+        <a class="chip" href="https://polygonscan.com/address/0x40e4Da770530E960AE671634d14625F29e3dDb12" target="_blank" rel="noopener"><strong>POL</strong>Polygonscan</a>
+        <a class="chip" href="https://arbiscan.io/address/0x40e4Da770530E960AE671634d14625F29e3dDb12" target="_blank" rel="noopener"><strong>ARB</strong>Arbiscan</a>
+        <a class="chip" href="https://gnosisscan.io/address/0x40e4Da770530E960AE671634d14625F29e3dDb12" target="_blank" rel="noopener"><strong>GNO</strong>Gnosisscan</a>
+        <a class="chip" href="https://basescan.org/address/0x40e4Da770530E960AE671634d14625F29e3dDb12" target="_blank" rel="noopener"><strong>BASE</strong>BaseScan</a>
+        <a class="chip" href="https://stablescan.xyz/address/0x40e4Da770530E960AE671634d14625F29e3dDb12" target="_blank" rel="noopener" id="chip-stable"><strong>STABLE</strong>StableScan</a>
+      </div>
+    </div>
+
+    <div class="stripe"></div>
+
+    <div class="section-head"><h2>Backing Ratio</h2><span class="meta">Target 110%</span></div>
+    <div class="backing">
+      <div class="row header">
+        <div>Chain</div>
+        <div class="num">Trust Capital</div>
+        <div class="num">Market Cap</div>
+        <div class="num">Backing · scale to 110%</div>
+      </div>
+      <div id="backing-rows"></div>
+      <div class="row total">
+        <div class="chain-cell"><span class="chain-name">Consolidated · 7 Chains</span></div>
+        <div class="num" id="backing-total-cap">—</div>
+        <div class="num" id="backing-total-mc">—</div>
+        <div class="backing-bar"><div class="bar"><div id="backing-total-bar" style="width:0%"></div></div><span class="pct" id="backing-total-pct">—</span></div>
+      </div>
+    </div>
+
+    <div class="stripe"></div>
+
+    <div class="section-head"><h2>The Trust · Across 7 Chains</h2><span class="meta">RKL Distribution · Click a Chain to Expand</span></div>
+    <div class="trust-table">
+      <div class="trust-head">
+        <div>Chain</div>
+        <div class="num">Burned</div>
+        <div class="num">Locked</div>
+        <div class="num">In Trust</div>
+        <div class="num">Wallets</div>
+        <div></div>
+      </div>
+      <div id="trust-rows"></div>
+      <div class="trust-total" id="trust-total">
+        <div class="chain-cell"><span class="chain-name">Consolidated · 7 Chains</span></div>
+        <div class="num" id="tot-burned">—</div>
+        <div class="num" id="tot-locked">—</div>
+        <div class="num" id="tot-trust">—</div>
+        <div class="num" id="tot-wallets">—</div>
+        <div></div>
+      </div>
+    </div>
+
+    <div class="stripe"></div>
+
+    <div class="section-head"><h2>Strategic Reserve · Buybacks</h2><span class="meta">Capital Reserved for RKL Float Reduction · BSC</span></div>
+    <div class="strat-reserve" id="strat-reserve"></div>
+
+    <div class="stripe"></div>
+
+    <div class="section-head"><h2>AHWA · Voter Token</h2><span class="meta">Governance Token · BSC Only</span></div>
+    <div class="ahwa" id="ahwa-list"></div>
+
+    <div class="section-head" style="margin-top: 28px;"><h3 style="font-size:14px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin:0;">AHWA Liquidity</h3><span class="meta">Trading Pairs Containing AHWA · BSC</span></div>
+    <div class="ahwa-pools" id="ahwa-pools"></div>
+
+    <div class="stripe"></div>
+
+    <div class="section-head"><h2>WIN · Vault Token</h2><span class="meta">Winston · Liquidity Locker · BSC</span></div>
+    <div class="ahwa-pools" id="win-pools"></div>
+
+    <div class="stripe"></div>
+
+    <div class="section-head"><h2>Founders · Public Wallets</h2><span class="meta">Disclosed Holdings · Counted in Wallets</span></div>
+    <div class="founders" id="founders-list"></div>
+
+    <div class="stripe"></div>
+
+    <div class="section-head"><h2>Unified Cross-Chain Governance</h2><span class="meta">Treasury Custody</span></div>
+    <div class="governance">
+      <div class="badge">3 of 5 Signer Consensus</div>
+      <p>Every treasury movement requires a 3-of-5 majority of the Caretakers named below. No unilateral action is possible — control is split, not delegated.</p>
+      <div class="guardians">
+        <div class="guardian">Reedone</div>
+        <div class="guardian">Felix</div>
+        <div class="guardian">Awesomeest</div>
+        <div class="guardian">Payment Designer</div>
+        <div class="guardian">Dreamingrainbow</div>
+      </div>
+    </div>
+
+    <div class="pagefoot">
+      <span>Rickle · Live Trust Position</span>
+      <span><span id="footer-time">—</span> · on-chain via publicnode RPC</span>
+    </div>
+  </div>
+
+  <script>
+  // ============================================================
+  //  Live audit — runs in the browser on every page load.
+  // ============================================================
+
+  const RPC = {
+    ETH:  'https://ethereum-rpc.publicnode.com',
+    BSC:  'https://bsc-rpc.publicnode.com',
+    POL:  'https://polygon-bor-rpc.publicnode.com',
+    GNO:  'https://gnosis-rpc.publicnode.com',
+    ARB:  'https://arbitrum-one-rpc.publicnode.com',
+    // Asset-only chains (multisig holds non-RKL value here; no RKL token)
+    BASE:   'https://base-rpc.publicnode.com',
+    STABLE: 'https://rpc.stable.xyz',
+  };
+  const TOKEN = {
+    ETH: '0x0fF80a1708191C0Da8Aa600Fa487f7aC81D7818c',
+    BSC: '0xeCa15e1BbFF172D545Dd6325F3Bae7b737906737',
+    POL: '0x9fdc23fe295104ac55fef09363c56451d0e37cfa',
+    GNO: '0x2dF5912439d2D14d04a7742346508505288eF367',
+    ARB: '0x2d0e0ec9c82c67c4a8d7c7e6c176831f52821b33',
+  };
+  const SAFE = '0x40e4Da770530E960AE671634d14625F29e3dDb12';
+  const DEAD = '0x000000000000000000000000000000000000dEaD';
+  // Winston Vault — ERC-20 contract that holds LP tokens to lock liquidity.
+  // Per-chain so we can extend to other chains later. RKL inside an LP held
+  // by Winston is locked (not free-floating).
+  const VAULT = {
+    BSC: '0x75578ebBefe274F240B8E1b5859cA34f342157D9', // Winston (WIN)
+  };
+  // Founders — public wallets disclosed for transparency. RKL held here is
+  // counted in the "Wallets" bucket (not reattributed); listing them simply
+  // makes the float composition visible. Each founder may declare multiple
+  // wallets — balances are summed.
+  const FOUNDERS = [
+    { name: 'dreamingrainbow',  role: 'Founder', addrs: [
+      '0xF9B9eE3B0301B511cd5AA4b8D039F63df19C615a',
+      '0x4FA4388547Df0FC4462a46949B5164D37f113CE8',
+      '0x8D54299F385365Fa0733a16265FEc49a0F323da0',
+    ] },
+    { name: 'payment designer', role: 'Payment Designer', addrs: [
+      '0x130Be432f446F1fD0B356023f3b308C36a304642',
+    ] },
+  ];
+  // Per-satellite locked-RKL contracts (time-locks, vesting, etc).
+  // RKL held by these counts as locked, not free-floating wallet supply.
+  const SAT_LOCKED = {
+    BSC: [
+      { label: 'Locked · Team Finance',                addr: '0x0c89c0407775dd89b12918b9c0aa42bf96518820' },
+      { label: 'Locked · PinkLock02',                  addr: '0x407993575c91ce7643a4d4ccacc9a98c36ee1bbe' },
+      // CryptoSwap AHWA staking pools — RKL emission reserves earmarked for
+      // AHWA stakers. PancakeSwap MasterChef-style fork.
+      { label: 'Staking · CryptoSwap AHWA→RKL Pool A', addr: '0x6745ffb470378acde8330735f841f6746da1fe77' },
+      { label: 'Staking · CryptoSwap AHWA→RKL Pool B', addr: '0xa0ec264b63915596855d5e1cd7db58614d437c17' },
+    ],
+  };
+
+  const EXPLORER = {
+    ETH:    'https://etherscan.io',
+    BSC:    'https://bscscan.com',
+    POL:    'https://polygonscan.com',
+    ARB:    'https://arbiscan.io',
+    GNO:    'https://gnosisscan.io',
+    BASE:   'https://basescan.org',
+    STABLE: 'https://stablescan.xyz',
+  };
+
+  // Chain logos. ETH/BSC/POL/ARB/GNO/BASE come from Trust Wallet's assets
+  // repo via jsdelivr; STABLE pulls the official light-on-dark logotype
+  // straight from stable.xyz's brand directory.
+  const CHAIN_LOGO = {
+    ETH:    'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/ethereum/info/logo.png',
+    BSC:    'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/smartchain/info/logo.png',
+    POL:    'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/polygon/info/logo.png',
+    ARB:    'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/arbitrum/info/logo.png',
+    GNO:    'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/xdai/info/logo.png',
+    BASE:   'https://cdn.jsdelivr.net/gh/trustwallet/assets@master/blockchains/base/info/logo.png',
+    STABLE: 'https://www.stable.xyz/brand/logo/stable-logotype-light.svg',
+  };
+  // Render the per-chain badge: brand logo if available, else fall back to
+  // the text key so unknown chains still get a tag. `onerror` recovers the
+  // text fallback if a CDN request 404s in the future.
+  function chainTag(key) {
+    const url = CHAIN_LOGO[key];
+    if (!url) return `<span class="chain-tag">${key}</span>`;
+    return `<span class="chain-tag has-logo" title="${key}"><img src="${url}" alt="${key}" loading="lazy" onerror="this.parentNode.classList.remove('has-logo');this.parentNode.textContent='${key}';"></span>`;
+  }
+
+  // ETH-side lock contracts. `dead: true` means satellite mate is dead/missing.
+  const ETH_LOCKED = [
+    { label: 'Dead · 0x000…dEaD',          addr: '0x000000000000000000000000000000000000dEaD', kind: 'burned' },
+    { label: 'Locked · Mike E. (Founder, deceased)',         addr: '0x29b2C7198D284eb1c715b550D9e5725c138B356d', kind: 'locked' },
+    { label: 'Locked · Rick Harrison (contract breach)',     addr: '0x7D10553ddfE6B060074398A6D88a9dafc4cED1C1', kind: 'locked' },
+    { label: 'Locked · Tracey — Rick’s mgr (contract breach)', addr: '0x839B86cD9f069536b92b81AF3E6D22411a8e7dc6', kind: 'locked' },
+    { label: 'Locked · EtherDelta 2',      addr: '0x8d12A197cB00D4747a1fe03395095ce2A5CC6819', kind: 'locked' },
+  ];
+  const ETH_BRIDGES = [
+    { label: 'Bridge · BSC',               addr: '0x69c707d975e8d883920003CC357E556a4732CD03', dead: false },
+    { label: 'Bridge · Polygon ERC-20',    addr: '0x40ec5B33f54e0E8A33A975908C5BA1c14e5BbbDf', dead: false },
+    { label: 'Bridge · Gnosis Omnibridge', addr: '0x88ad09518695c6c3712AC10a214bE5109a655671', dead: false },
+    { label: 'Bridge · Harmony ERC-20',    addr: '0x2dCCDB493827E15a5dC8f8b72147E6c4A5620857', dead: true  },
+  ];
+
+  // ---- Trust assets (non-RKL) per chain. Add/remove freely. ----
+  // `native: true` calls eth_getBalance instead of balanceOf.
+  // Each entry must have a symbol and decimals; optional address for ERC-20.
+  // `cg` = CoinGecko id for /simple/price. `usd: 1` = stable, no fetch needed.
+  const TRUST_ASSETS = {
+    ETH: [
+      { sym: 'ETH',   native: true, decimals: 18, cg: 'ethereum' },
+      { sym: 'stETH', addr: '0xae7ab96520de3a18e5e111b5eaab095312d7fe84', decimals: 18, cg: 'staked-ether' },
+      { sym: 'WBTC',  addr: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599', decimals:  8, cg: 'wrapped-bitcoin' },
+    ],
+    BSC: [
+      { sym: 'BNB',   native: true, decimals: 18, cg: 'binancecoin' },
+      { sym: 'BTCB',  addr: '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c', decimals: 18, cg: 'bitcoin' },
+      { sym: 'USDT',  addr: '0x55d398326f99059fF775485246999027B3197955', decimals: 18, usd: 1 },
+      // Binance-Peg wrapped versions of L1 assets — pegged 1:1 to mainnet.
+      { sym: 'SOL',   addr: '0x570A5D26f7765Ecb712C0924E4De545B89fD43dF', decimals: 18, cg: 'solana' },
+      { sym: 'AAVE',  addr: '0xfb6115445Bff7b52FeB98650C87f44907E58f802', decimals: 18, cg: 'aave' },
+      { sym: 'LTC',   addr: '0x4338665CBB7B2485A8855A139b75D5e34AB0DB94', decimals: 18, cg: 'litecoin' },
+      { sym: 'CAKE',  addr: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82', decimals: 18, cg: 'pancakeswap-token' },
+      { sym: 'XRP',   addr: '0x1D2F0da169ceB9fC7B3144628dB156f3F6c60dBE', decimals: 18, cg: 'ripple' },
+      // AHWA — governance/voter token (10,000 total supply). Held only by
+      // SAFE + founders on BSC. No market price; valued at $0 for capital
+      // accounting (governance utility, not a backing asset).
+      { sym: 'AHWA',  addr: '0x3A81caafeeDCF2D743Be893858cDa5AcDBF88c11', decimals: 18, usd: 0 },
+      // WIN — Winston vault token. No CG listing; priced at $0 for capital
+      // accounting (governance/utility, not a backing asset). Disclosed for
+      // transparency. WIN's pool depth lives in the WIN Liquidity section.
+      { sym: 'WIN',   addr: '0x75578ebBefe274F240B8E1b5859cA34f342157D9', decimals: 18, usd: 0 },
+    ],
+    POL: [
+      { sym: 'POL',   native: true, decimals: 18, cg: 'matic-network' },
+      { sym: 'WBTC',  addr: '0x1bfd67037b42cf73aCF2047067bd4F2C47D9BfD6', decimals:  8, cg: 'wrapped-bitcoin' },
+    ],
+    ARB: [
+      { sym: 'ETH',   native: true, decimals: 18, cg: 'ethereum' },
+      { sym: 'WBTC',  addr: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f', decimals:  8, cg: 'wrapped-bitcoin' },
+    ],
+    GNO: [
+      { sym: 'xDAI',  native: true, decimals: 18, usd: 1 },
+      { sym: 'WETH',  addr: '0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1', decimals: 18, cg: 'ethereum' },
+      { sym: 'WBTC',  addr: '0x8e5bBbb09Ed1ebdE8674Cda39A0c169401db4252', decimals:  8, cg: 'wrapped-bitcoin' },
+    ],
+    // Asset-only chains — multisig holds value here, no RKL token deployed.
+    BASE: [
+      { sym: 'ETH',   native: true, decimals: 18, cg: 'ethereum' },
+      { sym: 'USDC',  addr: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals:  6, usd: 1 },
+      { sym: 'cbBTC', addr: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf', decimals:  8, cg: 'coinbase-wrapped-btc' },
+    ],
+    STABLE: [
+      // Add Stable-chain assets here (USDC etc) once token contract addresses are known.
+      // { sym: 'USDC', addr: '0x...', decimals: 6, usd: 1 },
+    ],
+  };
+
+  // ---- LP pools per chain. Add as you discover them. ----
+  // `addr` = v2 pair contract (Uniswap v2-compatible: PancakeSwap, SushiSwap,
+  // ApeSwap, QuickSwap, etc). For each pool we call:
+  //   token0() / token1()   → which slot holds RKL, which holds the quote
+  //   getReserves()         → reserve0 / reserve1
+  // Then match by address: RKL reserve goes to `rklAmount`, the other side
+  // becomes `quoteAmount` (priced via the `quote` metadata below).
+  // Sourced from config.yaml `assets.RKL_*.pricing.v2_pool`. ETH and ARB use
+  // Uniswap v3 (no single LP address) and are not yet supported here.
+  const LP_POOLS = {
+    ETH: [
+      { addr: '0x409dabe6edd1685e6d04f0d4dfba3e22491f33d8', kind: 'v3',   label: 'SushiSwap v3',  pair: 'RKL/WETH',
+        quote: { sym: 'WETH', addr: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', decimals: 18, cg: 'ethereum' } },
+      { addr: '0x211124d66a98118c36b87331452693c1d1344517', kind: 'v3',   label: 'UniSwap v3',    pair: 'RKL/WETH',
+        quote: { sym: 'WETH', addr: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', decimals: 18, cg: 'ethereum' } },
+    ],
+    BSC: [
+      // PancakeSwap V2
+      { addr: '0x4dce12240b37879610601eb70685d396faf06417', label: 'PancakeSwap v2', pair: 'RKL/WBNB',
+        quote: { sym: 'WBNB',  decimals: 18, cg: 'binancecoin' } },
+      { addr: '0x656fb87cda1f25e8181b0415ef65dd6d439165e4', label: 'PancakeSwap v2', pair: 'RKL/BTCB',
+        quote: { sym: 'BTCB',  decimals: 18, cg: 'bitcoin' } },
+      { addr: '0xea5087ea5b5be8fc9f9b580cf0d851ddcb96dab1', label: 'PancakeSwap v2', pair: 'RKL/UST',
+        quote: { sym: 'UST',   decimals: 18, cg: 'terrausd' } },
+      { addr: '0x45d9c665055572970d246f2dd96c74787faef03f', label: 'PancakeSwap v2', pair: 'RKL/BUSD',
+        quote: { sym: 'BUSD',  decimals: 18, cg: 'binance-usd' } },
+      { addr: '0xb2a13ce9f3dfeb5f38f2211fbf3de91d72cdabdd', label: 'PancakeSwap v2', pair: 'RKL/CAKE',
+        quote: { sym: 'CAKE',  decimals: 18, cg: 'pancakeswap-token' } },
+      { addr: '0xe01d99478b8a159b957d75455c01104734e05ee1', label: 'PancakeSwap v2', pair: 'RKL/USDT',
+        quote: { sym: 'USDT',  decimals: 18, usd: 1 } },
+      { addr: '0xabfa93b2b786b6ea3c8d990cc2efe81c880cb09f', label: 'PancakeSwap v2', pair: 'RKL/USDC',
+        quote: { sym: 'USDC',  decimals: 18, usd: 1 } },
+      { addr: '0xaebb9721b56555c84e451371e27e48b6c45bea5a', label: 'PancakeSwap v2', pair: 'RKL/XRP',
+        quote: { sym: 'XRP',   decimals: 18, cg: 'ripple' } },
+      // SushiSwap V2
+      { addr: '0xb0d1a98c5213d60ab4932779eb695943fe1aeb51', label: 'SushiSwap v2',   pair: 'RKL/WBNB',
+        quote: { sym: 'WBNB',  decimals: 18, cg: 'binancecoin' } },
+      { addr: '0xbe89834476127a1d2461b58d9ff4e5a64f9ae37b', label: 'SushiSwap v2',   pair: 'RKL/BUSD',
+        quote: { sym: 'BUSD',  decimals: 18, cg: 'binance-usd' } },
+      { addr: '0x71ffbe76c7e799a9e7bf8ffcd68e15ea4e175467', label: 'SushiSwap v2',   pair: 'RKL/USDT',
+        quote: { sym: 'USDT',  decimals: 18, usd: 1 } },
+      // CryptoSwap
+      { addr: '0x63f73c2393a93293fa8e480ca26a073579503353', label: 'CryptoSwap',     pair: 'RKL/WBNB',
+        quote: { sym: 'WBNB',  decimals: 18, cg: 'binancecoin' } },
+      { addr: '0x4b89185ba15cec791ef3c6695a35247a1b88fd6c', label: 'CryptoSwap',     pair: 'RKL/BUSD',
+        quote: { sym: 'BUSD',  decimals: 18, cg: 'binance-usd' } },
+      { addr: '0xaa9aab356c36fa6f7a3503e20a1d2a3e1f21c526', label: 'CryptoSwap',     pair: 'RKL/USDT',
+        quote: { sym: 'USDT',  decimals: 18, usd: 1 } },
+      { addr: '0x47659b88381bf67e15e83d2909d8c22d83da61b1', label: 'CryptoSwap',     pair: 'RKL/USDC',
+        quote: { sym: 'USDC',  decimals: 18, usd: 1 } },
+      { addr: '0xc80addc17023afa9ca110fc70debc32ccc26e89f', label: 'CryptoSwap',     pair: 'RKL/BTCB',
+        quote: { sym: 'BTCB',  decimals: 18, cg: 'bitcoin' } },
+      // MasterChief
+      { addr: '0xb5e7ff9a2f33a8a1e31eb79dc14659111f3dd51c', label: 'MasterChief',    pair: 'RKL/WBNB',
+        quote: { sym: 'WBNB',  decimals: 18, cg: 'binancecoin' } },
+      { addr: '0x7e8c3ad495970e4ce7c26a135f8e3b93cba726c5', label: 'MasterChief',    pair: 'RKL/BUSD',
+        quote: { sym: 'BUSD',  decimals: 18, cg: 'binance-usd' } },
+      { addr: '0xb3b7766717169facf3eb53b9e1e2c4266f7945f8', label: 'MasterChief',    pair: 'RKL/USDT',
+        quote: { sym: 'USDT',  decimals: 18, usd: 1 } },
+      { addr: '0x9eb6a50dfddbfe710298d5139762301de8233d2c', label: 'MasterChief',    pair: 'RKL/USDC',
+        quote: { sym: 'USDC',  decimals: 18, usd: 1 } },
+      { addr: '0xc91878b2087fbe42c378b3667dde6ccb4d143392', label: 'MasterChief',    pair: 'RKL/BTCB',
+        quote: { sym: 'BTCB',  decimals: 18, cg: 'bitcoin' } },
+      { addr: '0x326d67726b412fec1f1533d145f8c09fdcbac716', label: 'MasterChief',    pair: 'RKL/UST',
+        quote: { sym: 'UST',   decimals: 18, cg: 'terrausd' } },
+      // PancakeSwap V3
+      { addr: '0x9c20da321453cde32d1c25a2eb558eae90139ab6', kind: 'v3', label: 'PancakeSwap v3', pair: 'RKL/WBNB',
+        quote: { sym: 'WBNB', addr: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', decimals: 18, cg: 'binancecoin' } },
+      // (Two CryptoSwap AHWA staking pools moved to SAT_LOCKED — they're not
+      // liquidity, they're stake-and-earn contracts: AHWA stakers claim RKL
+      // emissions. The RKL inside is reward emission earmarked for stakers.)
+      // WIN/RKL pools — RKL paired with Winston. WIN priced at $0 (no market price)
+      // so they don't distort RKL price calc but the RKL still rolls into LP totals.
+      { addr: '0xbb22d416ac55e8d07d9fe78da3cc9919a1c357ce', label: 'PancakeSwap v2', pair: 'WIN/RKL',
+        quote: { sym: 'WIN', decimals: 18, usd: 0 } },
+      { addr: '0x205564aaf40a4be1b8259fdf8038e278f8ea8d59', label: 'CryptoSwap',     pair: 'WIN/RKL',
+        quote: { sym: 'WIN', decimals: 18, usd: 0 } },
+      { addr: '0x42a3f09de1d0fa9ba589e4cdcf07be9d9890462c', label: 'MasterChief',    pair: 'WIN/RKL',
+        quote: { sym: 'WIN', decimals: 18, usd: 0 } },
+      // ApeSwap (3 pools currently empty — kept for monitoring)
+      { addr: '0x5d23c222dd759cbb82de81933cb145bb7fcb6753', label: 'ApeSwap',        pair: 'RKL/BUSD',
+        quote: { sym: 'BUSD',  decimals: 18, cg: 'binance-usd' } },
+      { addr: '0xbf33d6b4195f5b02d78e176cb908b500cc8b9a39', label: 'ApeSwap',        pair: 'RKL/WBNB',
+        quote: { sym: 'WBNB',  decimals: 18, cg: 'binancecoin' } },
+      { addr: '0xec12adb4078bd62f7047cc761f5d3cca3973f284', label: 'ApeSwap',        pair: 'RKL/USDT',
+        quote: { sym: 'USDT',  decimals: 18, usd: 1 } },
+      { addr: '0x1ca722acd3e4922a2e043ca849940770c24ed678', label: 'ApeSwap',        pair: 'RKL/USDC',
+        quote: { sym: 'USDC',  decimals: 18, usd: 1 } },
+    ],
+    POL: [
+      { addr: '0x12eb539209f3a7c224643f6a3c69b294ca2bef8e', label: 'ApeSwap v2',     pair: 'RKL/WPOL',
+        quote: { sym: 'WPOL',  decimals: 18, cg: 'matic-network' } },
+      { addr: '0xe9a2e88de7aad88ed7241e5769db30e9750988cf', label: 'QuickSwap v2',   pair: 'RKL/USDC',
+        quote: { sym: 'USDC',  decimals: 6,  usd: 1 } },
+      { addr: '0xb1222b084eaf00e067c4f26c4d690bfbd4525854', label: 'QuickSwap v2',   pair: 'RKL/USDT',
+        quote: { sym: 'USDT',  decimals: 6,  usd: 1 } },
+      { addr: '0x202648e10ca26132de4858d8f4ed792ba52c1978', label: 'QuickSwap v2',   pair: 'RKL/USDC',
+        quote: { sym: 'USDC',  decimals: 6,  usd: 1 } },
+    ],
+    ARB: [
+      { addr: '0x7d81e54ea03e18b218516df0574df5faaaf620b6', label: 'SushiSwap v2',   pair: 'RKL/WBTC',
+        quote: { sym: 'WBTC',  decimals: 8,  cg: 'wrapped-bitcoin' } },
+    ],
+    GNO: [
+      { addr: '0x558d221a5dfb9a2a60f7341695af485105433150', label: 'SushiSwap v2',   pair: 'RKL/WXDAI',
+        quote: { sym: 'WXDAI', decimals: 18, usd: 1 } },
+      { addr: '0xa51bb47640e839e85e84414380afb8fb62d4441e', label: 'SushiSwap v2',   pair: 'RKL/WETH',
+        quote: { sym: 'WETH',  decimals: 18, cg: 'ethereum' } },
+    ],
+  };
+
+  // ---- low-level RPC ----
+  function pad(addr) { return '000000000000000000000000' + addr.slice(2).toLowerCase(); }
+  async function rpcCall(rpc, to, data) {
+    const r = await fetch(rpc, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_call', params: [{ to, data }, 'latest'], id: 1 }),
+    });
+    const j = await r.json();
+    if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
+    return j.result || '0x0';
+  }
+  async function rpcGetBalance(rpc, addr) {
+    const r = await fetch(rpc, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_getBalance', params: [addr, 'latest'], id: 1 }),
+    });
+    const j = await r.json();
+    return BigInt(j.result || '0x0');
+  }
+  async function totalSupply(rpc, t)  { return BigInt(await rpcCall(rpc, t, '0x18160ddd')); }
+  async function balanceOf(rpc, t, h) { return BigInt(await rpcCall(rpc, t, '0x70a08231' + pad(h))); }
+  async function token0(rpc, pair)    { return '0x' + (await rpcCall(rpc, pair, '0x0dfe1681')).slice(-40); }
+  async function token1(rpc, pair)    { return '0x' + (await rpcCall(rpc, pair, '0xd21220a7')).slice(-40); }
+  // getReserves() returns (uint112 r0, uint112 r1, uint32 ts) — three 32-byte words.
+  async function getReserves(rpc, pair) {
+    const hex = await rpcCall(rpc, pair, '0x0902f1ac');
+    const data = hex.slice(2);
+    return { r0: BigInt('0x' + data.slice(0, 64)), r1: BigInt('0x' + data.slice(64, 128)) };
+  }
+
+  // ---- formatting ----
+  function bigToFloat(amt, dec) {
+    if (amt === 0n) return 0;
+    const d = 10n ** BigInt(dec);
+    const whole = amt / d;
+    const frac = (amt % d).toString().padStart(dec, '0').slice(0, 6);
+    return parseFloat(whole.toString() + '.' + frac);
+  }
+  function fmtCompact(amt, dec) {
+    const n = bigToFloat(amt, dec);
+    if (n === 0) return '0';
+    if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+    if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+    if (n >= 1e3) return (n / 1e3).toFixed(2) + 'K';
+    if (n >= 1)   return n.toFixed(0);
+    return n.toFixed(4);
+  }
+  function fmtFull(amt, dec) {
+    const n = bigToFloat(amt, dec);
+    return n.toLocaleString('en-US', { maximumFractionDigits: 4 });
+  }
+  function pct(part, whole) {
+    if (whole === 0n) return '0.00%';
+    return (Number(part * 1000000n / whole) / 10000).toFixed(2) + '%';
+  }
+  function pctNum(part, whole) {
+    if (whole === 0n) return 0;
+    return Number(part * 1000000n / whole) / 10000;
+  }
+
+  // ---- audits ----
+  async function auditETH() {
+    const sup = await totalSupply(RPC.ETH, TOKEN.ETH);
+    const lockedItems = await Promise.all(ETH_LOCKED.map(async (w) => ({ ...w, amount: await balanceOf(RPC.ETH, TOKEN.ETH, w.addr) })));
+    const bridgeItems = await Promise.all(ETH_BRIDGES.map(async (b) => ({ ...b, amount: await balanceOf(RPC.ETH, TOKEN.ETH, b.addr) })));
+    const safeBal = await balanceOf(RPC.ETH, TOKEN.ETH, SAFE);
+
+    const burned    = lockedItems.filter(x => x.kind === 'burned').reduce((s, x) => s + x.amount, 0n);
+    const locked3   = lockedItems.filter(x => x.kind === 'locked').reduce((s, x) => s + x.amount, 0n);
+    const bridgeAll = bridgeItems.reduce((s, x) => s + x.amount, 0n);
+    const bridgeDead = bridgeItems.filter(b => b.dead).reduce((s, x) => s + x.amount, 0n);
+    const wallets = sup - burned - locked3 - bridgeAll - safeBal;
+
+    return {
+      key: 'ETH', name: 'Ethereum', decimals: 18, supply: sup,
+      // For per-chain row: bridges are "locked on ETH" since they're not in float
+      burned, locked: locked3 + bridgeAll, trust: safeBal, wallets,
+      // For consolidated math: split out
+      _burnedDead: burned, _lockedWallets: locked3, _bridgeAll: bridgeAll, _bridgeDead: bridgeDead, _safe: safeBal, _trueFloat: wallets,
+      breakdown: [...lockedItems, ...bridgeItems.map(b => ({ ...b, kind: 'locked' }))],
+    };
+  }
+
+  async function auditChain(key, name, rpc, token) {
+    const vault = VAULT[key] || null;
+    const lockList = SAT_LOCKED[key] || [];
+    const [sup, dead, safeBal, vaultBal, ...lockBals] = await Promise.all([
+      totalSupply(rpc, token),
+      balanceOf(rpc, token, DEAD),
+      balanceOf(rpc, token, SAFE),
+      vault ? balanceOf(rpc, token, vault) : Promise.resolve(0n),
+      ...lockList.map(w => balanceOf(rpc, token, w.addr)),
+    ]);
+    // RKL held directly by the vault + each per-chain time-lock contract.
+    // RKL inside LP tokens the vault holds is accounted separately in fetchLPs.
+    const lockSum = lockBals.reduce((s, b) => s + b, 0n);
+    const locked = vaultBal + lockSum;
+    const wallets = sup - dead - safeBal - locked;
+    const breakdown = [{ label: 'Dead · 0x000…dEaD', addr: DEAD, amount: dead, kind: 'burned' }];
+    if (vault && vaultBal > 0n) {
+      breakdown.push({ label: `Locked · Winston Vault (${vault.slice(0, 6)}…${vault.slice(-4)})`, addr: vault, amount: vaultBal, kind: 'locked' });
+    }
+    lockList.forEach((w, i) => {
+      if (lockBals[i] > 0n) breakdown.push({ label: w.label, addr: w.addr, amount: lockBals[i], kind: 'locked' });
+    });
+    return {
+      key, name, decimals: 18, supply: sup,
+      burned: dead, locked, trust: safeBal, wallets,
+      _burnedDead: dead, _lockedWallets: locked, _bridgeAll: 0n, _bridgeDead: 0n, _safe: safeBal, _trueFloat: wallets,
+      breakdown,
+    };
+  }
+
+  async function fetchTrustAssets(key, rpc) {
+    const list = TRUST_ASSETS[key] || [];
+    const out = [];
+    for (const a of list) {
+      try {
+        const bal = a.native
+          ? await rpcGetBalance(rpc, SAFE)
+          : await balanceOf(rpc, a.addr, SAFE);
+        if (bal > 0n) out.push({ ...a, amount: bal });
+      } catch { /* skip */ }
+    }
+    return out;
+  }
+
+  // ---- prices ----
+  // Fetch USD prices from CoinGecko once, indexed by CG id. Stables (`usd:1`)
+  // skip the fetch and resolve to $1 in `assetUSD()`.
+  async function fetchPrices() {
+    const ids = new Set();
+    for (const list of Object.values(TRUST_ASSETS)) {
+      for (const a of list) if (a.cg) ids.add(a.cg);
+    }
+    if (!ids.size) return {};
+    try {
+      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${[...ids].join(',')}&vs_currencies=usd`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('cg ' + r.status);
+      const j = await r.json();
+      const out = {};
+      for (const id of ids) out[id] = j[id]?.usd ?? null;
+      return out;
+    } catch (e) {
+      console.warn('price fetch failed:', e.message);
+      return {};
+    }
+  }
+  function assetUSD(a, prices) {
+    if (a.usd != null) return bigToFloat(a.amount, a.decimals) * a.usd;
+    const p = prices[a.cg];
+    if (!p) return null;
+    return bigToFloat(a.amount, a.decimals) * p;
+  }
+  function chainTrustUSD(items, prices) {
+    let total = 0;
+    let partial = false;
+    for (const a of items) {
+      const v = assetUSD(a, prices);
+      if (v == null) { partial = true; continue; }
+      total += v;
+    }
+    return { total, partial };
+  }
+  function fmtUSD(v) {
+    if (!isFinite(v) || v <= 0) return '$0';
+    if (v >= 1e9) return '$' + (v / 1e9).toFixed(2) + 'B';
+    if (v >= 1e6) return '$' + (v / 1e6).toFixed(2) + 'M';
+    if (v >= 1e3) return '$' + (v / 1e3).toFixed(2) + 'K';
+    return '$' + v.toFixed(2);
+  }
+
+  // RKL spot price derived from pool reserves, TVL-weighted across all
+  // priced v2/v3 pools we know about. For each pool: priceUSD = quoteUSD /
+  // rkl_reserve; weight = quoteUSD (half of pool TVL is the quote side).
+  // Pools with empty reserves or no priceable quote are skipped.
+  function lpDerivedRKLPrice(lps, prices) {
+    let weight = 0;
+    let priceTimesWeight = 0;
+    for (const lp of lps || []) {
+      if (!lp.quote) continue;
+      const rkl = lp.rklAmount, q = lp.quoteAmount;
+      if (!rkl || !q || rkl === 0n || q === 0n) continue;
+      const qUnit = lp.quote.usd != null ? lp.quote.usd : (prices?.[lp.quote.cg] ?? null);
+      if (qUnit == null) continue;
+      const quoteUSD = bigToFloat(q, lp.quote.decimals) * qUnit;
+      const rklFloat = bigToFloat(rkl, 18);
+      if (rklFloat <= 0 || quoteUSD <= 0) continue;
+      const priceUSD = quoteUSD / rklFloat;
+      weight += quoteUSD;
+      priceTimesWeight += priceUSD * quoteUSD;
+    }
+    return weight > 0 ? { price: priceTimesWeight / weight, tvl: weight * 2 } : { price: null, tvl: 0 };
+  }
+  function fmtPriceUSD(p) {
+    if (p == null || !isFinite(p) || p <= 0) return '—';
+    if (p >= 1)    return '$' + p.toFixed(4);
+    if (p >= 0.01) return '$' + p.toFixed(4);
+    if (p >= 1e-4) return '$' + p.toFixed(6);
+    if (p >= 1e-7) return '$' + p.toFixed(8);
+    return '$' + p.toExponential(2);
+  }
+
+  async function fetchLPs(key, rpc, rklToken) {
+    const list = LP_POOLS[key] || [];
+    const vault = VAULT[key] || null;
+    const out = [];
+    for (const lp of list) {
+      try {
+        const kind = lp.kind || 'v2';
+        if (kind === 'v2') {
+          // Uniswap v2-style pair: getReserves() + token0/token1, plus pro-rata
+          // attribution via vault/dead LP-token balances.
+          const [t0, t1, res, lpSup, vaultLp, deadLp] = await Promise.all([
+            token0(rpc, lp.addr),
+            token1(rpc, lp.addr),
+            getReserves(rpc, lp.addr),
+            totalSupply(rpc, lp.addr),
+            vault ? balanceOf(rpc, lp.addr, vault) : Promise.resolve(0n),
+            balanceOf(rpc, lp.addr, DEAD),
+          ]);
+          const rkl = rklToken.toLowerCase();
+          const rklIs0 = t0.toLowerCase() === rkl;
+          const rklIs1 = t1.toLowerCase() === rkl;
+          if (!rklIs0 && !rklIs1) continue;
+          const rklRes   = rklIs0 ? res.r0 : res.r1;
+          const quoteRes = rklIs0 ? res.r1 : res.r0;
+          const share = (bal) => lpSup > 0n ? { rkl: rklRes * bal / lpSup, quote: quoteRes * bal / lpSup } : { rkl: 0n, quote: 0n };
+          out.push({
+            ...lp,
+            rklAmount:   rklRes,
+            quoteAmount: quoteRes,
+            lpSupply:    lpSup,
+            locked: { lpTokens: vaultLp, ...share(vaultLp), holder: vault, holderLabel: 'Winston' },
+            burned: { lpTokens: deadLp,  ...share(deadLp) },
+          });
+        } else if (kind === 'v3' || kind === 'dodo') {
+          // Uniswap v3 has no single reserve view (concentrated liquidity); v3
+          // LP positions are NFTs, not ERC20s. Dodo (DPP/DSP/DVM) uses PMM
+          // reserves stored as private state. For both, the simplest universal
+          // way to read what's in the pool is balanceOf(token, poolAddress) —
+          // the contract's actual ERC20 balances are the in-pool reserves.
+          // No LP-token attribution since shares aren't fungible ERC20s here.
+          if (!lp.quote?.addr) throw new Error(`${lp.addr} kind=${kind} requires quote.addr`);
+          const [rklRes, quoteRes] = await Promise.all([
+            balanceOf(rpc, rklToken,     lp.addr),
+            balanceOf(rpc, lp.quote.addr, lp.addr),
+          ]);
+          out.push({
+            ...lp,
+            rklAmount:   rklRes,
+            quoteAmount: quoteRes,
+            lpSupply:    0n,
+            locked: { lpTokens: 0n, rkl: 0n, quote: 0n, holder: vault, holderLabel: 'Winston' },
+            burned: { lpTokens: 0n, rkl: 0n, quote: 0n },
+          });
+        }
+      } catch { /* skip */ }
+    }
+    return out;
+  }
+
+  // ---- consolidated math (sum across chains, dedupe ETH bridges vs satellite) ----
+  // Returns 5-bucket totals: burned, locked, trust, lps, wallets.
+  // LPs amount comes from summing LP_POOLS RKL holdings across chains; that
+  // amount is then subtracted from `wallets` so we don't double-count
+  // RKL that lives in LP contracts. RKL inside an LP token is STILL in an LP —
+  // even when the LP token itself is locked by Winston or burned to dead.
+  // Those facts are surfaced per-LP in the chain accordion as descriptors,
+  // not reattributed to the Locked / Burned buckets.
+  function consolidate(eth, sats, lpTotal) {
+    let burned = eth._burnedDead;
+    let locked = eth._lockedWallets + eth._bridgeDead; // dead bridges count as locked
+    let trust  = eth._safe;
+    let wallets = eth._trueFloat;
+    for (const s of sats) {
+      // Satellite supply is mirrored by ETH bridge balance (already accounted as
+      // "in transit" — not locked). Burns/locks/safe/wallets on satellite are NEW.
+      burned  += s._burnedDead;
+      locked  += s._lockedWallets; // e.g. RKL held directly by Winston (not via LP)
+      trust   += s._safe;
+      wallets += s._trueFloat;
+    }
+    const lps = lpTotal || 0n;
+    if (lps > wallets) wallets = lps; // safety
+    wallets -= lps;
+    return { burned, locked, trust, lps, wallets };
+  }
+
+  // ---- render ----
+  const CIRC = 578.05;
+  // Inner ring at r=68 → 2π·68 ≈ 427.26
+  const CIRC_INNER = 427.26;
+
+  function renderConsolidated(eth, totals) {
+    const sup = eth.supply;
+    const dec = eth.decimals;
+    document.getElementById('pct-supply').textContent = fmtCompact(sup, dec);
+    // SVG is rotated -90deg; stroke draws clockwise from 12 visually.
+    // Small categories first (top → right), then Locked covers the right
+    // half, then Burned wraps from ~6 around the LEFT back up to 12.
+    const segments = [
+      { id: 'seg-trust',   label: 'In Trust', amt: totals.trust   },
+      { id: 'seg-lps',     label: 'LPs',      amt: totals.lps     },
+      { id: 'seg-wallets', label: 'Wallets',  amt: totals.wallets },
+      { id: 'seg-locked',  label: 'Locked',   amt: totals.locked  },
+      { id: 'seg-burned',  label: 'Burned',   amt: totals.burned  },
+    ];
+    let offset = 0;
+    for (const s of segments) {
+      const len = sup === 0n ? 0 : Number(s.amt * 100000n / sup) / 100000 * CIRC;
+      const el = document.getElementById(s.id);
+      el.setAttribute('stroke-dasharray', `${len.toFixed(2)} ${CIRC}`);
+      el.setAttribute('stroke-dashoffset', String((-offset).toFixed(2)));
+      const t = el.querySelector('title');
+      if (t) t.textContent = `${s.label}: ${fmtCompact(s.amt, dec)} RKL · ${pct(s.amt, sup)}`;
+      offset += len;
+    }
+    const consCell = (amt) => `${fmtCompact(amt, dec)}<span class="unit">RKL</span>`;
+    const setPair = (key, amt) => {
+      document.getElementById('cons-' + key).innerHTML = consCell(amt);
+      document.getElementById('cons-' + key + '-pct').textContent = pct(amt, sup);
+    };
+    setPair('burned',  totals.burned);
+    setPair('locked',  totals.locked);
+    setPair('trust',   totals.trust);
+    setPair('lps',     totals.lps);
+    setPair('wallets', totals.wallets);
+    const retired = totals.burned + totals.locked;
+    document.getElementById('cons-retired-pct').textContent = pct(retired, sup);
+
+    // Inner ring — proportions of the active float (Trust + LPs + Wallets only).
+    // Same clockwise order as the outer ring's first three slices.
+    const active = totals.trust + totals.lps + totals.wallets;
+    const innerSegments = [
+      { id: 'seg-inner-trust',   label: 'Trust',   amt: totals.trust   },
+      { id: 'seg-inner-lps',     label: 'LPs',     amt: totals.lps     },
+      { id: 'seg-inner-wallets', label: 'Wallets', amt: totals.wallets },
+    ];
+    let innerOff = 0;
+    for (const s of innerSegments) {
+      const len = active === 0n ? 0 : Number(s.amt * 100000n / active) / 100000 * CIRC_INNER;
+      const el = document.getElementById(s.id);
+      if (!el) continue;
+      el.setAttribute('stroke-dasharray', `${len.toFixed(2)} ${CIRC_INNER}`);
+      el.setAttribute('stroke-dashoffset', String((-innerOff).toFixed(2)));
+      const t = el.querySelector('title');
+      if (t) t.textContent = `${s.label} · ${fmtCompact(s.amt, dec)} RKL · ${pct(s.amt, active)} of active float · ${pct(s.amt, sup)} of total supply`;
+      innerOff += len;
+    }
+
+    // Legend cards — attach native title tooltips so the "hover for detail"
+    // copy is actually true. Browsers render these as standard tooltips.
+    const setLegendTitle = (key, label, amt) => {
+      const swatch = document.querySelector(`.legend-item .swatch.${key}`);
+      const item = swatch?.closest('.legend-item');
+      if (item) item.title = `${label}: ${fmtCompact(amt, dec)} RKL · ${pct(amt, sup)} of total supply`;
+    };
+    setLegendTitle('burned',  'Burned',  totals.burned);
+    setLegendTitle('locked',  'Locked',  totals.locked);
+    setLegendTitle('trust',   'Trust',   totals.trust);
+    setLegendTitle('lps',     'LPs',     totals.lps);
+    setLegendTitle('wallets', 'Wallets', totals.wallets);
+  }
+
+  function renderBackingRow(c, data, trustAssets, prices, lps) {
+    if (data.error) {
+      return `<div class="row"><div class="chain-cell">${chainTag(c.key)}<span class="chain-name">${c.name}</span></div><div class="num err">error</div><div class="num">—</div><div class="backing-bar"><div class="bar"><div style="width:0%"></div></div><span class="pct">—</span></div></div>`;
+    }
+    // Trust Capital = sum(USD value of every non-RKL asset the multisig holds
+    // on this chain). RKL is excluded — it's the liability side.
+    const { total: usd, partial } = chainTrustUSD(trustAssets || [], prices || {});
+    const cap = usd > 0 ? fmtUSD(usd) + (partial ? '*' : '') : '—';
+    // Market Cap = chain RKL price × non-protocol float (data.wallets, which
+    // already excludes burned/locked/safe but still includes LP-held RKL —
+    // both wallet-held and LP-held RKL are float that needs backing).
+    const { price } = lpDerivedRKLPrice(lps || [], prices);
+    const float = data.wallets || 0n;
+    const mc = price != null && float > 0n ? bigToFloat(float, data.decimals) * price : null;
+    const mcStr = mc != null && mc > 0 ? fmtUSD(mc) : '—';
+    // Backing = trust capital ÷ market cap. Bar caps at 110% target.
+    let pctStr = '—', barWidth = 0;
+    if (usd > 0 && mc != null && mc > 0) {
+      const pctVal = (usd / mc) * 100;
+      pctStr = pctVal >= 1000 ? '>1000%' : pctVal.toFixed(1) + '%';
+      barWidth = Math.min(100, (pctVal / 110) * 100);
+    }
+    return `
+      <div class="row">
+        <div class="chain-cell">${chainTag(c.key)}<span class="chain-name">${c.name}</span></div>
+        <div class="num">${cap}</div>
+        <div class="num">${mcStr}</div>
+        <div class="backing-bar"><div class="bar"><div style="width:${barWidth.toFixed(2)}%"></div></div><span class="pct">${pctStr}</span></div>
+      </div>`;
+  }
+
+  function renderChainSummary(c, data, trustAssets, lps, prices) {
+    const dec = data.decimals;
+    return `
+      <details class="trust-row">
+        <summary>
+          <div class="chain-cell">${chainTag(c.key)}<span class="chain-name">${c.name}</span></div>
+          <div class="num">${fmtCompact(data.burned, dec)}<small>${pct(data.burned, data.supply)}</small></div>
+          <div class="num">${fmtCompact(data.locked, dec)}<small>${pct(data.locked, data.supply)}</small></div>
+          <div class="num">${fmtCompact(data.trust, dec)}<small>${pct(data.trust, data.supply)}</small></div>
+          <div class="num">${fmtCompact(data.wallets, dec)}<small>${pct(data.wallets, data.supply)}</small></div>
+          <svg class="chev" viewBox="0 0 14 14" fill="currentColor"><path d="M5 3 l5 4 l-5 4 z"/></svg>
+        </summary>
+        <div class="detail">${renderChainDetail(c, data, trustAssets, lps, prices)}</div>
+      </details>`;
+  }
+
+  function renderChainDetail(c, data, trustAssets, lps, prices) {
+    const dec = data.decimals;
+    const sup = data.supply;
+    const lpAmt = (lps || []).reduce((s, p) => s + (p.rklAmount || 0n), 0n);
+    const walletsMinusLPs = data.wallets > lpAmt ? data.wallets - lpAmt : 0n;
+    const circ = sup - data.burned - data.locked;
+    const amts = { burned: data.burned, locked: data.locked, trust: data.trust, lps: lpAmt, wallets: walletsMinusLPs };
+    const segs = [
+      { cls: 'burned',  amt: amts.burned,  label: 'Burned' },
+      { cls: 'locked',  amt: amts.locked,  label: 'Locked' },
+      { cls: 'trust',   amt: amts.trust,   label: 'In Trust' },
+      { cls: 'lps',     amt: amts.lps,     label: 'LPs' },
+      { cls: 'wallets', amt: amts.wallets, label: 'Wallets' },
+    ];
+    const miniBar = `
+      <div class="mini-viz">
+        <div class="mini-bar">
+          ${segs.map(s => `<span class="seg-${s.cls}" style="width:${pctNum(s.amt, sup).toFixed(2)}%" title="${s.label}: ${fmtCompact(s.amt, dec)} RKL · ${pct(s.amt, sup)}"></span>`).join('')}
+        </div>
+        <div class="mini-legend">
+          <div><span class="dot burned"></span>Burned <span class="v">${pct(amts.burned, sup)}</span></div>
+          <div><span class="dot locked"></span>Locked <span class="v">${pct(amts.locked, sup)}</span></div>
+          <div><span class="dot trust"></span>In Trust <span class="v">${pct(amts.trust, sup)}</span></div>
+          <div><span class="dot lps"></span>LPs <span class="v">${pct(amts.lps, sup)}</span></div>
+          <div><span class="dot wallets"></span>Wallets <span class="v">${pct(amts.wallets, sup)}</span></div>
+        </div>
+        <div class="mini-supply">
+          <div>Chain Supply <b>${fmtFull(sup, dec)} RKL</b></div>
+          <div>Circulating Supply <b>${fmtFull(circ, dec)} RKL</b></div>
+        </div>
+      </div>`;
+
+    // Breakdown items as links
+    const explorer = EXPLORER[c.key];
+    const breakdown = data.breakdown && data.breakdown.length
+      ? `<div class="block">
+           <div class="blk-label">Locked &amp; Burned · breakdown</div>
+           <div class="lp-list">
+             ${data.breakdown.map(b => {
+               const labelOnly = b.label.replace(/^(Burned|Locked|Bridge|Dead) · /, '');
+               return `<div class="lp">
+                 <span class="lp-name">${b.kind === 'burned' ? 'Burned' : 'Locked'}</span>
+                 <span class="lp-pair">${b.addr ? `<a href="${explorer}/address/${b.addr}" target="_blank" rel="noopener">${labelOnly}</a>` : labelOnly}</span>
+                 <span class="lp-amt">${fmtFull(b.amount, dec)} RKL · ${pct(b.amount, sup)}</span>
+               </div>`;
+             }).join('')}
+           </div>
+         </div>`
+      : '';
+
+    // Trust holdings — list ALL non-zero assets the safe holds on this chain
+    let trustHTML;
+    const trustItems = [];
+    if (data.trust > 0n) {
+      trustItems.push({ sym: 'RKL', addr: TOKEN[c.key], amount: data.trust, decimals: dec });
+    }
+    if (trustAssets && trustAssets.length) trustItems.push(...trustAssets);
+    if (trustItems.length) {
+      trustHTML = `<div class="lp-list">
+        ${trustItems.map(a => {
+          const link = a.addr
+            ? `<a href="${explorer}/token/${a.addr}?a=${SAFE}" target="_blank" rel="noopener">${a.sym}</a>`
+            : `<a href="${explorer}/address/${SAFE}" target="_blank" rel="noopener">${a.sym}</a>`;
+          // RKL is the liability side and isn't priced via CoinGecko — leave it
+          // unvalued for now. Other assets get USD via assetUSD().
+          const v = a.sym === 'RKL' ? null : assetUSD(a, prices || {});
+          const usdStr = v != null && v > 0 ? ` · ${fmtUSD(v)}` : '';
+          return `<div class="lp"><span class="lp-name">${link}</span><span class="lp-pair">${a.native ? 'native' : 'token'}</span><span class="lp-amt">${fmtFull(a.amount, a.decimals)} ${a.sym}${usdStr}</span></div>`;
+        }).join('')}
+      </div>`;
+    } else {
+      trustHTML = '<div class="empty-note">Trust currently empty on this chain.</div>';
+    }
+    const trustHoldings = `
+      <div class="block">
+        <div class="blk-label">Trust Holdings on Chain</div>
+        ${trustHTML}
+      </div>`;
+
+    // LPs
+    let lpsHTML;
+    if (lps && lps.length) {
+      lpsHTML = `
+        <div class="lp-list scrollable">
+          ${lps.map(lp => {
+            const q = lp.quote;
+            const qStr = q && lp.quoteAmount != null
+              ? `${fmtCompact(lp.quoteAmount, q.decimals)} ${q.sym}`
+              : '';
+            // Quote-side USD value (whole pool), when we have a price for it.
+            const quoteUSD = (amt) => {
+              if (!q || amt == null || !prices) return null;
+              if (q.usd != null) return bigToFloat(amt, q.decimals) * q.usd;
+              return prices[q.cg] ? bigToFloat(amt, q.decimals) * prices[q.cg] : null;
+            };
+            const poolUSD = quoteUSD(lp.quoteAmount);
+            const usdStr = poolUSD != null && poolUSD > 0 ? ` · ${fmtUSD(poolUSD)}` : '';
+            // Locked-by-vault and burned-LP sub-line, pro-rata of the pool.
+            const subTags = [];
+            if (lp.locked && lp.locked.lpTokens > 0n && lp.lpSupply > 0n) {
+              const sharePct = pct(lp.locked.lpTokens, lp.lpSupply);
+              const v = quoteUSD(lp.locked.quote);
+              const usd = v != null && v > 0 ? ` · ${fmtUSD(v)}` : '';
+              subTags.push(`<span class="tag locked"><span class="dot"></span>Locked by ${lp.locked.holderLabel} ${sharePct} · ${fmtCompact(lp.locked.rkl, dec)} RKL + ${fmtCompact(lp.locked.quote, q.decimals)} ${q.sym}${usd}</span>`);
+            }
+            if (lp.burned && lp.burned.lpTokens > 0n && lp.lpSupply > 0n) {
+              const sharePct = pct(lp.burned.lpTokens, lp.lpSupply);
+              const v = quoteUSD(lp.burned.quote);
+              const usd = v != null && v > 0 ? ` · ${fmtUSD(v)}` : '';
+              subTags.push(`<span class="tag burned"><span class="dot"></span>Burned LP ${sharePct} · ${fmtCompact(lp.burned.rkl, dec)} RKL + ${fmtCompact(lp.burned.quote, q.decimals)} ${q.sym}${usd}</span>`);
+            }
+            const sub = subTags.length ? `<div class="lp-sub">${subTags.join('')}</div>` : '';
+            return `<div class="lp">
+              <span class="lp-name"><a href="${explorer}/address/${lp.addr}" target="_blank" rel="noopener">${lp.label || 'LP'}</a></span>
+              <span class="lp-pair">${lp.pair || ''}</span>
+              <span class="lp-amt">${fmtCompact(lp.rklAmount, dec)} RKL${qStr ? ' + ' + qStr : ''}${usdStr}</span>
+              ${sub}
+            </div>`;
+          }).join('')}
+        </div>`;
+    } else {
+      lpsHTML = '<div class="empty-note">No LP pools configured for this chain. Add entries to <code>LP_POOLS</code> in the script to populate.</div>';
+    }
+    const lpsBlock = `
+      <div class="block">
+        <div class="blk-label">RKL Liquidity Pools <span class="lp-count">${lps && lps.length ? `${lps.length} pool${lps.length === 1 ? '' : 's'}` : 'none configured'}</span></div>
+        ${lpsHTML}
+      </div>`;
+
+    return `<div class="block">${miniBar}</div>${trustHoldings}${lpsBlock}${breakdown}`;
+  }
+
+  // Fetch each founder's RKL balance across all their declared wallets,
+  // summed per chain. Also fetches AHWA balance on BSC. Returns
+  // [{ ...founder, total, perChain, ahwa, decimals }, ...].
+  async function fetchFounders(chainSpecs, decimals = 18) {
+    const out = [];
+    for (const f of FOUNDERS) {
+      const perChain = {};
+      let total = 0n;
+      for (const c of chainSpecs) {
+        let chainSum = 0n;
+        for (const addr of f.addrs) {
+          try { chainSum += await balanceOf(c.rpc, TOKEN[c.key], addr); } catch {}
+        }
+        perChain[c.key] = chainSum;
+        total += chainSum;
+      }
+      // AHWA voter token + WIN vault token (both BSC only) — sum across wallets.
+      let ahwa = 0n, win = 0n;
+      for (const addr of f.addrs) {
+        try { ahwa += await balanceOf(RPC.BSC, AHWA_TOKEN, addr); } catch {}
+        try { win  += await balanceOf(RPC.BSC, WIN_TOKEN,  addr); } catch {}
+      }
+      out.push({ ...f, total, perChain, ahwa, win, decimals });
+    }
+    return out;
+  }
+  function renderFounders(founders, totalSupply, ahwaSupply, winSupply) {
+    return founders.map(f => {
+      const breakdown = Object.entries(f.perChain)
+        .filter(([, v]) => v > 0n)
+        .map(([k, v]) => `<span>${k}·</span><b>${fmtCompact(v, f.decimals)}</b>`)
+        .join(' &nbsp; ');
+      const totalPct = totalSupply > 0n ? pct(f.total, totalSupply) : '—';
+      const ahwaPct = ahwaSupply && ahwaSupply > 0n ? pct(f.ahwa, ahwaSupply) : '—';
+      const winPct  = winSupply  && winSupply  > 0n ? pct(f.win,  winSupply)  : '—';
+      const ahwaStr = f.ahwa > 0n
+        ? `<div class="total ahwa-total">${fmtFull(f.ahwa, f.decimals)} AHWA <small>${ahwaPct}</small></div>`
+        : '';
+      const winStr = f.win > 0n
+        ? `<div class="total ahwa-total">${fmtCompact(f.win, f.decimals)} WIN <small>${winPct}</small></div>`
+        : '';
+      // Founder wallets are EVM addresses with balances across many chains —
+      // link to Blockscan (multi-chain aggregator) instead of any single
+      // chain's explorer.
+      const addrLinks = f.addrs
+        .map(a => `<a href="https://blockscan.com/address/${a}" target="_blank" rel="noopener">${a}</a>`)
+        .join('<br>');
+      return `<div class="founder">
+        <div class="name">${f.name}<small>${f.role}${f.addrs.length > 1 ? ` · ${f.addrs.length} wallets` : ''}</small></div>
+        <div class="addr">${addrLinks}</div>
+        <div class="holdings">
+          <div class="total">${fmtCompact(f.total, f.decimals)} RKL <small>${totalPct}</small></div>
+          ${ahwaStr}
+          ${winStr}
+          <div class="breakdown">${breakdown || '<span>no holdings</span>'}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // AHWA voter token — total supply + balances at SAFE and each founder.
+  // BSC only. Returns { totalSupply, decimals, holders: [...], other }.
+  const AHWA_TOKEN = '0x3A81caafeeDCF2D743Be893858cDa5AcDBF88c11';
+  async function fetchAhwa() {
+    try {
+      const decimals = 18;
+      const sup = await totalSupply(RPC.BSC, AHWA_TOKEN);
+      const safeBal = await balanceOf(RPC.BSC, AHWA_TOKEN, SAFE);
+      // Sum AHWA across all of each founder's declared wallets.
+      const founderHolders = await Promise.all(FOUNDERS.map(async (f) => {
+        let bal = 0n;
+        for (const a of f.addrs) {
+          try { bal += await balanceOf(RPC.BSC, AHWA_TOKEN, a); } catch {}
+        }
+        return { name: f.name, role: f.role, addr: f.addrs[0], addrs: f.addrs, balance: bal };
+      }));
+      const holders = [
+        { name: 'Trust Multisig', role: 'Treasury Custody', addr: SAFE, balance: safeBal },
+        ...founderHolders,
+      ];
+      // AHWA in non-voting custody — held by smart contracts so cannot vote.
+      // Sources auto-derived from AHWA_POOLS (staking + LPs) and SAT_LOCKED.BSC
+      // (time-locks). Add new pools/locks to those lists to pick them up here.
+      const stakingAddrs = AHWA_POOLS.filter(p => /staking/i.test(p.label)).map(p => p.addr);
+      const lpAddrs      = AHWA_POOLS.filter(p => !/staking/i.test(p.label)).map(p => p.addr);
+      const lockAddrs    = (SAT_LOCKED.BSC || []).filter(l => /^Locked/.test(l.label)).map(l => l.addr);
+      const sumBal = async (addrs) => {
+        let s = 0n;
+        for (const a of addrs) { try { s += await balanceOf(RPC.BSC, AHWA_TOKEN, a); } catch {} }
+        return s;
+      };
+      const [staked, inLP, locked] = await Promise.all([
+        sumBal(stakingAddrs), sumBal(lpAddrs), sumBal(lockAddrs),
+      ]);
+      const known = holders.reduce((s, h) => s + h.balance, 0n);
+      const nonVoting = staked + inLP + locked;
+      const other = sup > (known + nonVoting) ? sup - known - nonVoting : 0n;
+      return { totalSupply: sup, decimals, holders, other, staked, inLP, locked };
+    } catch (e) {
+      return null;
+    }
+  }
+  function renderAhwa(d) {
+    if (!d) return '<div class="ahwa-row"><div class="empty-note">AHWA data unavailable.</div></div>';
+    const explorer = EXPLORER.BSC;
+    const supplyStr = `${fmtFull(d.totalSupply, d.decimals)} AHWA`;
+    const row = (name, role, addr, bal, placeholder) => {
+      const p = pct(bal, d.totalSupply);
+      const link = addr
+        ? `<a href="${explorer}/token/${AHWA_TOKEN}?a=${addr}" target="_blank" rel="noopener">${addr}</a>`
+        : `<span style="color:var(--text-dim);">${placeholder || 'distributed across voter wallets'}</span>`;
+      return `<div class="ahwa-row">
+        <div class="name">${name}<small>${role}</small></div>
+        <div class="addr">${link}</div>
+        <div class="holdings"><div class="total-amt">${fmtFull(bal, d.decimals)} AHWA <small>${p}</small></div></div>
+      </div>`;
+    };
+    const holderRows = d.holders.map(h => row(h.name, h.role, h.addr, h.balance)).join('');
+    const otherRow = row('Other Voters', 'Eligible · Distributed', null, d.other,
+      'distributed across voter wallets');
+    // Non-voting buckets — AHWA held by smart contracts cannot vote.
+    const stakedRow = d.staked > 0n
+      ? row('Staked AHWA', 'Non-voting · CryptoSwap stake pools', null, d.staked,
+          'staked in CryptoSwap AHWA→RKL pools')
+      : '';
+    const lpRow = d.inLP > 0n
+      ? row('AHWA in LPs', 'Non-voting · AHWA/WIN liquidity', null, d.inLP,
+          'liquidity in AHWA/WIN pools')
+      : '';
+    const lockedRow = d.locked > 0n
+      ? row('Locked AHWA', 'Non-voting · Time-lock contracts', null, d.locked,
+          'locked in time-lock contracts')
+      : '';
+    const totalRow = `<div class="ahwa-row total">
+      <div class="name">Total Supply<small>AHWA</small></div>
+      <div class="addr"><a href="${explorer}/token/${AHWA_TOKEN}" target="_blank" rel="noopener">${AHWA_TOKEN}</a></div>
+      <div class="holdings"><div class="total-amt">${supplyStr} <small>100.00%</small></div></div>
+    </div>`;
+    return holderRows + stakedRow + lpRow + lockedRow + otherRow + totalRow;
+  }
+
+  // AHWA & WIN trading pairs on BSC — every live pair we know about across
+  // PancakeSwap V2, SushiSwap V2, CryptoSwap, MasterChief, ApeSwap. Each
+  // pool's reserves are read via balanceOf(token, pool) so it works for v2
+  // and custom contracts alike.
+  const WIN_TOKEN = '0x75578ebBefe274F240B8E1b5859cA34f342157D9';
+  const _RKL = { sym: 'RKL',  addr: TOKEN.BSC,   decimals: 18 };
+  const _AHWA = { sym: 'AHWA', addr: AHWA_TOKEN,  decimals: 18 };
+  const _WIN = { sym: 'WIN',  addr: WIN_TOKEN,   decimals: 18 };
+  const _WBNB = { sym: 'WBNB', addr: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', decimals: 18 };
+  const _BUSD = { sym: 'BUSD', addr: '0xe9e7cea3dedca5984780bafc599bd69add087d56', decimals: 18 };
+  const _USDT = { sym: 'USDT', addr: '0x55d398326f99059fF775485246999027B3197955', decimals: 18 };
+  const _USDC = { sym: 'USDC', addr: '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', decimals: 18 };
+  const _BTCB = { sym: 'BTCB', addr: '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c', decimals: 18 };
+  // Strategic Reserve — single-controller multisig dedicated to RKL buybacks.
+  // Currently only holds BTCB on BSC; layout flexible for future additions.
+  const STRAT_RESERVE = {
+    addr: '0xD1363Dbf7B9Ad85a4C88323519138D2F952bDc90',
+    chain: 'BSC',
+    rpc: 'BSC', // RPC key
+    note: 'Single-controller multisig held by Founder. Capital deployed only via documented buyback events; trail visible on-chain.',
+  };
+  async function fetchStratReserve() {
+    // Reuse TRUST_ASSETS.BSC list as candidate assets — query each, keep
+    // non-zero. This way new assets are picked up automatically when added.
+    const out = [];
+    const list = TRUST_ASSETS[STRAT_RESERVE.chain] || [];
+    for (const a of list) {
+      try {
+        const bal = a.native
+          ? await rpcGetBalance(RPC[STRAT_RESERVE.rpc], STRAT_RESERVE.addr)
+          : await balanceOf(RPC[STRAT_RESERVE.rpc], a.addr, STRAT_RESERVE.addr);
+        if (bal > 0n) out.push({ ...a, amount: bal });
+      } catch {}
+    }
+    return out;
+  }
+  function renderStratReserve(items, prices) {
+    const explorer = EXPLORER[STRAT_RESERVE.chain];
+    const { total, partial } = chainTrustUSD(items || [], prices || {});
+    const totalStr = total > 0 ? fmtUSD(total) + (partial ? '*' : '') : '—';
+    const tiles = (items && items.length)
+      ? items.map(a => {
+          const v = assetUSD(a, prices || {});
+          const usd = v != null && v > 0 ? fmtUSD(v) : '—';
+          const link = a.addr
+            ? `<a href="${explorer}/token/${a.addr}?a=${STRAT_RESERVE.addr}" target="_blank" rel="noopener" style="color:inherit;border-bottom:1px dotted var(--hairline-strong);">${a.sym}</a>`
+            : a.sym;
+          return `<div class="asset"><div class="sym">${link}</div><div class="amt">${fmtFull(a.amount, a.decimals)} ${a.sym}</div><div class="usd">${usd}</div></div>`;
+        }).join('')
+      : '<div class="empty-note" style="grid-column:1/-1;">Reserve empty.</div>';
+    return `
+      <div class="header-row">
+        <div>
+          <span class="label">Reserve Address · ${STRAT_RESERVE.chain}</span>
+          <div class="addr"><a href="${explorer}/address/${STRAT_RESERVE.addr}" target="_blank" rel="noopener">${STRAT_RESERVE.addr}</a></div>
+        </div>
+        <div class="total-cap"><span class="l">Reserve Capital</span><span class="v">${totalStr}</span></div>
+      </div>
+      <div class="holdings">${tiles}</div>
+      <div class="note">${STRAT_RESERVE.note}</div>`;
+  }
+
+  // Pools where AHWA appears as one of the two assets.
+  const AHWA_POOLS = [
+    // CryptoSwap AHWA→RKL staking pools (not LPs — stake-and-earn contracts)
+    { addr: '0x6745ffb470378acde8330735f841f6746da1fe77', label: 'CryptoSwap Staking', pair: 'AHWA stake → RKL emit', tokens: [_RKL, _AHWA] },
+    { addr: '0xa0ec264b63915596855d5e1cd7db58614d437c17', label: 'CryptoSwap Staking', pair: 'AHWA stake → RKL emit', tokens: [_RKL, _AHWA] },
+    // AHWA/WIN
+    { addr: '0x89d958a02BA82C55202af0cD6555Bdd954dE5595', label: 'PancakeSwap v2',     pair: 'AHWA/WIN', tokens: [_AHWA, _WIN] },
+    { addr: '0x86e9dccaee2f069fc6e3935e48e54cca05d52775', label: 'MasterChief',        pair: 'AHWA/WIN', tokens: [_AHWA, _WIN] },
+    { addr: '0xca89bfb1267dacc407abc29981de5616fafe2bcd', label: 'CryptoSwap',         pair: 'AHWA/WIN', tokens: [_AHWA, _WIN] },
+  ];
+  // Pools where WIN appears but AHWA does NOT.
+  const WIN_POOLS = [
+    // WIN/RKL
+    { addr: '0xbb22d416ac55e8d07d9fe78da3cc9919a1c357ce', label: 'PancakeSwap v2', pair: 'WIN/RKL',  tokens: [_WIN, _RKL] },
+    { addr: '0x205564aaf40a4be1b8259fdf8038e278f8ea8d59', label: 'CryptoSwap',     pair: 'WIN/RKL',  tokens: [_WIN, _RKL] },
+    { addr: '0x42a3f09de1d0fa9ba589e4cdcf07be9d9890462c', label: 'MasterChief',    pair: 'WIN/RKL',  tokens: [_WIN, _RKL] },
+    // WIN paired with quote (no RKL or AHWA)
+    { addr: '0x157197baf3e455548987df50f87846ea17f7b7ab', label: 'PancakeSwap v2', pair: 'WIN/WBNB', tokens: [_WIN, _WBNB] },
+    { addr: '0xef15f3f89a69a53857c07893a4628cfbef688f6d', label: 'SushiSwap v2',   pair: 'WIN/WBNB', tokens: [_WIN, _WBNB] },
+    { addr: '0x40feaa838995114df06f9468750e28983187290f', label: 'PancakeSwap v2', pair: 'WIN/BUSD', tokens: [_WIN, _BUSD] },
+    { addr: '0xae1dc5a0321817dc1c5a7e129b5db24e9c5aa399', label: 'CryptoSwap',     pair: 'WIN/BUSD', tokens: [_WIN, _BUSD] },
+    { addr: '0x50fb90305d77adfb3d7473c1661fb157c6a4eed4', label: 'PancakeSwap v2', pair: 'WIN/USDT', tokens: [_WIN, _USDT] },
+    { addr: '0x252853aa8a9509a1c0ad5170b67d25328e3ef648', label: 'PancakeSwap v2', pair: 'WIN/USDC', tokens: [_WIN, _USDC] },
+    { addr: '0x8820df1b7f854773a694dab3d30247f6814c64aa', label: 'PancakeSwap v2', pair: 'WIN/BTCB', tokens: [_WIN, _BTCB] },
+  ];
+  async function fetchPools(list) {
+    const out = [];
+    for (const p of list) {
+      try {
+        const balances = await Promise.all(p.tokens.map(t => balanceOf(RPC.BSC, t.addr, p.addr)));
+        out.push({ ...p, balances });
+      } catch { out.push({ ...p, balances: p.tokens.map(() => 0n), error: true }); }
+    }
+    return out;
+  }
+  function renderAhwaWinPools(pools) {
+    if (!pools || !pools.length) return '<div class="empty-note">No pools configured.</div>';
+    const explorer = EXPLORER.BSC;
+    const header = `<div class="pool-row header"><div>Pair · DEX</div><div>Contract</div><div class="pool-reserves">Reserves</div></div>`;
+    const rows = pools.map(p => {
+      const reserves = p.tokens.map((t, i) => `<b>${fmtCompact(p.balances[i] || 0n, t.decimals)}</b> <span style="color:var(--text-muted);">${t.sym}</span>`).join(' &nbsp;+&nbsp; ');
+      return `<div class="pool-row">
+        <div class="pool-pair">${p.pair}<small>${p.label}</small></div>
+        <div class="pool-pair"><a href="${explorer}/address/${p.addr}" target="_blank" rel="noopener">${p.addr}</a></div>
+        <div class="pool-reserves">${reserves}</div>
+      </div>`;
+    }).join('');
+    return header + rows;
+  }
+
+  // Render a chain row where no RKL is deployed — Base / Stable. RKL columns
+  // collapse to "—"; the accordion just shows the asset holdings.
+  function renderAssetOnlyChain(c, trustAssets, prices) {
+    const explorer = EXPLORER[c.key];
+    const itemsHTML = (trustAssets || []).length
+      ? `<div class="lp-list">${(trustAssets || []).map(a => {
+          const v = assetUSD(a, prices || {});
+          const usdStr = v != null && v > 0 ? ` · ${fmtUSD(v)}` : '';
+          const link = a.addr
+            ? `<a href="${explorer}/token/${a.addr}?a=${SAFE}" target="_blank" rel="noopener">${a.sym}</a>`
+            : `<a href="${explorer}/address/${SAFE}" target="_blank" rel="noopener">${a.sym}</a>`;
+          return `<div class="lp"><span class="lp-name">${link}</span><span class="lp-pair">${a.native ? 'native' : 'token'}</span><span class="lp-amt">${fmtFull(a.amount, a.decimals)} ${a.sym}${usdStr}</span></div>`;
+        }).join('')}</div>`
+      : '<div class="empty-note">No assets configured for this chain yet.</div>';
+    return `
+      <details class="trust-row">
+        <summary>
+          <div class="chain-cell">${chainTag(c.key)}<span class="chain-name">${c.name}</span></div>
+          <div class="num">—</div><div class="num">—</div><div class="num">—</div><div class="num">—</div>
+          <svg class="chev" viewBox="0 0 14 14" fill="currentColor"><path d="M5 3 l5 4 l-5 4 z"/></svg>
+        </summary>
+        <div class="detail">
+          <div class="block">
+            <div class="blk-label">Trust Holdings on Chain · No RKL Deployed</div>
+            ${itemsHTML}
+          </div>
+        </div>
+      </details>`;
+  }
+
+  function renderError(c, msg) {
+    return `<details class="trust-row">
+      <summary>
+        <div class="chain-cell">${chainTag(c.key)}<span class="chain-name">${c.name}</span></div>
+        <div class="num err">error</div><div class="num">—</div><div class="num">—</div><div class="num">—</div>
+        <svg class="chev" viewBox="0 0 14 14" fill="currentColor"><path d="M5 3 l5 4 l-5 4 z"/></svg>
+      </summary>
+      <div class="detail"><div class="empty-note err">RPC failed: ${msg}</div></div>
+    </details>`;
+  }
+
+  // ---- main ----
+  async function runAudit() {
+    const now = new Date();
+    document.getElementById('audit-time').textContent = now.toUTCString().replace('GMT', 'UTC');
+    document.getElementById('footer-time').textContent = now.toUTCString().replace('GMT', 'UTC');
+
+    const chainSpecs = [
+      { key: 'ETH', name: 'Ethereum',        rpc: RPC.ETH },
+      { key: 'BSC', name: 'BNB Smart Chain', rpc: RPC.BSC },
+      { key: 'POL', name: 'Polygon',         rpc: RPC.POL },
+      { key: 'ARB', name: 'Arbitrum',        rpc: RPC.ARB },
+      { key: 'GNO', name: 'Gnosis',          rpc: RPC.GNO },
+    ];
+
+    // Audit each chain. ETH uses the richer auditETH; satellites use auditChain.
+    // We track per-chain completion to flip the scan-banner pills as each
+    // chain's full per-chain workload (audit + trust + LPs) resolves.
+    const chainAudits = chainSpecs.map(c => {
+      const auditP = (c.key === 'ETH' ? auditETH() : auditChain(c.key, c.name, c.rpc, TOKEN[c.key]));
+      return auditP
+        .then(d => ({ ok: true, d }))
+        .catch(e => ({ ok: false, e: e.message }));
+    });
+    const trustAudits = chainSpecs.map(c => fetchTrustAssets(c.key, c.rpc).catch(() => []));
+    const lpAudits    = chainSpecs.map(c => fetchLPs(c.key, c.rpc, TOKEN[c.key]).catch(() => []));
+    // Per-chain pill flips when ALL three (audit + trust + LPs) for that chain settle.
+    chainSpecs.forEach((c, i) => {
+      Promise.allSettled([chainAudits[i], trustAudits[i], lpAudits[i]])
+        .then(() => markScanPill(c.key));
+    });
+    const pricesP     = fetchPrices().finally(() => markScanPill('PRICES'));
+    const foundersP   = fetchFounders(chainSpecs).catch(() => []);
+    const ahwaP       = fetchAhwa();
+    const ahwaPoolsP  = fetchPools(AHWA_POOLS).catch(() => []);
+    const winPoolsP   = fetchPools(WIN_POOLS).catch(() => []);
+    const winSupplyP  = totalSupply(RPC.BSC, WIN_TOKEN).catch(() => 0n);
+    const stratP      = fetchStratReserve().catch(() => []);
+
+    const [chainResults, trustResults, lpResults, prices, founders, ahwa, ahwaPools, winPools, winSupply, stratItems] = await Promise.all([
+      Promise.all(chainAudits),
+      Promise.all(trustAudits),
+      Promise.all(lpAudits),
+      pricesP,
+      foundersP,
+      ahwaP,
+      ahwaPoolsP,
+      winPoolsP,
+      winSupplyP,
+      stratP,
+    ]);
+
+    // Consolidated math
+    const eth = chainResults[0].ok ? chainResults[0].d : null;
+    const sats = chainResults.slice(1).filter(r => r.ok).map(r => r.d);
+    // Sum RKL across every configured LP on every chain for the pie's "LPs" segment.
+    const lpTotal = lpResults.flat().reduce((s, p) => s + (p.rklAmount || 0n), 0n);
+    if (eth) {
+      const totals = consolidate(eth, sats, lpTotal);
+      renderConsolidated(eth, totals);
+      // Bottom row of trust table = same totals, formatted to match per-chain
+      // rows (value + small % of canonical supply).
+      const dec = eth.decimals;
+      const sup = eth.supply;
+      const cell = (amt) => `${fmtCompact(amt, dec)}<small>${pct(amt, sup)}</small>`;
+      document.getElementById('tot-burned').innerHTML  = cell(totals.burned);
+      document.getElementById('tot-locked').innerHTML  = cell(totals.locked);
+      document.getElementById('tot-trust').innerHTML   = cell(totals.trust);
+      document.getElementById('tot-wallets').innerHTML = cell(totals.wallets);
+    }
+
+    // AHWA voter token breakdown + per-token liquidity panels + Founders disclosure
+    document.getElementById('strat-reserve').innerHTML = renderStratReserve(stratItems, prices);
+    document.getElementById('ahwa-list').innerHTML = renderAhwa(ahwa);
+    document.getElementById('ahwa-pools').innerHTML = renderAhwaWinPools(ahwaPools);
+    document.getElementById('win-pools').innerHTML = renderAhwaWinPools(winPools);
+    document.getElementById('founders-list').innerHTML =
+      renderFounders(founders, eth ? eth.supply : 0n, ahwa ? ahwa.totalSupply : 0n, winSupply);
+
+    // Asset-only chains hold trust value but no RKL deployment. They contribute
+    // to backing capital but don't have a market cap or RKL distribution rows.
+    const assetOnlyChains = [
+      { key: 'BASE',   name: 'Base',   rpc: RPC.BASE },
+      { key: 'STABLE', name: 'Stable', rpc: RPC.STABLE },
+    ];
+    const assetOnlyTrust = await Promise.all(
+      assetOnlyChains.map(c =>
+        fetchTrustAssets(c.key, c.rpc).catch(() => []).finally(() => markScanPill(c.key))
+      )
+    );
+
+    // Per-chain rows — RKL chains first, then asset-only chains (BASE, STABLE)
+    const trustHTML = chainSpecs.map((c, i) => {
+      const r = chainResults[i];
+      return r.ok ? renderChainSummary(c, r.d, trustResults[i], lpResults[i], prices) : renderError(c, r.e);
+    }).concat(
+      assetOnlyChains.map((c, i) => renderAssetOnlyChain(c, assetOnlyTrust[i], prices))
+    ).join('');
+    document.getElementById('trust-rows').innerHTML = trustHTML;
+
+    const backingHTML = chainSpecs.map((c, i) => {
+      const r = chainResults[i];
+      return renderBackingRow(c, r.ok ? r.d : { error: r.e }, trustResults[i], prices, lpResults[i]);
+    }).concat(
+      assetOnlyChains.map((c, i) => renderBackingRow(c, { supply: 0n, decimals: 18, wallets: 0n }, assetOnlyTrust[i], prices, []))
+    ).join('');
+    document.getElementById('backing-rows').innerHTML = backingHTML;
+
+    // Consolidated row: total trust USD, total market cap, and overall backing %.
+    let totalUSD = 0, anyPartial = false;
+    for (const list of trustResults.concat(assetOnlyTrust)) {
+      const { total, partial } = chainTrustUSD(list || [], prices || {});
+      totalUSD += total;
+      if (partial) anyPartial = true;
+    }
+    // Total market cap = sum across chains of (chain price × chain float).
+    let totalMC = 0;
+    for (let i = 0; i < chainSpecs.length; i++) {
+      if (!chainResults[i].ok) continue;
+      const d = chainResults[i].d;
+      const { price } = lpDerivedRKLPrice(lpResults[i] || [], prices);
+      if (price == null) continue;
+      const float = d.wallets || 0n;
+      if (float <= 0n) continue;
+      totalMC += bigToFloat(float, d.decimals) * price;
+    }
+    document.getElementById('backing-total-cap').textContent =
+      totalUSD > 0 ? fmtUSD(totalUSD) + (anyPartial ? '*' : '') : '—';
+    document.getElementById('backing-total-mc').textContent =
+      totalMC > 0 ? fmtUSD(totalMC) : '—';
+    const totBar = document.getElementById('backing-total-bar');
+    const totPct = document.getElementById('backing-total-pct');
+    if (totalUSD > 0 && totalMC > 0) {
+      const r = (totalUSD / totalMC) * 100;
+      totPct.textContent = r >= 1000 ? '>1000%' : r.toFixed(1) + '%';
+      totBar.style.width = Math.min(100, (r / 110) * 100).toFixed(2) + '%';
+    } else {
+      totPct.textContent = '—';
+      totBar.style.width = '0%';
+    }
+  }
+
+  // ---- scan banner state (above Supply Exhaustion) ----
+  // Each chain audit + the price fetch flips a pill from loading→done. The
+  // progress bar fills proportionally. Status text cycles independently to
+  // signal "still working" even between pill flips.
+  const SCAN_TOTAL = 8;
+  let scanDone = 0;
+  function markScanPill(key) {
+    const el = document.querySelector(`#scan-pills .scan-pill[data-key="${key}"]`);
+    if (!el || el.classList.contains('done')) return;
+    el.classList.add('done');
+    scanDone++;
+    const pct = Math.min(100, Math.round((scanDone / SCAN_TOTAL) * 100));
+    const fill = document.getElementById('scan-fill');
+    const tx = document.getElementById('scan-progress-text');
+    const px = document.getElementById('scan-progress-pct');
+    if (fill) fill.style.width = pct + '%';
+    if (tx) tx.textContent = `${scanDone} / ${SCAN_TOTAL}`;
+    if (px) px.textContent = pct + '%';
+  }
+  const SCAN_STATUSES = [
+    'Connecting to RPC nodes across 7 chains…',
+    'Reading total supply on each chain…',
+    'Querying multisig balances on every network…',
+    'Reading reserves on liquidity pools…',
+    'Fetching live CoinGecko prices…',
+    'Tallying founder wallets across chains…',
+    'Resolving AHWA voter token + WIN vault…',
+    'Computing backing ratios and consolidated totals…',
+  ];
+  let scanTickerId = null;
+  function startScanTicker() {
+    const el = document.getElementById('scan-status');
+    if (!el) return;
+    let i = 0;
+    scanTickerId = setInterval(() => {
+      i = (i + 1) % SCAN_STATUSES.length;
+      el.style.opacity = '0';
+      setTimeout(() => { el.textContent = SCAN_STATUSES[i]; el.style.opacity = '1'; }, 180);
+    }, 1800);
+  }
+  function hideLoading() {
+    document.getElementById('loading-bar')?.classList.add('done');
+    document.getElementById('loading-pulse')?.classList.add('done');
+    // Force progress bar to 100% even if a fetch silently failed.
+    const fill = document.getElementById('scan-fill');
+    if (fill) fill.style.width = '100%';
+    const tx = document.getElementById('scan-progress-text');
+    const px = document.getElementById('scan-progress-pct');
+    if (tx) tx.textContent = `${SCAN_TOTAL} / ${SCAN_TOTAL}`;
+    if (px) px.textContent = '100%';
+    const status = document.getElementById('scan-status');
+    if (status) status.textContent = 'Audit complete · all live data resolved';
+    if (scanTickerId) clearInterval(scanTickerId);
+    // Leave the panel visible as a permanent disclosure of data sources.
+    // The `.complete` class stops animations and shifts the accent to gold.
+    document.getElementById('scan-section')?.classList.add('complete');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    startScanTicker();
+    runAudit()
+      .catch(e => {
+        console.error('audit failed:', e);
+        document.getElementById('audit-time').textContent = 'error: ' + e.message;
+      })
+      .finally(hideLoading);
+  });
+  </script>
+</body>
+</html>
