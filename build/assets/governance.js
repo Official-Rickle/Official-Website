@@ -9,6 +9,13 @@ const GOV = {
   // Populated post-deploy. The Deploy panel writes here + localStorage.
   // Hardcode after first deploy by editing this constant.
   CONTRACT: '0x8c3233507976ce6f424a1932f6c400f07d78c4e8',
+  // Block at which the contract was deployed. Set when you commit CONTRACT
+  // (find it on BSCscan: contract page → "More Info" → "Contract Created"
+  // tx → block number). The page starts scanning for events from here.
+  // If 0, falls back to localStorage (saved by the Deploy panel) and then
+  // to (latest − 250 000) ≈ 9 days, which still covers every open and
+  // recently-finalized proposal.
+  DEPLOY_BLOCK: 95636134,
   CHAIN_ID: 56,
   RPC: RPC.BSC,
   AHWA: '0x3A81caafeeDCF2D743Be893858cDa5AcDBF88c11',
@@ -74,6 +81,33 @@ async function rpcGetLogs(rpc, params) {
   const j = await r.json();
   if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
   return j.result || [];
+}
+
+// Public BSC RPCs cap eth_getLogs at ~50 000 blocks per query. Walk a long
+// range in chunks; on a chunk-too-big error, halve and retry. \`baseParams\`
+// is everything except fromBlock/toBlock.
+async function rpcGetLogsChunked(rpc, baseParams, fromBlock, toBlock, chunkSize = 49000) {
+  const out = [];
+  let from = fromBlock;
+  while (from <= toBlock) {
+    const to = Math.min(from + chunkSize - 1, toBlock);
+    try {
+      const logs = await rpcGetLogs(rpc, {
+        ...baseParams,
+        fromBlock: '0x' + from.toString(16),
+        toBlock:   '0x' + to.toString(16),
+      });
+      out.push(...logs);
+      from = to + 1;
+    } catch (e) {
+      if (chunkSize > 500 && /range|limit|exceed|too many/i.test(e.message)) {
+        chunkSize = Math.floor(chunkSize / 2);
+        continue; // retry same window with smaller chunk
+      }
+      throw e;
+    }
+  }
+  return out;
 }
 async function rpcGetCode(rpc, addr) {
   const r = await fetch(rpc, {
@@ -459,7 +493,9 @@ async function deployContract(statusEl) {
       body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_getTransactionReceipt', params: [txHash], id: 1 }),
     });
     const j = await res.json();
-    if (j.result && j.result.contractAddress) return j.result.contractAddress;
+    if (j.result && j.result.contractAddress) {
+      return { addr: j.result.contractAddress, blockNumber: parseInt(j.result.blockNumber, 16) };
+    }
   }
   throw new Error('Receipt never arrived (>2.5 min). Check the tx on BSCscan.');
 }
@@ -510,10 +546,11 @@ async function renderDeployPanel() {
   document.getElementById('gov-deploy-btn').onclick = async () => {
     const s = document.getElementById('gov-deploy-status');
     try {
-      const addr = await deployContract(s);
+      const { addr, blockNumber } = await deployContract(s);
       localStorage.setItem('GOV_CONTRACT', addr);
+      localStorage.setItem('GOV_DEPLOY_BLOCK', String(blockNumber));
       GOV.CONTRACT = addr;
-      s.innerHTML = '✓ Deployed at <a href="https://bscscan.com/address/' + addr + '" target="_blank"><code>' + addr + '</code></a>.<br>Now locally: edit <code>build/assets/governance.js</code>, set <code>CONTRACT: "' + addr + '"</code>, then <code>npx hardhat verify --network bsc ' + addr + '</code>, commit, push.';
+      s.innerHTML = '✓ Deployed at <a href="https://bscscan.com/address/' + addr + '" target="_blank"><code>' + addr + '</code></a> (block ' + blockNumber + ').<br>Now locally: edit <code>build/assets/governance.js</code>, set <code>CONTRACT: "' + addr + '"</code> and <code>DEPLOY_BLOCK: ' + blockNumber + '</code>, then <code>npx hardhat verify --network bsc ' + addr + '</code>, commit, push.';
       setTimeout(() => runGovernance().catch(console.warn), 2000);
     } catch (e) { s.textContent = '✗ ' + e.message; }
   };
@@ -823,10 +860,16 @@ async function runGovernance() {
     return;
   }
 
-  const all = await rpcGetLogs(GOV.RPC, {
-    fromBlock: '0x0', toBlock: 'latest', address: contract,
+  // Resolve scan range. Prefer hardcoded DEPLOY_BLOCK, then localStorage
+  // (saved by the Deploy panel), then a 9-day fallback (~250 000 BSC blocks).
+  const latestBlk = await currentBlock();
+  let scanFrom = GOV.DEPLOY_BLOCK
+    || parseInt(localStorage.getItem('GOV_DEPLOY_BLOCK') || '0', 10)
+    || Math.max(0, latestBlk - 250000);
+  const all = await rpcGetLogsChunked(GOV.RPC, {
+    address: contract,
     topics: [[GOV.TOPICS.ProposalSubmitted, GOV.TOPICS.VoteSubmitted, GOV.TOPICS.VetoSubmitted]],
-  });
+  }, scanFrom, latestBlk);
   const proposals = [], votes = [], vetoes = [];
   for (const log of all) {
     const e = parseEventLog(log);
