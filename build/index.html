@@ -1459,6 +1459,16 @@
     const data = hex.slice(2);
     return { r0: BigInt('0x' + data.slice(0, 64)), r1: BigInt('0x' + data.slice(64, 128)) };
   }
+  // liquidity() on a Uniswap v3 pool returns the in-range (active-tick)
+  // liquidity. 0 means no positions cover the current price — pool is
+  // out-of-range. balanceOf-derived "reserves" for such a pool are wildly
+  // skewed (mostly one token), so we use this to skip them from price calc.
+  async function v3Liquidity(rpc, pool) {
+    try {
+      const hex = await rpcCall(rpc, pool, '0x1a686502');
+      return BigInt(hex || '0x0');
+    } catch { return 0n; }
+  }
 
   // ---- formatting ----
   function bigToFloat(amt, dec) {
@@ -1612,6 +1622,11 @@
     let priceTimesWeight = 0;
     for (const lp of lps || []) {
       if (!lp.quote) continue;
+      // Skip out-of-range Uniswap v3 pools. Their balanceOf-based reserves
+      // are skewed to one side (the price has moved past every active LP
+      // position), which would otherwise dominate the TVL-weighted average
+      // and inflate market cap.
+      if (lp.kind === 'v3' && lp.inRange === false) continue;
       const rkl = lp.rklAmount, q = lp.quoteAmount;
       if (!rkl || !q || rkl === 0n || q === 0n) continue;
       const qUnit = lp.quote.usd != null ? lp.quote.usd : (prices?.[lp.quote.cg] ?? null);
@@ -1674,16 +1689,22 @@
           // way to read what's in the pool is balanceOf(token, poolAddress) —
           // the contract's actual ERC20 balances are the in-pool reserves.
           // No LP-token attribution since shares aren't fungible ERC20s here.
+          //
+          // For v3, also fetch liquidity() to detect out-of-range pools — those
+          // will have one token dominate balanceOf, producing a garbage price
+          // ratio. We mark them inRange=false so the price-weighting step skips.
           if (!lp.quote?.addr) throw new Error(`${lp.addr} kind=${kind} requires quote.addr`);
-          const [rklRes, quoteRes] = await Promise.all([
+          const [rklRes, quoteRes, liq] = await Promise.all([
             balanceOf(rpc, rklToken,     lp.addr),
             balanceOf(rpc, lp.quote.addr, lp.addr),
+            kind === 'v3' ? v3Liquidity(rpc, lp.addr) : Promise.resolve(1n),
           ]);
           out.push({
             ...lp,
             rklAmount:   rklRes,
             quoteAmount: quoteRes,
             lpSupply:    0n,
+            inRange:     liq > 0n,
             locked: { lpTokens: 0n, rkl: 0n, quote: 0n, holder: vault, holderLabel: 'Winston' },
             burned: { lpTokens: 0n, rkl: 0n, quote: 0n },
           });
