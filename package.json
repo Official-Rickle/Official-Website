@@ -6,7 +6,8 @@
   "scripts": {
     "compile": "hardhat compile",
     "compile:standalone": "node tools/compile.js",
-    "verify": "hardhat verify --network bsc"
+    "verify": "hardhat verify --network bsc",
+    "verify:bytecode": "node tools/verify.js"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-verify": "^2.1.3",

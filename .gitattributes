@@ -1,0 +1,14 @@
+# Force LF line endings everywhere — keeps Solidity source bytes identical
+# across platforms so compiled bytecode (which embeds a metadata hash of
+# the source) is byte-for-byte reproducible. Avoids verification drift
+# between Windows and Linux compiles.
+* text=auto eol=lf
+
+# Binary types — never normalize.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
