@@ -6,7 +6,9 @@ Public reference for how the AHWA governance system on rickletoken.com works —
 
 ## What this is
 
-A small Solidity contract on BSC (`AhwaGovernance`) that records AHWA proposals, votes, and vetoes as on-chain events. **All voting policy is enforced off-chain** by the page at rickletoken.com reading these events. The contract itself is deliberately minimal — append-only, no admin, no ownership, no upgrades, no token interactions.
+A small Solidity contract on BSC (`AhwaGovernance`) that records AHWA proposals, votes, and vetoes as on-chain events. Proposal title and body live entirely in the event log — **no IPFS, no off-chain dependencies, no third-party services**. All voting policy (eligibility, 51% threshold, timing) is enforced off-chain by the page at rickletoken.com reading these events.
+
+The contract itself is deliberately minimal — append-only, no admin, no ownership, no upgrades, no token interactions.
 
 - **Contract source**: [`build/assets/AhwaGovernance.sol`](build/assets/AhwaGovernance.sol) — also served at `https://rickletoken.com/assets/AhwaGovernance.sol`
 - **ABI**: [`build/assets/AhwaGovernance.abi.json`](build/assets/AhwaGovernance.abi.json) — also at `https://rickletoken.com/assets/AhwaGovernance.abi.json`
@@ -34,32 +36,30 @@ The 51% denominator is computed as: `HOLDER_COUNT − (multisig safe holds AHWA 
 
 ## How a proposal works end-to-end
 
-1. **Pin the proposal text to IPFS** — anywhere (web3.storage, Pinata, your own node). Get the CID (e.g., `QmXYZ...` or `bafy...`).
-2. **Sign EIP-712 typed data** with your wallet:
-   ```
-   domain   = { name: "AhwaGovernance", version: "1", chainId: 56, verifyingContract: <CONTRACT_ADDR> }
-   types    = { Proposal: [{ name: "proposer", type: "address" }, { name: "ipfsHash", type: "string" }] }
-   value    = { proposer: <YOUR_ADDR>, ipfsHash: "<CID>" }
-   ```
-3. **Call `submitProposal(proposer, ipfsHash, signature)`** on the contract. Anyone can relay this tx — `msg.sender` is irrelevant. Only the recovered signer matters.
-4. **Voting opens** automatically. Voters sign their own EIP-712 typed data:
-   ```
-   types = { Vote: [
-     { name: "voter",    type: "address" },
-     { name: "yes",      type: "bool"    },
-     { name: "ipfsHash", type: "string"  },
-     { name: "nonce",    type: "uint256" }
-   ]}
-   ```
-   The nonce comes from `voteNonce(keccak256(ipfsHash), voter)` on the contract — read it before signing.
-5. **Multisig signers may post `Veto` signatures**:
-   ```
-   types = { Veto: [{ name: "signer", type: "address" }, { name: "ipfsHash", type: "string" }] }
-   ```
-   When 4 of the 5 signers each post a veto, the page marks the proposal `VETOED · REJECTED`.
-6. **After 73 hours** (72h window + 1h finalization), the page tally is final. The contract refuses any further votes/vetoes after the 72h cutoff.
+The full flow happens in the browser at rickletoken.com — no IPFS, no API keys, no third-party services. Proposal text lives on-chain in the event data; everything else (votes, vetoes, tally) comes from contract events.
 
-The page reads `ProposalSubmitted` / `VoteSubmitted` / `VetoSubmitted` events via `eth_getLogs` on the contract, fetches the proposal text from IPFS, runs `balanceOf(voter)` at the proposal block to verify each vote's eligibility, and renders the tally live.
+1. **Connect your wallet** — the site checks AHWA balance at the current block. Need ≥1 AHWA to propose or vote.
+2. **Open "Create a proposal"**, fill in **title** (≤200 chars) and **body** (≤90,000 bytes / ~25,000 words).
+3. **Click "Sign &amp; submit"**. One wallet popup signs EIP-712 typed data:
+   ```
+   domain  = { name: "AhwaGovernance", version: "1", chainId: 56, verifyingContract: <CONTRACT> }
+   types   = { Proposal: [
+     { name: "proposer", type: "address" },
+     { name: "title",    type: "string"  },
+     { name: "body",     type: "string"  }
+   ]}
+   value   = { proposer: <YOUR_ADDR>, title, body }
+   ```
+   Then a single tx calls `submitProposal(proposer, title, body, signature)`. The contract verifies the signature, assigns a sequential ID, and emits `ProposalSubmitted(id, proposer, title, body, timestamp)` — full text in the event log.
+4. **Voting opens immediately** with a 72-hour window. Each proposal card on the page shows **Vote YES / Vote NO** buttons for connected wallets that hold ≥1 AHWA. Click triggers:
+   - Read current `voteNonce(proposalId, voter)` from contract
+   - Sign EIP-712 `Vote { voter, yes, proposalId, nonce }` typed data
+   - Send `submitVote(voter, yes, proposalId, nonce, signature)` tx
+   - Voter can re-click the opposite button before the window closes; old signatures invalidate via the bumped nonce
+5. **Multisig signers see a red VETO button** on each open proposal. Click prompts confirmation, signs `Veto { signer, proposalId }`, sends `submitVeto`. When 4 of 5 multisig signer EOAs each submit, the page marks the proposal `VETOED · REJECTED` regardless of the community tally.
+6. **After 73 hours** (72h window + 1h finalization), the tally is final. The contract refuses any further votes/vetoes after the 72h cutoff via on-chain time check.
+
+Anyone can re-read the full history via `eth_getLogs` on the contract — title and body live in event data, no off-chain dependency required to reconstruct the state.
 
 ---
 
@@ -162,6 +162,8 @@ The contract is immutable once deployed. Source changes only happen pre-deployme
 - **Anyone can relay.** `msg.sender` is irrelevant — only the recovered signer matters. A holder without BNB for gas can hand their signed message to anyone to submit.
 - **Off-chain policy.** All eligibility, threshold, and timing logic lives in the page (and is auditable as plain JavaScript). The contract is intentionally policy-free so policy can evolve without redeploying.
 - **No AHWA token snapshots.** The page checks `balanceOf(voter)` at the proposal's creation block via standard ERC-20 — public BSC RPC retains state for ~6 months which more than covers the 73-hour proposal lifecycle.
+- **No IPFS, no API keys.** Proposal text lives on-chain in event data. No client-side credentials, no off-chain pinning service, no risk of a "site key" being scraped and abused.
+- **On-chain size cap.** The contract enforces `body ≤ 90,000 bytes` and `title ≤ 200 chars` so proposers can't abuse the gas economics. Practical proposal cost: ~$0.05–$1 in BNB depending on length.
 
 ---
 
@@ -179,8 +181,10 @@ The contract is immutable once deployed. Source changes only happen pre-deployme
 ├── package.json                            ← hardhat devDeps
 ├── yarn.lock                               ← pinned versions
 ├── tools/
-│   └── compile.js                          ← no-npm standalone compiler (backup)
+│   ├── compile.js                          ← no-npm standalone compiler (backup)
+│   └── verify.js                           ← bytecode parity check (yarn verify:bytecode)
 ├── deploy.md                               ← this file
+├── .gitattributes                          ← pins LF endings for reproducible builds
 └── .gitignore
 ```
 

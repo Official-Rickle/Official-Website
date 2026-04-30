@@ -641,6 +641,69 @@
     .gov-explainer .deeper a:hover { color: #fff; border-bottom-color: var(--coral); }
     .tally-col[title], .ph-status[title] { cursor: help; }
 
+    .gov-wallet {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+      padding: 10px 14px; margin-bottom: 10px;
+      background: var(--bg-2); border: 1px solid var(--hairline);
+      border-radius: 4px; font-family: var(--mono); font-size: 12px;
+    }
+    .gov-wallet:empty { display: none; }
+    .gov-wallet code { color: var(--text); font-size: 11px; }
+    .gov-wallet a { color: var(--text-soft); border-bottom: 1px dotted var(--hairline-strong); }
+    .gov-wallet a:hover code { color: var(--coral); }
+    .ws-label { font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+    .ws-meta  { font-size: 11px; color: var(--text-muted); margin-left: auto; letter-spacing: 0.3px; }
+
+    .gov-propose { margin-top: 14px; }
+    .gov-propose:empty { display: none; }
+    .gov-propose-card {
+      background: var(--surface); border: 1px solid var(--hairline-strong);
+      border-radius: 4px; overflow: hidden;
+    }
+    .gov-propose-card summary {
+      padding: 12px 16px;
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      letter-spacing: 2.4px; text-transform: uppercase;
+      color: var(--coral); cursor: pointer; list-style: none;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .gov-propose-card summary::-webkit-details-marker { display: none; }
+    .gov-propose-card summary::after { content: '+'; font-size: 18px; font-weight: 400; color: var(--text-muted); }
+    .gov-propose-card[open] summary::after { content: '−'; color: var(--coral); }
+    .gov-propose-card summary:hover { background: var(--surface-hover); }
+    .gov-propose-body { padding: 0 18px 16px; display: flex; flex-direction: column; gap: 8px; }
+    .gov-propose-body .ws-label { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+    .gov-propose-body input, .gov-propose-body textarea {
+      width: 100%; box-sizing: border-box;
+      background: var(--bg-2); border: 1px solid var(--hairline);
+      border-radius: 3px; padding: 10px 12px;
+      font-family: var(--mono); font-size: 13px;
+      color: var(--text); line-height: 1.5;
+      transition: border-color 0.15s;
+    }
+    .gov-propose-body input:focus, .gov-propose-body textarea:focus {
+      outline: none; border-color: var(--coral);
+    }
+    .gov-propose-body textarea { min-height: 220px; resize: vertical; }
+    .gov-propose-actions { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+    .gov-propose-note {
+      font-size: 11px; color: var(--text-dim);
+      padding-top: 10px; margin-top: 4px;
+      border-top: 1px solid var(--hairline);
+    }
+
+    .ph-actions {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-top: 12px; padding-top: 12px;
+      border-top: 1px solid var(--hairline);
+    }
+    .gov-cta.vote-yes { border-color: rgba(76, 175, 80, 0.5); }
+    .gov-cta.vote-no  { border-color: rgba(233, 69, 69, 0.5); }
+    .gov-cta.vote-yes:hover:not(:disabled) { background: rgba(76, 175, 80, 0.15); border-color: #4caf50; color: #fff; }
+    .gov-cta.vote-no:hover:not(:disabled)  { background: rgba(233, 69, 69, 0.15); border-color: var(--red); color: #fff; }
+    .gov-cta.vote-yes.active { background: rgba(76, 175, 80, 0.18); border-color: #4caf50; color: #4caf50; }
+    .gov-cta.vote-no.active  { background: rgba(233, 69, 69, 0.18); border-color: var(--red); color: var(--red); }
+
     .gov-deploy {
       margin-top: 14px;
       background: var(--surface); border: 1px solid var(--hairline-strong);
@@ -1000,7 +1063,8 @@
 
     <div class="stripe"></div>
 
-    <div class="section-head"><h2>Governance · Proposals</h2><span class="meta">AHWA Voting · BSC · 72h Window</span></div>
+    <div class="section-head"><h2>Governance · Proposals</h2><span class="meta">AHWA Voting · BSC · 72h Window · On-Chain</span></div>
+    <div class="gov-wallet" id="gov-wallet"></div>
     <div class="gov-status" id="gov-status">…loading…</div>
     <div class="gov-deploy" id="gov-deploy" hidden></div>
 
@@ -1016,10 +1080,10 @@
 
         <h4>Creating a proposal</h4>
         <ol>
-          <li>Pin the proposal text to IPFS (web3.storage, Pinata, etc.) and copy the CID.</li>
-          <li>Sign EIP-712 typed data with your wallet — the signature binds the message to this contract on BSC.</li>
-          <li>Call <code>submitProposal</code> on the deployed contract via BSCscan's "Write Contract" tab.</li>
-          <li>The <b>72-hour voting window</b> opens automatically; finalization adds 1 hour.</li>
+          <li>Connect your wallet — must hold <b>≥1 AHWA</b> at the current block.</li>
+          <li>Expand <b>Create a proposal</b> above the proposals list; fill in title (≤200 chars) and body (≤90 KB).</li>
+          <li>Click <b>Sign &amp; submit</b>. Your wallet pops up once for an EIP-712 signature, then a single tx commits the full proposal text on-chain in the event data — no IPFS, no off-chain dependencies.</li>
+          <li>The <b>72-hour voting window</b> opens immediately; +1 hour finalization buffer for tally.</li>
         </ol>
 
         <h4>How votes are counted</h4>
@@ -1044,6 +1108,8 @@
         </div>
       </div>
     </details>
+
+    <div class="gov-propose" id="gov-propose"></div>
 
     <div class="gov-proposals" id="gov-proposals">
       <div class="gov-empty">…loading proposals…</div>
