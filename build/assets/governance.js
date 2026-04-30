@@ -8,7 +8,7 @@
 const GOV = {
   // Populated post-deploy. The Deploy panel writes here + localStorage.
   // Hardcode after first deploy by editing this constant.
-  CONTRACT: '',
+  CONTRACT: '0x8C3233507976CE6f424A1932F6C400F07D78c4e8',
   CHAIN_ID: 56,
   RPC: RPC.BSC,
   AHWA: '0x3A81caafeeDCF2D743Be893858cDa5AcDBF88c11',
