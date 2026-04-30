@@ -478,7 +478,7 @@ async function renderDeployPanel() {
   }
   if (stored) {
     GOV.CONTRACT = stored;
-    status.innerHTML = '⚠ Contract deployed at <a href="https://bscscan.com/address/' + stored + '" target="_blank"><code>' + stored + '</code></a> but address not yet committed to <code>GOV.CONTRACT</code>.';
+    status.innerHTML = '⚠ Contract deployed at <a href="https://bscscan.com/address/' + stored + '" target="_blank"><code>' + stored + '</code></a> but address not yet committed. Edit <code>build/assets/governance.js</code> → set <code>CONTRACT: "' + stored + '"</code>, then push.';
     status.className = 'gov-status deployed warn';
     panel.hidden = true;
     return stored;
@@ -513,7 +513,7 @@ async function renderDeployPanel() {
       const addr = await deployContract(s);
       localStorage.setItem('GOV_CONTRACT', addr);
       GOV.CONTRACT = addr;
-      s.innerHTML = '✓ Deployed at <a href="https://bscscan.com/address/' + addr + '" target="_blank"><code>' + addr + '</code></a>. Now: edit <code>build/index.html</code>, set <code>GOV.CONTRACT = "' + addr + '"</code>, commit, push.';
+      s.innerHTML = '✓ Deployed at <a href="https://bscscan.com/address/' + addr + '" target="_blank"><code>' + addr + '</code></a>.<br>Now locally: edit <code>build/assets/governance.js</code>, set <code>CONTRACT: "' + addr + '"</code>, then <code>npx hardhat verify --network bsc ' + addr + '</code>, commit, push.';
       setTimeout(() => runGovernance().catch(console.warn), 2000);
     } catch (e) { s.textContent = '✗ ' + e.message; }
   };
