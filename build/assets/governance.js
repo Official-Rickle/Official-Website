@@ -561,12 +561,31 @@ async function renderAuditPanel() {
     if (!GOV.CONTRACT) { s.textContent = 'No contract deployed yet'; return; }
     s.textContent = 'Fetching deployed bytecode…';
     try {
-      const onchain = (await rpcGetCode(GOV.RPC, GOV.CONTRACT)).toLowerCase();
+      const onchain  = (await rpcGetCode(GOV.RPC, GOV.CONTRACT)).toLowerCase();
       const expected = GOV_DEPLOYED_BYTECODE.toLowerCase();
-      const trim = (s) => s.slice(0, s.length - 106);
+      // Strip metadata appendix (last ~53 bytes) — its hash can vary by
+      // compile environment but doesn't affect logic.
+      const trimMeta = b => b.slice(0, b.length - 106);
+      // Mask immutable placeholders. In the compiled bytecode each \`immutable\`
+      // appears as PUSH32 (0x7f) followed by 32 zero bytes; the constructor
+      // splices the actual value in at deploy time. Find every such slot in
+      // the compiled bytecode and zero those same positions in the on-chain
+      // copy so the logic-only sections can be compared directly.
+      const maskImmutables = (cmp, dep) => {
+        let out = dep;
+        const placeholder = '7f' + '0'.repeat(64);
+        let pos = 0;
+        while ((pos = cmp.indexOf(placeholder, pos)) !== -1) {
+          out = out.slice(0, pos + 2) + '0'.repeat(64) + out.slice(pos + 66);
+          pos += 66;
+        }
+        return out;
+      };
       if (onchain === expected) {
         s.innerHTML = '<span style="color:#4caf50">✓ Exact match — runtime bytecode is identical to compiled source.</span>';
-      } else if (trim(onchain) === trim(expected)) {
+      } else if (trimMeta(maskImmutables(expected, onchain)) === trimMeta(expected)) {
+        s.innerHTML = '<span style="color:#4caf50">✓ Logic match — runtime code matches the source. Differences are only the deploy-time-injected immutables (e.g. <code>DOMAIN_SEPARATOR</code>) and the metadata hash, both expected and harmless.</span>';
+      } else if (trimMeta(onchain) === trimMeta(expected)) {
         s.innerHTML = '<span style="color:#c9a227">~ Runtime code matches; metadata hash differs (cosmetic).</span>';
       } else {
         s.innerHTML = '<span style="color:#e94545">✗ Mismatch! Deployed bytecode differs from this source.</span>';
