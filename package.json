@@ -5,6 +5,7 @@
   "description": "Hardhat tooling for compiling and verifying AhwaGovernance on BSCscan. Site itself is the build/ folder, deployed via GitHub Pages.",
   "scripts": {
     "compile": "hardhat compile",
+    "compile:standalone": "node tools/compile.js",
     "verify": "hardhat verify --network bsc"
   },
   "devDependencies": {

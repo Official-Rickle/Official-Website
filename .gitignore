@@ -26,3 +26,6 @@ yarn-error.log*
 /artifacts
 /cache
 /typechain-types
+
+# standalone solc cache (downloaded by tools/compile.js)
+/tools/.cache

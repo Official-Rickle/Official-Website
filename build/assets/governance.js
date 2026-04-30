@@ -494,12 +494,12 @@ async function tallyAndRender(proposalsLogs, votesLogs, vetoesLogs) {
       const now = Math.floor(Date.now() / 1000);
       const closesAt = p.timestamp + 72 * 3600;
       const finalAt  = closesAt + 3600;
-      let status, statusClass;
-      if      (now < closesAt) { status = 'OPEN';              statusClass = 'open'; }
-      else if (now < finalAt)  { status = 'TALLYING';          statusClass = 'tallying'; }
-      else if (vetoFired)      { status = 'VETOED · REJECTED'; statusClass = 'vetoed'; }
-      else if (yesSet.size >= passThreshold) { status = 'PASSED'; statusClass = 'passed'; }
-      else                     { status = 'REJECTED';          statusClass = 'rejected'; }
+      let status, statusClass, statusHelp;
+      if      (now < closesAt) { status = 'OPEN';              statusClass = 'open';     statusHelp = 'Voting is open — proposal is within its 72-hour window.'; }
+      else if (now < finalAt)  { status = 'TALLYING';          statusClass = 'tallying'; statusHelp = 'Voting closed; finalizing tally (1-hour buffer for late events to settle).'; }
+      else if (vetoFired)      { status = 'VETOED · REJECTED'; statusClass = 'vetoed';   statusHelp = '4 of 5 multisig signers posted Veto signatures — proposal is killed regardless of community tally.'; }
+      else if (yesSet.size >= passThreshold) { status = 'PASSED'; statusClass = 'passed'; statusHelp = '≥51% of eligible holders voted YES. Proposal passed.'; }
+      else                     { status = 'REJECTED';          statusClass = 'rejected'; statusHelp = 'Did not reach 51% YES from eligible holders. Proposal rejected.'; }
 
       // Try IPFS for human-readable title/body.
       let body = '', title = 'Proposal ' + p.ipfsHash.slice(0, 8) + '…';
@@ -515,7 +515,7 @@ async function tallyAndRender(proposalsLogs, votesLogs, vetoesLogs) {
       card.innerHTML =
         '<div class="ph-head">' +
           '<div class="ph-title">' + escapeHTML(title) + '</div>' +
-          '<span class="ph-status ' + statusClass + '">' + status + '</span>' +
+          '<span class="ph-status ' + statusClass + '" title="' + escapeHTML(statusHelp) + '">' + status + '</span>' +
         '</div>' +
         '<div class="ph-meta">' +
           'by <a href="https://bscscan.com/address/' + p.proposer + '" target="_blank"><code>' + shortAddr(p.proposer) + '</code></a>' +
@@ -525,10 +525,14 @@ async function tallyAndRender(proposalsLogs, votesLogs, vetoesLogs) {
         '</div>' +
         (body ? '<details class="ph-body"><summary>Proposal text</summary><pre>' + escapeHTML(body) + '</pre></details>' : '') +
         '<div class="tally-grid">' +
-          '<div class="tally-col"><div class="l">YES</div><div class="v">' + yesSet.size + '</div></div>' +
-          '<div class="tally-col"><div class="l">NO</div><div class="v">'  + noSet.size  + '</div></div>' +
-          '<div class="tally-col"><div class="l">ELIGIBLE</div><div class="v">' + denom + '</div></div>' +
-          '<div class="tally-col"><div class="l">NEEDED (51%)</div><div class="v">' + passThreshold + '</div></div>' +
+          '<div class="tally-col" title="Distinct addresses that voted YES (each verified to hold ≥1 AHWA at the proposal block).">' +
+            '<div class="l">YES</div><div class="v">' + yesSet.size + '</div></div>' +
+          '<div class="tally-col" title="Distinct addresses that voted NO (each verified to hold ≥1 AHWA at the proposal block).">' +
+            '<div class="l">NO</div><div class="v">'  + noSet.size  + '</div></div>' +
+          '<div class="tally-col" title="Total AHWA holders minus the multisig safe and LP/staking pools holding AHWA at the proposal block.">' +
+            '<div class="l">ELIGIBLE</div><div class="v">' + denom + '</div></div>' +
+          '<div class="tally-col" title="ceil(eligible × 0.51) — yes votes required for the proposal to pass.">' +
+            '<div class="l">NEEDED (51%)</div><div class="v">' + passThreshold + '</div></div>' +
         '</div>' +
         '<div class="tally-bar">' +
           '<div class="yes-fill" style="width:' + yesPct.toFixed(1) + '%"></div>' +

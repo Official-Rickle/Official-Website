@@ -560,6 +560,87 @@
     .gov-status.deployed.warn { border-color: rgba(201, 162, 39, 0.45); }
     .gov-status.not-deployed { border-color: rgba(233, 69, 69, 0.35); }
 
+    .gov-explainer {
+      background: var(--surface);
+      border: 1px solid var(--hairline);
+      border-radius: 4px;
+      margin-top: 14px;
+      overflow: hidden;
+    }
+    .gov-explainer summary {
+      padding: 12px 16px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2.4px;
+      text-transform: uppercase;
+      color: var(--coral);
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .gov-explainer summary::-webkit-details-marker { display: none; }
+    .gov-explainer summary::after {
+      content: '+';
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--text-muted);
+      transition: color 0.15s, transform 0.15s;
+    }
+    .gov-explainer[open] summary::after { content: '−'; color: var(--coral); }
+    .gov-explainer summary:hover { background: var(--surface-hover); }
+    .gov-explainer .body {
+      padding: 0 18px 16px;
+      font-size: 13px;
+      color: var(--text-soft);
+      line-height: 1.6;
+    }
+    .gov-explainer h4 {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text);
+      margin: 14px 0 6px;
+      padding-top: 12px;
+      border-top: 1px solid var(--hairline);
+    }
+    .gov-explainer h4:first-child { padding-top: 4px; border-top: none; }
+    .gov-explainer ul, .gov-explainer ol {
+      margin: 4px 0;
+      padding-left: 18px;
+    }
+    .gov-explainer li { margin-bottom: 4px; }
+    .gov-explainer code {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text);
+      background: var(--bg-2);
+      padding: 1px 5px;
+      border-radius: 2px;
+    }
+    .gov-explainer b { color: var(--text); font-weight: 700; }
+    .gov-explainer .deeper {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--hairline);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.3px;
+    }
+    .gov-explainer .deeper a {
+      color: var(--coral);
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      border-bottom: 1px dotted rgba(255, 111, 97, 0.4);
+    }
+    .gov-explainer .deeper a:hover { color: #fff; border-bottom-color: var(--coral); }
+    .tally-col[title], .ph-status[title] { cursor: help; }
+
     .gov-deploy {
       margin-top: 14px;
       background: var(--surface); border: 1px solid var(--hairline-strong);
@@ -922,6 +1003,48 @@
     <div class="section-head"><h2>Governance · Proposals</h2><span class="meta">AHWA Voting · BSC · 72h Window</span></div>
     <div class="gov-status" id="gov-status">…loading…</div>
     <div class="gov-deploy" id="gov-deploy" hidden></div>
+
+    <details class="gov-explainer">
+      <summary>How voting works</summary>
+      <div class="body">
+        <h4>Who can vote</h4>
+        <ul>
+          <li>Anyone holding <b>≥1 AHWA</b> at the proposal block — <b>1 vote</b>, regardless of how much you hold.</li>
+          <li>Multisig signers (caretakers) <b>can vote</b> from their personal wallets if they hold AHWA personally — they're individuals.</li>
+          <li>Excluded: the multisig safe contract address itself, and AHWA LP / staking pools.</li>
+        </ul>
+
+        <h4>Creating a proposal</h4>
+        <ol>
+          <li>Pin the proposal text to IPFS (web3.storage, Pinata, etc.) and copy the CID.</li>
+          <li>Sign EIP-712 typed data with your wallet — the signature binds the message to this contract on BSC.</li>
+          <li>Call <code>submitProposal</code> on the deployed contract via BSCscan's "Write Contract" tab.</li>
+          <li>The <b>72-hour voting window</b> opens automatically; finalization adds 1 hour.</li>
+        </ol>
+
+        <h4>How votes are counted</h4>
+        <ul>
+          <li>One holder = one vote. A 400-AHWA holder and a 1-AHWA holder both get exactly 1 vote.</li>
+          <li>You can <b>change your mind</b> during the window — re-sign with the next <code>nonce</code>. Old signatures become invalid.</li>
+          <li><b>Pass threshold: ≥51% of eligible holders must vote YES.</b></li>
+          <li>Eligible = total AHWA holders − multisig safe − LP / staking pools holding AHWA at the proposal block.</li>
+        </ul>
+
+        <h4>How vetoes work</h4>
+        <ul>
+          <li>The <b>5 multisig signers</b> (caretakers) can each post a <code>Veto</code> signature.</li>
+          <li><b>4 of 5 vetoes kills the proposal</b>, regardless of the community tally.</li>
+          <li>Vetoes are <b>final</b> — cannot be rescinded. A new proposal would be required.</li>
+          <li>A vetoed proposal shows BOTH <code>VETOED · REJECTED</code> and the community tally — you see what holders said <i>and</i> what the caretakers did.</li>
+        </ul>
+
+        <div class="deeper">
+          Full technical reference, deploy steps, contract source &amp; verification:
+          <a href="https://github.com/Official-Rickle/Official-Website/blob/main/deploy.md" target="_blank" rel="noopener">deploy.md</a>
+        </div>
+      </div>
+    </details>
+
     <div class="gov-proposals" id="gov-proposals">
       <div class="gov-empty">…loading proposals…</div>
     </div>
