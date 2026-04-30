@@ -546,6 +546,202 @@
       .mini-legend { grid-template-columns: repeat(2, 1fr); }
       .mini-supply { grid-template-columns: 1fr; }
     }
+
+    /* ───── Governance ─────────────────────────────────────────── */
+    .gov-status {
+      background: var(--surface); border: 1px solid var(--hairline);
+      border-radius: 4px; padding: 12px 16px; font-size: 13px;
+      color: var(--text-soft); font-family: var(--mono); letter-spacing: 0.3px;
+      word-break: break-all;
+    }
+    .gov-status code { color: var(--text); font-size: 12px; }
+    .gov-status a { color: var(--coral); }
+    .gov-status.deployed { border-color: rgba(76, 175, 80, 0.35); }
+    .gov-status.deployed.warn { border-color: rgba(201, 162, 39, 0.45); }
+    .gov-status.not-deployed { border-color: rgba(233, 69, 69, 0.35); }
+
+    .gov-deploy {
+      margin-top: 14px;
+      background: var(--surface); border: 1px solid var(--hairline-strong);
+      border-radius: 4px; padding: 18px 20px;
+    }
+    .gov-deploy[hidden] { display: none !important; }
+    .gov-deploy-headline {
+      font-size: 13px; font-weight: 800; letter-spacing: 2.4px;
+      text-transform: uppercase; color: var(--coral); margin-bottom: 6px;
+    }
+    .gov-deploy-sub {
+      font-size: 12px; color: var(--text-muted); margin-bottom: 14px;
+    }
+    .gov-deploy-sub code { color: var(--text-soft); font-family: var(--mono); }
+    .gov-deploy-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .gov-deploy-status {
+      font-family: var(--mono); font-size: 11px; color: var(--text-soft);
+      min-height: 14px; word-break: break-all;
+    }
+    .gov-deploy-note {
+      font-size: 11px; color: var(--text-dim); margin-top: 12px;
+      padding-top: 12px; border-top: 1px solid var(--hairline);
+    }
+    .gov-deploy-note code {
+      color: var(--coral); font-family: var(--mono);
+      background: var(--bg-2); padding: 2px 5px; border-radius: 2px;
+    }
+    .gov-cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; font-family: var(--mono); font-size: 11px;
+      font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--text); background: var(--surface-2);
+      border: 1px solid var(--hairline-strong); border-radius: 2px;
+      cursor: pointer; transition: all 0.15s ease;
+    }
+    .gov-cta:hover:not(:disabled) {
+      background: var(--surface-hover); border-color: var(--coral); color: #fff;
+    }
+    .gov-cta.danger {
+      background: rgba(233, 69, 69, 0.15); border-color: var(--red); color: var(--text);
+    }
+    .gov-cta.danger:hover:not(:disabled) {
+      background: rgba(233, 69, 69, 0.25); color: #fff;
+    }
+    .gov-cta:disabled { opacity: 0.4; cursor: not-allowed; }
+    .gov-cta.sm { padding: 5px 11px; font-size: 10px; }
+
+    .gov-proposals { margin-top: 14px; display: grid; gap: 12px; }
+    .gov-empty {
+      background: var(--surface); border: 1px dashed var(--hairline-strong);
+      border-radius: 4px; padding: 22px; font-size: 12px;
+      color: var(--text-muted); text-align: center;
+    }
+    .gov-empty code {
+      color: var(--coral); font-family: var(--mono);
+      background: var(--bg-2); padding: 2px 5px; border-radius: 2px;
+    }
+
+    .proposal-card {
+      background: var(--surface); border: 1px solid var(--hairline);
+      border-radius: 4px; padding: 16px 18px;
+    }
+    .proposal-card .ph-loading,
+    .proposal-card .ph-error {
+      font-family: var(--mono); font-size: 12px; color: var(--text-muted);
+    }
+    .proposal-card .ph-error { color: var(--red); }
+    .ph-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 12px; margin-bottom: 6px; flex-wrap: wrap;
+    }
+    .ph-title {
+      font-size: 14px; font-weight: 700; color: var(--text);
+      letter-spacing: 0.3px; flex: 1; min-width: 0;
+    }
+    .ph-status {
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      letter-spacing: 1.6px; text-transform: uppercase;
+      padding: 4px 9px; border-radius: 2px; border: 1px solid;
+      flex-shrink: 0;
+    }
+    .ph-status.open     { color: var(--coral); border-color: rgba(255, 111, 97, 0.5); background: rgba(255, 111, 97, 0.07); }
+    .ph-status.tallying { color: #c9a227; border-color: rgba(201, 162, 39, 0.5); background: rgba(201, 162, 39, 0.07); }
+    .ph-status.passed   { color: #4caf50; border-color: rgba(76, 175, 80, 0.5); background: rgba(76, 175, 80, 0.07); }
+    .ph-status.rejected { color: var(--text-muted); border-color: var(--hairline-strong); background: var(--bg-2); }
+    .ph-status.vetoed   { color: var(--red); border-color: var(--red); background: rgba(233, 69, 69, 0.1); }
+    .ph-meta {
+      font-family: var(--mono); font-size: 11px; color: var(--text-muted);
+      margin-bottom: 10px; word-break: break-all; line-height: 1.6;
+    }
+    .ph-meta code { color: var(--text-soft); font-size: 11px; }
+    .ph-meta a:hover code { color: var(--coral); }
+    .ph-countdown { color: var(--text-soft); }
+    .ph-body {
+      margin: 8px 0 12px; background: var(--bg-2);
+      border: 1px solid var(--hairline); border-radius: 3px;
+    }
+    .ph-body summary {
+      padding: 8px 12px; font-family: var(--mono); font-size: 11px;
+      color: var(--text-soft); cursor: pointer; letter-spacing: 1.4px;
+      text-transform: uppercase; font-weight: 600;
+    }
+    .ph-body[open] summary { border-bottom: 1px solid var(--hairline); }
+    .ph-body pre {
+      margin: 0; padding: 12px 14px; font-family: var(--mono);
+      font-size: 12px; color: var(--text-soft); line-height: 1.5;
+      white-space: pre-wrap; word-break: break-word; max-height: 320px;
+      overflow-y: auto;
+    }
+    .tally-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 8px; margin: 10px 0 8px;
+    }
+    .tally-col {
+      background: var(--bg-2); border: 1px solid var(--hairline);
+      border-radius: 3px; padding: 8px 10px; text-align: center;
+    }
+    .tally-col .l {
+      font-size: 9px; letter-spacing: 1.6px; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 4px;
+    }
+    .tally-col .v {
+      font-size: 18px; font-weight: 800; color: var(--text);
+      font-variant-numeric: tabular-nums; line-height: 1;
+    }
+    .tally-bar {
+      display: flex; height: 6px; background: var(--bg-2);
+      border-radius: 3px; overflow: hidden; margin-top: 6px;
+    }
+    .tally-bar .yes-fill { background: #4caf50; transition: width 0.3s ease; }
+    .tally-bar .no-fill  { background: var(--red); transition: width 0.3s ease; }
+    .veto-row {
+      margin-top: 10px; padding-top: 10px;
+      border-top: 1px solid var(--hairline);
+      font-family: var(--mono); font-size: 11px; color: var(--text-soft);
+      letter-spacing: 0.3px;
+    }
+    .veto-row b { color: var(--red); font-weight: 700; }
+    .veto-pill {
+      display: inline-block; margin-left: 8px;
+      padding: 2px 7px; font-family: var(--mono); font-size: 10px;
+      font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase;
+      color: var(--red); background: rgba(233, 69, 69, 0.12);
+      border: 1px solid var(--red); border-radius: 2px;
+    }
+    .gov-audit {
+      margin-top: 18px; background: var(--surface);
+      border: 1px solid var(--hairline); border-radius: 4px; padding: 16px 18px;
+    }
+    .gov-audit-head {
+      font-size: 12px; font-weight: 800; letter-spacing: 2.4px;
+      text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;
+    }
+    .gov-audit-meta {
+      font-family: var(--mono); font-size: 11px; color: var(--text-soft);
+      margin-bottom: 10px; line-height: 1.6;
+    }
+    .gov-audit-meta b { color: var(--text); font-weight: 700; }
+    .gov-audit-actions { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .gov-verify-status { font-family: var(--mono); font-size: 11px; color: var(--text-soft); }
+    .gov-audit-block { margin-top: 8px; }
+    .gov-audit-block summary {
+      padding: 7px 11px; background: var(--bg-2);
+      border: 1px solid var(--hairline); border-radius: 2px;
+      font-family: var(--mono); font-size: 11px; color: var(--text-soft);
+      cursor: pointer; letter-spacing: 1.2px;
+    }
+    .gov-audit-block summary:hover { border-color: var(--coral); }
+    .gov-audit-block[open] summary { border-color: var(--hairline-strong); margin-bottom: 4px; }
+    .gov-audit-block pre {
+      margin: 0; padding: 12px 14px; background: var(--bg-2);
+      border: 1px solid var(--hairline); border-radius: 3px;
+      font-family: var(--mono); font-size: 11px; color: var(--text-soft);
+      line-height: 1.5; white-space: pre-wrap; word-break: break-all;
+      max-height: 420px; overflow-y: auto;
+    }
+    .gov-audit-block pre.hex { word-break: break-all; font-size: 10px; }
+
+    @media (max-width: 600px) {
+      .tally-grid { grid-template-columns: repeat(2, 1fr); }
+      .ph-head { flex-direction: column; align-items: flex-start; gap: 6px; }
+    }
   </style>
 </head>
 <body>
@@ -720,6 +916,16 @@
 
     <div class="section-head" style="margin-top: 28px;"><h3 style="font-size:14px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin:0;">AHWA Liquidity</h3><span class="meta">Trading Pairs Containing AHWA · BSC</span></div>
     <div class="ahwa-pools" id="ahwa-pools"></div>
+
+    <div class="stripe"></div>
+
+    <div class="section-head"><h2>Governance · Proposals</h2><span class="meta">AHWA Voting · BSC · 72h Window</span></div>
+    <div class="gov-status" id="gov-status">…loading…</div>
+    <div class="gov-deploy" id="gov-deploy" hidden></div>
+    <div class="gov-proposals" id="gov-proposals">
+      <div class="gov-empty">…loading proposals…</div>
+    </div>
+    <div class="gov-audit" id="gov-audit"></div>
 
     <div class="stripe"></div>
 
@@ -2073,6 +2279,8 @@
     document.getElementById('scan-section')?.classList.add('complete');
   }
 
+
+
   document.addEventListener('DOMContentLoaded', () => {
     startScanTicker();
     runAudit()
@@ -2083,5 +2291,6 @@
       .finally(hideLoading);
   });
   </script>
+  <script src="/assets/governance.js" defer></script>
 </body>
 </html>
