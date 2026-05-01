@@ -47,6 +47,56 @@
       {
         "indexed": true,
         "internalType": "address",
+        "name": "voter",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint128",
+        "name": "amount",
+        "type": "uint128"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint128",
+        "name": "newBalance",
+        "type": "uint128"
+      }
+    ],
+    "name": "Staked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "voter",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint128",
+        "name": "amount",
+        "type": "uint128"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint128",
+        "name": "newBalance",
+        "type": "uint128"
+      }
+    ],
+    "name": "Unstaked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
         "name": "signer",
         "type": "address"
       },
@@ -83,9 +133,40 @@
       },
       {
         "indexed": false,
+        "internalType": "uint128",
+        "name": "weight",
+        "type": "uint128"
+      }
+    ],
+    "name": "VoteNullified",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "voter",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "proposalId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
         "internalType": "bool",
         "name": "yes",
         "type": "bool"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint128",
+        "name": "weight",
+        "type": "uint128"
       },
       {
         "indexed": false,
@@ -102,6 +183,19 @@
     ],
     "name": "VoteSubmitted",
     "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "AHWA",
+    "outputs": [
+      {
+        "internalType": "contract IERC20",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
     "inputs": [],
@@ -124,6 +218,32 @@
         "internalType": "bytes32",
         "name": "",
         "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MIN_AHWA",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MULTISIG",
+    "outputs": [
+      {
+        "internalType": "contract ISafe",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -275,6 +395,67 @@
         "internalType": "uint64",
         "name": "createdAt",
         "type": "uint64"
+      },
+      {
+        "internalType": "uint128",
+        "name": "totalYesWeight",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint128",
+        "name": "totalNoWeight",
+        "type": "uint128"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint128",
+        "name": "amount",
+        "type": "uint128"
+      }
+    ],
+    "name": "stake",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "stakedBalance",
+    "outputs": [
+      {
+        "internalType": "uint128",
+        "name": "",
+        "type": "uint128"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "voter",
+        "type": "address"
+      }
+    ],
+    "name": "stakedOf",
+    "outputs": [
+      {
+        "internalType": "uint128",
+        "name": "",
+        "type": "uint128"
       }
     ],
     "stateMutability": "view",
@@ -307,7 +488,7 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "id",
         "type": "uint256"
       }
     ],
@@ -373,6 +554,19 @@
   {
     "inputs": [
       {
+        "internalType": "uint128",
+        "name": "amount",
+        "type": "uint128"
+      }
+    ],
+    "name": "unstake",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
@@ -407,12 +601,89 @@
         "type": "address"
       }
     ],
-    "name": "voteOf",
+    "name": "voteWeight",
     "outputs": [
       {
-        "internalType": "enum AhwaGovernance.VoteChoice",
+        "internalType": "uint128",
         "name": "",
-        "type": "uint8"
+        "type": "uint128"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "voteYes",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "voterOpenProposals",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "voter",
+        "type": "address"
+      }
+    ],
+    "name": "walletStatus",
+    "outputs": [
+      {
+        "internalType": "uint128",
+        "name": "staked",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint256",
+        "name": "trackedVotes",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "isMultisigSigner",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",

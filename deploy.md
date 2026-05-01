@@ -20,25 +20,37 @@ The contract itself is deliberately minimal — append-only, no admin, no owners
 
 | Rule | Detail |
 |---|---|
-| Who can propose | Any AHWA holder with ≥1 AHWA at the proposal block |
-| Who can vote | Any AHWA holder with ≥1 AHWA at the proposal block, **except** the multisig safe address (the safe itself, not its signers) and LP/staking pools |
-| Vote weight | 1 holder = 1 vote, regardless of balance (a 400-AHWA holder gets the same 1 vote as a 1-AHWA holder) |
-| Multisig signers (caretakers) | **CAN vote** with their personal wallets if they hold AHWA personally |
-| Window | 72 hours from proposal block, plus 1 hour finalization |
-| Pass threshold | ≥51% of eligible holders must vote YES |
-| Veto | 4 of 5 multisig signer EOAs each post a `Veto` signature → proposal is killed regardless of tally |
-| Vote changes | A voter can re-sign with the next nonce to flip their vote during the 72h window. Old signatures are invalidated by the nonce check. |
+| Who can propose | Any AHWA holder. The proposer signs EIP-712 typed data; the contract just records it. |
+| Who can vote | Any wallet that has staked AHWA (`stake()`) into the governance contract. |
+| Vote weight | **= staked AHWA amount.** A 100-AHWA staker has 100× the weight of a 1-AHWA staker. |
+| Multisig signers (caretakers) | **CAN vote** like anyone else by staking; can additionally **veto** any open proposal. |
+| Window | 72 hours from proposal submission, plus 1 hour finalization. |
+| Pass | More YES weight than NO weight (i.e., `totalYesWeight > totalNoWeight`), provided no multisig veto fired. |
+| Veto | 4 of 5 multisig signer EOAs each post a `Veto` signature → proposal is killed regardless of tally. |
+| Vote changes | Voter can re-sign with the next nonce to flip their vote during the 72h window. Old signatures invalidate. |
+| Unstake | Voter can `unstake()` any time. **Open-proposal votes are nullified on unstake** (their weight is removed from the live tally). Closed-proposal votes are frozen and stay. |
 | Vetoes | Final once cast. Cannot be rescinded. A new proposal would be required to retry. |
 
-The 51% denominator is computed as: `HOLDER_COUNT − (multisig safe holds AHWA ? 1 : 0) − (count of LPs/staking pools holding AHWA at proposal block)`. `HOLDER_COUNT` is maintained manually in `governance.js` from BSCscan's holder count.
+**Why stake-based weight?** Public BSC RPCs prune historical state aggressively (only the latest block is queryable), so we can't retroactively check "did this address hold AHWA at the proposal block?" Stake-based voting solves this — voting power is whatever's locked in the governance contract right now, recorded in the contract's own state. No archive RPC needed; tally lives entirely in `proposals[id].totalYesWeight` / `totalNoWeight`.
 
 ---
 
 ## How a proposal works end-to-end
 
-The full flow happens in the browser at rickletoken.com — no IPFS, no API keys, no third-party services. Proposal text lives on-chain in the event data; everything else (votes, vetoes, tally) comes from contract events.
+The full flow happens in the browser at rickletoken.com — no IPFS, no API keys, no third-party services. Proposal text lives on-chain in the event data; the live tally lives in contract state.
 
-1. **Connect your wallet** — the site checks AHWA balance at the current block. Need ≥1 AHWA to propose or vote.
+### One-time per voter: stake AHWA
+
+Before you can vote, you have to stake AHWA into the governance contract:
+
+1. **Approve** — `AHWA.approve(governance, max)` once per wallet (~$0.03)
+2. **Stake** — `governance.stake(amount)` for however much AHWA you want to commit (~$0.05)
+
+Your staked balance is your **voting weight on every proposal you participate in**, until you unstake.
+
+### Submitting a proposal
+
+1. **Connect wallet.** No staking required to *propose* — only to vote.
 2. **Open "Create a proposal"**, fill in **title** (≤200 chars) and **body** (≤90,000 bytes / ~25,000 words).
 3. **Click "Sign &amp; submit"**. One wallet popup signs EIP-712 typed data:
    ```
@@ -50,16 +62,32 @@ The full flow happens in the browser at rickletoken.com — no IPFS, no API keys
    ]}
    value   = { proposer: <YOUR_ADDR>, title, body }
    ```
-   Then a single tx calls `submitProposal(proposer, title, body, signature)`. The contract verifies the signature, assigns a sequential ID, and emits `ProposalSubmitted(id, proposer, title, body, timestamp)` — full text in the event log.
-4. **Voting opens immediately** with a 72-hour window. Each proposal card on the page shows **Vote YES / Vote NO** buttons for connected wallets that hold ≥1 AHWA. Click triggers:
-   - Read current `voteNonce(proposalId, voter)` from contract
-   - Sign EIP-712 `Vote { voter, yes, proposalId, nonce }` typed data
-   - Send `submitVote(voter, yes, proposalId, nonce, signature)` tx
-   - Voter can re-click the opposite button before the window closes; old signatures invalidate via the bumped nonce
-5. **Multisig signers see a red VETO button** on each open proposal. Click prompts confirmation, signs `Veto { signer, proposalId }`, sends `submitVeto`. When 4 of 5 multisig signer EOAs each submit, the page marks the proposal `VETOED · REJECTED` regardless of the community tally.
-6. **After 73 hours** (72h window + 1h finalization), the tally is final. The contract refuses any further votes/vetoes after the 72h cutoff via on-chain time check.
+   A single tx calls `submitProposal(proposer, title, body, signature)`. The contract assigns a sequential ID and emits `ProposalSubmitted(id, proposer, title, body, timestamp)` — title and body live in the event log.
+4. **Voting opens immediately** with a 72-hour window.
 
-Anyone can re-read the full history via `eth_getLogs` on the contract — title and body live in event data, no off-chain dependency required to reconstruct the state.
+### Voting
+
+Each proposal card shows **Vote YES / Vote NO** buttons for wallets with staked AHWA. Clicking triggers:
+
+- Read current `voteNonce(proposalId, voter)` from contract
+- Sign EIP-712 `Vote { voter, yes, proposalId, nonce }` typed data
+- Send `submitVote(voter, yes, proposalId, nonce, signature)` tx
+
+The contract reads your *current* `stakedBalance` and uses that as your vote weight. Adding it to `proposals[id].totalYesWeight` (or `totalNoWeight`) live, on-chain. **Anyone can read the running tally with two `eth_call` reads — no log scanning needed.**
+
+You can re-click the opposite button to flip your vote any time during the window — the bumped nonce invalidates the previous signature.
+
+### Vetoing (multisig only)
+
+Multisig signers see a red **VETO** button on every open proposal. Click → sign `Veto { signer, proposalId }` → submit. The contract checks `MULTISIG.isOwner(signer)` cross-contract, on-chain. When **4 of 5 multisig signer EOAs each submit**, the page marks the proposal `VETOED · REJECTED` regardless of community tally.
+
+### Unstaking
+
+`governance.unstake(amount)` returns AHWA to your wallet. **As a side effect, any votes you have on currently-open proposals are nullified** — their weight is removed from the live tally. Votes on already-closed proposals are frozen and survive.
+
+### After 73 hours
+
+The contract refuses any further votes/vetoes after the 72h cutoff via on-chain time check. The tally is final.
 
 ---
 
@@ -71,9 +99,9 @@ The Deploy panel on rickletoken.com is gated to **dreamingrainbow's address `0xF
 
 1. **Visit rickletoken.com** with a wallet on BSC.
 2. **Connect dreamingrainbow's wallet.** The Deploy panel becomes visible only if the connected address matches.
-3. **Click "Deploy".** The page sends a contract-creation transaction with the bytecode embedded in `governance.js` (≈4.7 KB, ~3M gas, ~$0.05 in BNB).
+3. **Click "Deploy".** The page sends a contract-creation transaction with the bytecode embedded in `governance.js` (≈8 KB, ~5M gas, ~$0.10 in BNB). AHWA token address and multisig safe address are baked into the bytecode as `address constant` — no constructor args.
 4. **Wait for receipt.** The page polls until the receipt arrives, then shows the deployed address and stores it in `localStorage`.
-5. **Hardcode the address.** Edit [`build/index.html`](build/index.html), find `CONTRACT: '',` in the `GOV` config (one place), set to the deployed address. Commit and push.
+5. **Hardcode the address.** Edit [`build/assets/governance.js`](build/assets/governance.js), find `CONTRACT: '',` and `DEPLOY_BLOCK: 0,` in the `GOV` config, set them to the deployed address and block number (the Deploy panel shows both after the receipt arrives). Commit and push.
 6. **Verify on BSCscan** (next section).
 
 The deploy is one-shot. Once the contract is deployed and the address is committed to the repo, the Deploy panel disappears for everyone.

@@ -2059,16 +2059,28 @@
   // AHWA voter token — total supply + balances at SAFE and each founder.
   // BSC only. Returns { totalSupply, decimals, holders: [...], other }.
   const AHWA_TOKEN = '0x3A81caafeeDCF2D743Be893858cDa5AcDBF88c11';
+  // Shared AHWA-balance cache. Populated by fetchAhwa() during runAudit,
+  // consumed by build/assets/governance.js so the tally view never re-queries
+  // balances we already pulled. Keyed by lower-cased address → BigInt balance
+  // (latest block).
+  window.SHARED_AHWA_BALANCES = window.SHARED_AHWA_BALANCES || new Map();
+  async function _ahwaBalCached(addr) {
+    const key = addr.toLowerCase();
+    if (window.SHARED_AHWA_BALANCES.has(key)) return window.SHARED_AHWA_BALANCES.get(key);
+    const bal = await balanceOf(RPC.BSC, AHWA_TOKEN, addr);
+    window.SHARED_AHWA_BALANCES.set(key, bal);
+    return bal;
+  }
   async function fetchAhwa() {
     try {
       const decimals = 18;
       const sup = await totalSupply(RPC.BSC, AHWA_TOKEN);
-      const safeBal = await balanceOf(RPC.BSC, AHWA_TOKEN, SAFE);
+      const safeBal = await _ahwaBalCached(SAFE);
       // Sum AHWA across all of each founder's declared wallets.
       const founderHolders = await Promise.all(FOUNDERS.map(async (f) => {
         let bal = 0n;
         for (const a of f.addrs) {
-          try { bal += await balanceOf(RPC.BSC, AHWA_TOKEN, a); } catch {}
+          try { bal += await _ahwaBalCached(a); } catch {}
         }
         return { name: f.name, role: f.role, addr: f.addrs[0], addrs: f.addrs, balance: bal };
       }));
@@ -2084,7 +2096,7 @@
       const lockAddrs    = (SAT_LOCKED.BSC || []).filter(l => /^Locked/.test(l.label)).map(l => l.addr);
       const sumBal = async (addrs) => {
         let s = 0n;
-        for (const a of addrs) { try { s += await balanceOf(RPC.BSC, AHWA_TOKEN, a); } catch {} }
+        for (const a of addrs) { try { s += await _ahwaBalCached(a); } catch {} }
         return s;
       };
       const [staked, inLP, locked] = await Promise.all([
