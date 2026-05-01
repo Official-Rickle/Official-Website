@@ -771,58 +771,68 @@ async function renderWalletStatus() {
     };
     return;
   }
+  // Render with placeholder while we fetch balances. Then auto-load.
   row.innerHTML =
     '<span class="ws-label">Wallet:</span> ' +
     '<a href="https://bscscan.com/address/' + connected + '" target="_blank"><code>' + shortAddr(connected) + '</code></a>' +
-    '<button class="gov-cta sm" id="gov-stake-btn" style="margin-left:10px">Stake / Unstake AHWA</button>' +
-    '<span class="ws-meta" id="gov-wallet-meta">click to load balances</span>';
-  document.getElementById('gov-stake-btn').onclick = async () => {
-    const meta = document.getElementById('gov-wallet-meta');
-    if (!GOV.CONTRACT) { meta.textContent = 'Contract not deployed yet'; return; }
-    meta.textContent = 'reading balances…';
-    try {
-      // Two reads in parallel: contract state (staked + signer flag) + AHWA balance.
-      const [s, walletAhwa] = await Promise.all([
-        readWalletStatus(connected),
-        readAhwaWalletBalance(connected),
-      ]);
-      const stakedAhwa = fmtAhwa(s.staked);
-      const walletStr  = fmtAhwa(walletAhwa);
-      // Open a small inline panel to stake/unstake.
-      meta.innerHTML =
-        '<b style="color:var(--text)">' + walletStr + ' AHWA</b> in wallet · ' +
-        '<b style="color:var(--text)">' + stakedAhwa + ' AHWA</b> staked' +
-        (s.isMultisigSigner ? ' · <span style="color:var(--coral)">multisig signer (can veto)</span>' : '') +
-        '<br>' +
-        '<input type="number" min="1" step="1" placeholder="amount of AHWA" id="gov-stake-amt" style="width:140px;padding:4px 8px;background:var(--bg-2);border:1px solid var(--hairline);color:var(--text);font-family:var(--mono);font-size:12px;border-radius:2px">' +
-        '<button class="gov-cta sm" id="gov-stake-go" style="margin-left:6px">Stake</button> ' +
-        '<button class="gov-cta sm" id="gov-unstake-go">Unstake</button>' +
-        '<span id="gov-stake-status" class="ws-meta" style="margin-left:10px"></span>';
-      const amtEl    = document.getElementById('gov-stake-amt');
-      const statusEl = document.getElementById('gov-stake-status');
-      document.getElementById('gov-stake-go').onclick = async () => {
-        const amt = parseInt(amtEl.value, 10);
-        if (!amt || amt < 1) { statusEl.textContent = 'Enter amount ≥1 AHWA'; return; }
-        // Pre-flight: voter actually has this much AHWA in their wallet.
-        const haveBig = BigInt(amt) * GOV.MIN_AHWA;
-        if (haveBig > walletAhwa) {
-          statusEl.textContent = '✗ Wallet only holds ' + walletStr + ' AHWA';
-          return;
-        }
-        try { await doStake(amt, statusEl); } catch (e) { statusEl.textContent = '✗ ' + e.message; }
-      };
-      document.getElementById('gov-unstake-go').onclick = async () => {
-        const amt = parseInt(amtEl.value, 10);
-        if (!amt || amt < 1) { statusEl.textContent = 'Enter amount ≥1 AHWA'; return; }
-        // Pre-flight: voter has at least this much staked.
-        const wantBig = BigInt(amt) * GOV.MIN_AHWA;
-        if (wantBig > s.staked) {
-          statusEl.textContent = '✗ Only ' + stakedAhwa + ' AHWA staked';
-          return;
-        }
-        try { await doUnstake(amt, statusEl); } catch (e) { statusEl.textContent = '✗ ' + e.message; }
-      };
-    } catch (e) { meta.textContent = '✗ ' + e.message; }
+    '<span class="ws-meta" id="gov-wallet-meta" style="margin-left:10px">loading balances…</span>';
+
+  if (!GOV.CONTRACT) {
+    document.getElementById('gov-wallet-meta').textContent = 'contract not deployed yet';
+    return;
+  }
+
+  let s, walletAhwa;
+  try {
+    [s, walletAhwa] = await Promise.all([
+      readWalletStatus(connected),
+      readAhwaWalletBalance(connected),
+    ]);
+  } catch (e) {
+    document.getElementById('gov-wallet-meta').textContent = '✗ ' + e.message;
+    return;
+  }
+
+  const stakedAhwa = fmtAhwa(s.staked);
+  const walletStr  = fmtAhwa(walletAhwa);
+
+  // Replace the loading placeholder with the actual balances + stake panel.
+  row.innerHTML =
+    '<div class="ws-row">' +
+      '<span class="ws-label">Wallet:</span> ' +
+      '<a href="https://bscscan.com/address/' + connected + '" target="_blank"><code>' + shortAddr(connected) + '</code></a>' +
+      ' · <b style="color:var(--text)">' + walletStr + ' AHWA</b> in wallet' +
+      ' · <b style="color:var(--text)">' + stakedAhwa + ' AHWA</b> staked' +
+      (s.isMultisigSigner ? ' · <span style="color:var(--coral)">multisig signer (can veto)</span>' : '') +
+    '</div>' +
+    '<div class="ws-row" style="margin-top:6px">' +
+      '<input type="number" min="1" step="1" placeholder="amount of AHWA" id="gov-stake-amt" style="width:140px;padding:4px 8px;background:var(--bg-2);border:1px solid var(--hairline);color:var(--text);font-family:var(--mono);font-size:12px;border-radius:2px">' +
+      '<button class="gov-cta sm" id="gov-stake-go" style="margin-left:6px">Stake</button> ' +
+      '<button class="gov-cta sm" id="gov-unstake-go">Unstake</button>' +
+      '<span id="gov-stake-status" class="ws-meta" style="margin-left:10px"></span>' +
+    '</div>';
+
+  const amtEl    = document.getElementById('gov-stake-amt');
+  const statusEl = document.getElementById('gov-stake-status');
+  document.getElementById('gov-stake-go').onclick = async () => {
+    const amt = parseInt(amtEl.value, 10);
+    if (!amt || amt < 1) { statusEl.textContent = 'Enter amount ≥1 AHWA'; return; }
+    const haveBig = BigInt(amt) * GOV.MIN_AHWA;
+    if (haveBig > walletAhwa) {
+      statusEl.textContent = '✗ Wallet only holds ' + walletStr + ' AHWA';
+      return;
+    }
+    try { await doStake(amt, statusEl); } catch (e) { statusEl.textContent = '✗ ' + e.message; }
+  };
+  document.getElementById('gov-unstake-go').onclick = async () => {
+    const amt = parseInt(amtEl.value, 10);
+    if (!amt || amt < 1) { statusEl.textContent = 'Enter amount ≥1 AHWA'; return; }
+    const wantBig = BigInt(amt) * GOV.MIN_AHWA;
+    if (wantBig > s.staked) {
+      statusEl.textContent = '✗ Only ' + stakedAhwa + ' AHWA staked';
+      return;
+    }
+    try { await doUnstake(amt, statusEl); } catch (e) { statusEl.textContent = '✗ ' + e.message; }
   };
 }
 
