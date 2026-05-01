@@ -134,7 +134,7 @@ async function rpcGetCode(rpc, addr) {
 // Used by both the deploy-panel probe and the user-facing Verify button so
 // the equivalence rule lives in one place.
 function classifyBytecode(onchainHex) {
-  const onchain  = onchainHex.toLowerCase();
+  const onchain  = (onchainHex || '').toLowerCase();
   const expected = GOV_DEPLOYED_BYTECODE.toLowerCase();
   if (onchain === expected) return 'exact';
   // Strip the trailing 53-byte CBOR-encoded metadata blob (106 hex chars).
@@ -153,6 +153,25 @@ function classifyBytecode(onchainHex) {
   }
   if (trimMeta(masked) === trimMeta(expected)) return 'logic';
   if (trimMeta(onchain) === trimMeta(expected)) return 'metadata';
+  // Diagnostic logging on mismatch so we can see what diverged.
+  // First differing offset is the most useful clue.
+  const a = trimMeta(masked), b = trimMeta(expected);
+  let diffAt = -1;
+  const minLen = Math.min(a.length, b.length);
+  for (let i = 0; i < minLen; i++) { if (a[i] !== b[i]) { diffAt = i; break; } }
+  if (diffAt === -1 && a.length !== b.length) diffAt = minLen;
+  console.warn('classifyBytecode mismatch:', {
+    onchainLen: onchain.length,
+    expectedLen: expected.length,
+    afterTrimMeta: { onchain: a.length, expected: b.length },
+    firstDiffOffset: diffAt,
+    onchainAround: diffAt >= 0 ? a.slice(Math.max(0, diffAt - 16), diffAt + 32) : null,
+    expectedAround: diffAt >= 0 ? b.slice(Math.max(0, diffAt - 16), diffAt + 32) : null,
+    onchainHead: onchain.slice(0, 80),
+    expectedHead: expected.slice(0, 80),
+    onchainTail: onchain.slice(-80),
+    expectedTail: expected.slice(-80),
+  });
   return 'mismatch';
 }
 
@@ -225,16 +244,28 @@ async function readStakedOf(voter) {
 
 // walletStatus(address) returns (uint128 staked, uint256 trackedVotes, bool isMultisigSigner)
 async function readWalletStatus(voter) {
-  const hex = await rpcCallAtBlock(
-    GOV.RPC, GOV.CONTRACT,
-    '0x4d6d0af8' + encodeAddress(voter),
-    'latest'
-  );
-  const slice = hex.slice(2);
+  const callData = '0x4d6d0af8' + encodeAddress(voter);
+  let hex = await rpcCallAtBlock(GOV.RPC, GOV.CONTRACT, callData, 'latest');
+  // publicnode (and most public RPCs) rate-limit per ~10–30s window. If the
+  // first call comes back empty, wait 30s for the window to roll over and
+  // retry once. Long, but reliable — and only triggered when we actually
+  // got rate-limited, not on the happy path.
+  if (!hex || hex === '0x' || hex.length < 4) {
+    console.warn('walletStatus() returned empty; waiting 30s for RPC rate-limit window then retrying once');
+    await new Promise(r => setTimeout(r, 30000));
+    hex = await rpcCallAtBlock(GOV.RPC, GOV.CONTRACT, callData, 'latest');
+  }
+  const slice = (hex || '').slice(2);
   if (slice.length < 192) {
+    if (slice.length === 0) {
+      throw new Error(
+        'walletStatus() returned empty from ' + GOV.RPC + ' after retry. RPC is rate-limiting or down — try again in a minute. ' +
+        '(contract: ' + GOV.CONTRACT + ')'
+      );
+    }
     throw new Error(
-      'walletStatus() not found on ' + GOV.CONTRACT + '. The address points to the old contract — ' +
-      'see governance.js: update CONTRACT + DEPLOY_BLOCK.'
+      'walletStatus() returned ' + slice.length + ' hex chars (expected 192) on ' + GOV.CONTRACT + '. ' +
+      'Either the address is not the current contract, or the response is truncated. Raw: 0x' + slice.slice(0, 64) + '…'
     );
   }
   return {
