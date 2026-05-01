@@ -137,15 +137,25 @@ async function rpcCallAtBlock(rpc, to, data, blockTag) {
 function encodeAddress(a) { return '000000000000000000000000' + a.slice(2).toLowerCase(); }
 function encodeUint(n)    { return BigInt(n).toString(16).padStart(64, '0'); }
 
+// Safe BigInt-from-hex-slice. Returns 0n if the slice is empty or whitespace.
+// Avoids "Cannot convert 0x to a BigInt" when an old contract returns shorter
+// calldata than the new decoder expects.
+function safeBig(hexSlice) {
+  if (!hexSlice || !/[0-9a-fA-F]/.test(hexSlice)) return 0n;
+  return BigInt('0x' + hexSlice);
+}
+
 // ─── Contract reads ────────────────────────────────────────────────
 
 async function readProposalCount() {
   const hex = await rpcCallAtBlock(GOV.RPC, GOV.CONTRACT, '0xda35c664', 'latest');
-  return Number(BigInt(hex || '0x0'));
+  return Number(safeBig(hex.slice(2)));
 }
 
-// proposals(uint256) returns (address proposer, uint64 createdAt, uint128 totalYesWeight, uint128 totalNoWeight)
-// ABI-packed: 4 words of 32 bytes each (struct with 4 fields, no packing visible to ABI).
+// proposals(uint256) on the new contract returns 4 words:
+// (address proposer, uint64 createdAt, uint128 totalYesWeight, uint128 totalNoWeight).
+// On the OLD contract it returned only 2 words (address, uint64) — we detect
+// that and throw a clear error rather than letting BigInt fail cryptically.
 async function readProposal(id) {
   const hex = await rpcCallAtBlock(
     GOV.RPC, GOV.CONTRACT,
@@ -153,12 +163,20 @@ async function readProposal(id) {
     'latest'
   );
   const slice = hex.slice(2);
+  if (slice.length < 256) {
+    throw new Error(
+      'proposals(' + id + ') returned ' + slice.length + ' hex chars (expected 256). ' +
+      'GOV.CONTRACT (' + GOV.CONTRACT + ') is probably the old contract — ' +
+      'redeploy the new one and update CONTRACT + DEPLOY_BLOCK in build/assets/governance.js, ' +
+      'then clear localStorage GOV_CONTRACT.'
+    );
+  }
   return {
     id,
     proposer:        '0x' + slice.slice(24, 64).toLowerCase(),
-    createdAt:       Number(BigInt('0x' + slice.slice(64, 128))),
-    totalYesWeight:  BigInt('0x' + slice.slice(128, 192)),
-    totalNoWeight:   BigInt('0x' + slice.slice(192, 256)),
+    createdAt:       Number(safeBig(slice.slice(64, 128))),
+    totalYesWeight:  safeBig(slice.slice(128, 192)),
+    totalNoWeight:   safeBig(slice.slice(192, 256)),
   };
 }
 
@@ -168,7 +186,7 @@ async function readStakedOf(voter) {
     '0xaf500ba3' + encodeAddress(voter),
     'latest'
   );
-  return BigInt(hex || '0x0');
+  return safeBig(hex.slice(2));
 }
 
 // walletStatus(address) returns (uint128 staked, uint256 trackedVotes, bool isMultisigSigner)
@@ -179,10 +197,16 @@ async function readWalletStatus(voter) {
     'latest'
   );
   const slice = hex.slice(2);
+  if (slice.length < 192) {
+    throw new Error(
+      'walletStatus() not found on ' + GOV.CONTRACT + '. The address points to the old contract — ' +
+      'see governance.js: update CONTRACT + DEPLOY_BLOCK, clear localStorage GOV_CONTRACT.'
+    );
+  }
   return {
-    staked:           BigInt('0x' + slice.slice(0, 64)),
-    trackedVotes:     Number(BigInt('0x' + slice.slice(64, 128))),
-    isMultisigSigner: parseInt(slice.slice(128, 192), 16) !== 0,
+    staked:           safeBig(slice.slice(0, 64)),
+    trackedVotes:     Number(safeBig(slice.slice(64, 128))),
+    isMultisigSigner: parseInt(slice.slice(128, 192) || '0', 16) !== 0,
   };
 }
 
@@ -193,7 +217,7 @@ async function readAhwaWalletBalance(voter) {
     '0x70a08231' + encodeAddress(voter),  // balanceOf(address)
     'latest'
   );
-  return BigInt(hex || '0x0');
+  return safeBig(hex.slice(2));
 }
 
 async function readVoteNonce(voter, proposalId) {
@@ -202,7 +226,7 @@ async function readVoteNonce(voter, proposalId) {
     '0x3a7ed8a0' + encodeUint(proposalId) + encodeAddress(voter),
     'latest'
   );
-  return BigInt(hex || '0x0');
+  return safeBig(hex.slice(2));
 }
 
 async function readAllowance(token, owner, spender) {
@@ -211,7 +235,7 @@ async function readAllowance(token, owner, spender) {
     '0xdd62ed3e' + encodeAddress(owner) + encodeAddress(spender),
     'latest'
   );
-  return BigInt(hex || '0x0');
+  return safeBig(hex.slice(2));
 }
 
 async function readVoteWeight(proposalId, voter) {
@@ -220,7 +244,7 @@ async function readVoteWeight(proposalId, voter) {
     '0x2b0a999d' + encodeUint(proposalId) + encodeAddress(voter),
     'latest'
   );
-  return BigInt(hex || '0x0');
+  return safeBig(hex.slice(2));
 }
 
 async function readVoteYes(proposalId, voter) {
@@ -576,18 +600,45 @@ async function renderDeployPanel() {
   if (!panel || !status) return null;
 
   const stored = localStorage.getItem('GOV_CONTRACT');
+
+  // Probe: does this address respond to walletStatus() (new contract only)?
+  // If the saved/committed address is the OLD contract (different ABI),
+  // we'd silently misread state. Verify before trusting either source.
+  async function isNewContract(addr) {
+    try {
+      const hex = await rpcCallAtBlock(GOV.RPC, addr,
+        '0x4d6d0af8' + encodeAddress('0x0000000000000000000000000000000000000000'),
+        'latest'
+      );
+      return hex.slice(2).length >= 192;
+    } catch { return false; }
+  }
+
   if (GOV.CONTRACT) {
+    if (!(await isNewContract(GOV.CONTRACT))) {
+      status.innerHTML = '✗ <code>' + GOV.CONTRACT + '</code> does not match the v2 contract ABI. Update <code>CONTRACT</code> in governance.js to a freshly-deployed instance.';
+      status.className = 'gov-status not-deployed';
+      panel.hidden = true;
+      return null;
+    }
     status.innerHTML = 'Contract: <a href="https://bscscan.com/address/' + GOV.CONTRACT + '" target="_blank"><code>' + GOV.CONTRACT + '</code></a> (committed)';
     status.className = 'gov-status deployed';
     panel.hidden = true;
     return GOV.CONTRACT;
   }
   if (stored) {
-    GOV.CONTRACT = stored;
-    status.innerHTML = '⚠ Contract deployed at <a href="https://bscscan.com/address/' + stored + '" target="_blank"><code>' + stored + '</code></a> but address not yet committed. Edit <code>build/assets/governance.js</code> → set <code>CONTRACT: "' + stored + '"</code>, then push.';
-    status.className = 'gov-status deployed warn';
-    panel.hidden = true;
-    return stored;
+    if (!(await isNewContract(stored))) {
+      // Stale localStorage from a prior deploy of the old contract — clear it.
+      localStorage.removeItem('GOV_CONTRACT');
+      localStorage.removeItem('GOV_DEPLOY_BLOCK');
+      // Fall through to "needs deploy" UI below.
+    } else {
+      GOV.CONTRACT = stored;
+      status.innerHTML = '⚠ Contract deployed at <a href="https://bscscan.com/address/' + stored + '" target="_blank"><code>' + stored + '</code></a> but address not yet committed. Edit <code>build/assets/governance.js</code> → set <code>CONTRACT: "' + stored + '"</code>, then push.';
+      status.className = 'gov-status deployed warn';
+      panel.hidden = true;
+      return stored;
+    }
   }
 
   const connected = await getConnectedAddress();
