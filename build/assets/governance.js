@@ -1021,34 +1021,33 @@ function renderCollapsedCard(p) {
     const wrap = card.querySelector('.ph-tally-wrap');
     wrap.innerHTML = '<div class="ph-loading">Loading proposal text + tally…</div>';
     try {
-      // Fetch ProposalSubmitted event for title/body. Targeted block range.
+      // Fetch ProposalSubmitted event for title/body. Search the entire
+      // post-deploy range (chunked to respect publicnode's per-call block
+      // limit). DEPLOY_BLOCK is the absolute floor — no events from this
+      // contract can exist before then. This is bounded and avoids the
+      // brittle block-time-heuristic that silently misses when chain block
+      // rate doesn't match our 1.33 blocks/sec assumption.
       const latestBlk = await currentBlock();
-      const elapsed = Math.max(0, Math.floor(Date.now() / 1000) - p.createdAt);
-      const estBlock = Math.max(0, latestBlk - Math.floor(elapsed * 1.33));
-      const fromBlock = Math.max(0, estBlock - 5000);
-      const toBlock   = Math.min(latestBlk, estBlock + 49000);
-      const proposalLogs = await rpcGetLogs(GOV.RPC, {
-        fromBlock: '0x' + fromBlock.toString(16),
-        toBlock:   '0x' + toBlock.toString(16),
+      const fromBlock = Math.max(0, GOV.DEPLOY_BLOCK || latestBlk - 200000);
+      const proposalLogs = await rpcGetLogsChunked(GOV.RPC, {
         address: GOV.CONTRACT,
         topics:  [GOV.TOPICS.ProposalSubmitted, '0x' + encodeUint(p.id)],
-      });
-      if (proposalLogs.length === 0) throw new Error('ProposalSubmitted event not found in estimated window — try refreshing.');
+      }, fromBlock, latestBlk, 5000);
+      if (proposalLogs.length === 0) throw new Error('ProposalSubmitted event not found between blocks ' + fromBlock + ' and ' + latestBlk + '. Verify GOV.CONTRACT and DEPLOY_BLOCK in governance.js.');
       const ev = parseProposalLog(proposalLogs[0]);
       p.title = stripDeceptive(ev.title);
       p.body  = stripDeceptive(ev.body);
       p.blockNumber = ev.blockNumber;
       p.txHash = ev.txHash;
 
-      // Fetch vetoes for this proposal (small range, narrow filter).
-      const closesAtBlock = p.blockNumber + Math.ceil(72 * 3600 * 1.33);
+      // Vetoes can only land while voting is open (≤72h after creation).
+      // Chunked fetch from the proposal block forward.
+      const closesAtBlock = p.blockNumber + Math.ceil(72 * 3600 * 1.5);
       const vetoToBlock = Math.min(latestBlk, closesAtBlock);
-      const vetoLogs = await rpcGetLogs(GOV.RPC, {
-        fromBlock: '0x' + p.blockNumber.toString(16),
-        toBlock:   '0x' + vetoToBlock.toString(16),
+      const vetoLogs = await rpcGetLogsChunked(GOV.RPC, {
         address: GOV.CONTRACT,
         topics:  [GOV.TOPICS.VetoSubmitted, null, '0x' + encodeUint(p.id)],
-      });
+      }, p.blockNumber, vetoToBlock, 5000);
       const vetoes = vetoLogs.map(parseVetoLog);
 
       // Refresh tally from state (in case it changed since initial load).
