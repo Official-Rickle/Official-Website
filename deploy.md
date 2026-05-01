@@ -20,13 +20,13 @@ The contract itself is deliberately minimal — append-only, no admin, no owners
 
 | Rule | Detail |
 |---|---|
-| Who can propose | Any AHWA holder. The proposer signs EIP-712 typed data; the contract just records it. |
-| Who can vote | Any wallet that has staked AHWA (`stake()`) into the governance contract. |
+| Who can propose | Any wallet with **≥1 AHWA staked** in the governance contract. Same threshold as voting — skin in the game for both. |
+| Who can vote | Any wallet with **≥1 AHWA staked** (`stake()`) into the governance contract. |
 | Vote weight | **= staked AHWA amount.** A 100-AHWA staker has 100× the weight of a 1-AHWA staker. |
 | Multisig signers (caretakers) | **CAN vote** like anyone else by staking; can additionally **veto** any open proposal. |
 | Window | 72 hours from proposal submission, plus 1 hour finalization. |
 | Pass | More YES weight than NO weight (i.e., `totalYesWeight > totalNoWeight`), provided no multisig veto fired. |
-| Veto | 4 of 5 multisig signer EOAs each post a `Veto` signature → proposal is killed regardless of tally. |
+| Veto | 4 of 5 multisig signer EOAs each post a `Veto` signature → proposal is killed regardless of tally. **Veto does NOT require staking** — it's identity-based (Safe membership), not balance-based. A caretaker who's divested their AHWA still has veto duty. |
 | Vote changes | Voter can re-sign with the next nonce to flip their vote during the 72h window. Old signatures invalidate. |
 | Unstake | Voter can `unstake()` any time. **Open-proposal votes are nullified on unstake** (their weight is removed from the live tally). Closed-proposal votes are frozen and stay. |
 | Vetoes | Final once cast. Cannot be rescinded. A new proposal would be required to retry. |
@@ -50,7 +50,7 @@ Your staked balance is your **voting weight on every proposal you participate in
 
 ### Submitting a proposal
 
-1. **Connect wallet.** No staking required to *propose* — only to vote.
+1. **Connect wallet, and stake at least 1 AHWA first** if you haven't — same threshold as voting (the contract enforces `stakedBalance[proposer] >= 1 AHWA` on `submitProposal`).
 2. **Open "Create a proposal"**, fill in **title** (≤200 chars) and **body** (≤90,000 bytes / ~25,000 words).
 3. **Click "Sign &amp; submit"**. One wallet popup signs EIP-712 typed data:
    ```
@@ -79,7 +79,9 @@ You can re-click the opposite button to flip your vote any time during the windo
 
 ### Vetoing (multisig only)
 
-Multisig signers see a red **VETO** button on every open proposal. Click → sign `Veto { signer, proposalId }` → submit. The contract checks `MULTISIG.isOwner(signer)` cross-contract, on-chain. When **4 of 5 multisig signer EOAs each submit**, the page marks the proposal `VETOED · REJECTED` regardless of community tally.
+Multisig signers see a red **VETO** button on every open proposal. Click → sign `Veto { signer, proposalId }` → submit. The contract checks `MULTISIG.isOwner(signer)` cross-contract, on-chain — **no stake check.** When **4 of 5 multisig signer EOAs each submit**, the page marks the proposal `VETOED · REJECTED` regardless of community tally.
+
+Vetoes are deliberately stake-exempt because veto power is identity-based: caretakers' duty to protect the protocol exists by virtue of being in the multisig, not by their personal token holdings. A caretaker who has divested their AHWA still has veto duty.
 
 ### Unstaking
 

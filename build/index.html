@@ -1088,7 +1088,7 @@
 
         <h4>Creating a proposal</h4>
         <ol>
-          <li>Connect your wallet (no stake needed to <i>propose</i>, only to <i>vote</i>).</li>
+          <li>Connect your wallet, then <b>stake at least 1 AHWA</b> if you haven't yet — same threshold as voting.</li>
           <li>Expand <b>Create a proposal</b> above the proposals list; fill in title (≤200 chars) and body (≤90 KB).</li>
           <li>Click <b>Sign &amp; submit</b>. One EIP-712 signature, one tx — full proposal text commits on-chain in the event data.</li>
           <li>The <b>72-hour voting window</b> opens immediately; +1 hour finalization buffer.</li>
@@ -1105,6 +1105,7 @@
         <h4>How vetoes work</h4>
         <ul>
           <li>The <b>5 multisig signers</b> (caretakers) can each post a <code>Veto</code> signature on any open proposal.</li>
+          <li><b>Vetoes do NOT require staking</b> — veto power is identity-based, not balance-based. A caretaker who's divested their AHWA still has veto duty.</li>
           <li><b>4 of 5 vetoes kills the proposal</b>, regardless of the community tally.</li>
           <li>Vetoes are <b>final</b> — cannot be rescinded. A new proposal would be required.</li>
           <li>A vetoed proposal shows BOTH <code>VETOED · REJECTED</code> and the community tally — you see what holders said <i>and</i> what the caretakers did.</li>

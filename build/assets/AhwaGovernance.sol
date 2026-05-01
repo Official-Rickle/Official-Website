@@ -146,6 +146,8 @@ contract AhwaGovernance {
         string calldata body,
         bytes calldata signature
     ) external returns (uint256 id) {
+        require(stakedBalance[proposer] >= MIN_AHWA, "proposer must stake to propose");
+
         uint256 tlen = bytes(title).length;
         uint256 blen = bytes(body).length;
         require(tlen > 0 && tlen <= TITLE_MAX, "bad title length");
