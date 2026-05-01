@@ -170,9 +170,107 @@ function safeBig(hexSlice) {
 
 // ─── Contract reads ────────────────────────────────────────────────
 
+// Decoder for proposals(id) — keeps the 4-word ABI shape in one place so
+// both the single read and the batched read produce identical objects.
+function decodeProposal(id, hex) {
+  const slice = hex.slice(2);
+  if (slice.length < 256) {
+    throw new Error(
+      'proposals(' + id + ') returned ' + slice.length + ' hex chars (expected 256). ' +
+      'GOV.CONTRACT (' + GOV.CONTRACT + ') is probably the old contract — ' +
+      'redeploy the new one and update CONTRACT + DEPLOY_BLOCK in build/assets/governance.js.'
+    );
+  }
+  return {
+    id,
+    proposer:        '0x' + slice.slice(24, 64).toLowerCase(),
+    createdAt:       Number(safeBig(slice.slice(64, 128))),
+    totalYesWeight:  safeBig(slice.slice(128, 192)),
+    totalNoWeight:   safeBig(slice.slice(192, 256)),
+  };
+}
+
+// Page-level cache for wallet-derived state (staked balance, AHWA balance,
+// vote weight/yes per proposal). Reset on tx submit so the next render gets
+// fresh values. Keyed by voter address — connecting a different wallet
+// drops cache entries we don't need.
+const _walletCache = {
+  status: null,         // { addr, staked, trackedVotes, isMultisigSigner }
+  ahwa: null,           // { addr, balance }
+  votes: new Map(),     // pid:addr -> { weight, yes }
+  invalidate() { this.status = null; this.ahwa = null; this.votes.clear(); },
+};
+
 async function readProposalCount() {
   const hex = await rpcCallAtBlock(GOV.RPC, GOV.CONTRACT, '0xda35c664', 'latest');
   return Number(safeBig(hex.slice(2)));
+}
+
+// Read all proposals 1..count in a single batched HTTP request. Reduces
+// page-load round-trips from O(count) to 1.
+async function readProposalsBatch(count) {
+  if (count <= 0) return [];
+  const calls = [];
+  for (let id = 1; id <= count; id++) {
+    calls.push({ to: GOV.CONTRACT, data: '0x013cf08b' + encodeUint(id) });
+  }
+  const results = await window.__rpcBatchCall(GOV.RPC, calls);
+  const out = [];
+  for (let i = 0; i < results.length; i++) {
+    try { out.push(decodeProposal(i + 1, results[i])); }
+    catch (e) { console.warn('proposal', i + 1, 'failed:', e.message); }
+  }
+  return out;
+}
+
+// Read wallet status + AHWA balance in a single batched request, cached
+// for the page session. Pass force=true to bypass cache after a tx.
+async function readWalletAndBalance(voter, force) {
+  if (!force && _walletCache.status && _walletCache.status.addr === voter
+            && _walletCache.ahwa  && _walletCache.ahwa.addr   === voter) {
+    return {
+      status: _walletCache.status,
+      walletBalance: _walletCache.ahwa.balance,
+    };
+  }
+  const [statusHex, ahwaHex] = await window.__rpcBatchCall(GOV.RPC, [
+    { to: GOV.CONTRACT, data: '0x4d6d0af8' + encodeAddress(voter) },                                 // walletStatus
+    { to: GOV.AHWA,     data: '0x70a08231' + encodeAddress(voter) },                                 // balanceOf
+  ]);
+  const sslice = (statusHex || '').slice(2);
+  if (sslice.length < 192) {
+    throw new Error(
+      'walletStatus() returned ' + sslice.length + ' hex chars on ' + GOV.CONTRACT +
+      ' — RPC may be lagging or address is not the current contract.'
+    );
+  }
+  const status = {
+    addr: voter,
+    staked:           safeBig(sslice.slice(0, 64)),
+    trackedVotes:     Number(safeBig(sslice.slice(64, 128))),
+    isMultisigSigner: parseInt(sslice.slice(128, 192) || '0', 16) !== 0,
+  };
+  const balance = safeBig((ahwaHex || '').slice(2));
+  _walletCache.status = status;
+  _walletCache.ahwa = { addr: voter, balance };
+  return { status, walletBalance: balance };
+}
+
+// Read voteWeight + voteYes for a given proposal+voter in a single batch,
+// cached for the page session.
+async function readVoteState(proposalId, voter, force) {
+  const key = proposalId + ':' + voter;
+  if (!force && _walletCache.votes.has(key)) return _walletCache.votes.get(key);
+  const [weightHex, yesHex] = await window.__rpcBatchCall(GOV.RPC, [
+    { to: GOV.CONTRACT, data: '0x2b0a999d' + encodeUint(proposalId) + encodeAddress(voter) },        // voteWeight
+    { to: GOV.CONTRACT, data: '0x16b9a1ba' + encodeUint(proposalId) + encodeAddress(voter) },        // voteYes
+  ]);
+  const state = {
+    weight: safeBig((weightHex || '').slice(2)),
+    yes:    parseInt(yesHex || '0x0', 16) !== 0,
+  };
+  _walletCache.votes.set(key, state);
+  return state;
 }
 
 // proposals(uint256) on the new contract returns 4 words:
@@ -528,6 +626,7 @@ async function doStake(amountWhole, statusEl) {
   const data = encodeStake(amount);
   const { txHash } = await sendTx(from, GOV.CONTRACT, data);
   statusEl.innerHTML = '✓ Staked ' + amountWhole + ' AHWA. <a href="https://bscscan.com/tx/' + txHash + '" target="_blank">tx</a>';
+  _walletCache.invalidate();
   setTimeout(() => runGovernance().catch(console.warn), 2000);
 }
 
@@ -540,6 +639,7 @@ async function doUnstake(amountWhole, statusEl) {
   const data = encodeUnstake(amount);
   const { txHash } = await sendTx(from, GOV.CONTRACT, data);
   statusEl.innerHTML = '✓ Unstaked ' + amountWhole + ' AHWA. <a href="https://bscscan.com/tx/' + txHash + '" target="_blank">tx</a>';
+  _walletCache.invalidate();
   setTimeout(() => runGovernance().catch(console.warn), 2000);
 }
 
@@ -579,6 +679,7 @@ async function doPropose(title, body, statusEl) {
   const { txHash, receipt } = await sendTx(from, GOV.CONTRACT, data);
   if (receipt.status === '0x0') throw new Error('Tx reverted. See ' + txHash);
   statusEl.innerHTML = '✓ Proposal submitted. <a href="https://bscscan.com/tx/' + txHash + '" target="_blank">View tx</a>';
+  _walletCache.invalidate();
   setTimeout(() => runGovernance().catch(console.warn), 3000);
 }
 
@@ -603,6 +704,7 @@ async function doVote(proposalId, yes, btnEl) {
   const data = encodeSubmitVote(from, yes, proposalId, Number(nonce), signature);
   const { txHash } = await sendTx(from, GOV.CONTRACT, data);
   btnEl.textContent = '✓ Voted ' + (yes ? 'YES' : 'NO');
+  _walletCache.invalidate();
   setTimeout(() => runGovernance().catch(console.warn), 3000);
 }
 
@@ -623,6 +725,7 @@ async function doVeto(proposalId, btnEl) {
   const data = encodeSubmitVeto(from, proposalId, signature);
   await sendTx(from, GOV.CONTRACT, data);
   btnEl.textContent = '✓ Vetoed';
+  _walletCache.invalidate();
   setTimeout(() => runGovernance().catch(console.warn), 3000);
 }
 
@@ -738,7 +841,8 @@ async function renderDeployPanel() {
         '✓ Deployed at <a href="https://bscscan.com/address/' + addr + '" target="_blank"><code>' + addr + '</code></a> (block ' + blockNumber + ').' +
         '<br><b style="color:var(--coral)">⚠ Copy these values NOW — they are not persisted; if you refresh this page, you will need to look the address up on bscscan or in your wallet history.</b>' +
         '<br>Edit <code>build/assets/governance.js</code>: set <code>CONTRACT: "' + addr + '"</code> and <code>DEPLOY_BLOCK: ' + blockNumber + '</code>, then <code>npx hardhat verify --network bsc ' + addr + '</code>, commit, push.';
-      setTimeout(() => runGovernance().catch(console.warn), 2000);
+      _walletCache.invalidate();
+  setTimeout(() => runGovernance().catch(console.warn), 2000);
     } catch (e) { s.textContent = '✗ ' + e.message; }
   };
   return null;
@@ -833,10 +937,9 @@ async function renderWalletStatus() {
 
   let s, walletAhwa;
   try {
-    [s, walletAhwa] = await Promise.all([
-      readWalletStatus(connected),
-      readAhwaWalletBalance(connected),
-    ]);
+    const r = await readWalletAndBalance(connected);
+    s = r.status;
+    walletAhwa = r.walletBalance;
   } catch (e) {
     document.getElementById('gov-wallet-meta').textContent = '✗ ' + e.message;
     return;
@@ -1058,17 +1161,20 @@ async function renderTallySection(card, p, vetoes) {
     );
   }
 
-  // Determine voter capabilities.
+  // Determine voter capabilities. Both walletStatus and the (weight,yes)
+  // pair come from page-level cache — same wallet across multiple opened
+  // proposal cards reuses one initial fetch.
   const connected = await getConnectedAddress();
   let connStaked = 0n, isMultisigSigner = false, prevWeight = 0n, prevYes = false;
   if (connected) {
     try {
-      const s = await readWalletStatus(connected);
-      connStaked = s.staked;
-      isMultisigSigner = s.isMultisigSigner;
+      const { status } = await readWalletAndBalance(connected);
+      connStaked = status.staked;
+      isMultisigSigner = status.isMultisigSigner;
       if (connStaked > 0n) {
-        prevWeight = await readVoteWeight(p.id, connected);
-        if (prevWeight > 0n) prevYes = await readVoteYes(p.id, connected);
+        const v = await readVoteState(p.id, connected);
+        prevWeight = v.weight;
+        prevYes    = v.yes;
       }
     } catch {}
   }
@@ -1179,11 +1285,16 @@ async function runGovernance() {
     return;
   }
 
-  // Read each proposal's state. Throttled to 3 concurrent.
-  const proposals = [];
-  for (let id = 1; id <= proposalCount; id++) {
-    try { proposals.push(await readProposal(id)); }
-    catch (e) { console.warn('proposal', id, 'failed:', e.message); }
+  // Single batched HTTP request that reads ALL proposals at once.
+  // Was: proposalCount sequential eth_calls. Now: 1 HTTP roundtrip.
+  let proposals = [];
+  try { proposals = await readProposalsBatch(proposalCount); }
+  catch (e) {
+    console.warn('readProposalsBatch failed; falling back to sequential reads:', e.message);
+    for (let id = 1; id <= proposalCount; id++) {
+      try { proposals.push(await readProposal(id)); }
+      catch (err) { console.warn('proposal', id, 'failed:', err.message); }
+    }
   }
 
   tallyAndRender(proposals);

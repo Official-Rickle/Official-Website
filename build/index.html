@@ -1279,6 +1279,66 @@
     throw lastErr || new Error('all RPCs failed for ' + rpc);
   }
   window.__rpcJsonPost = rpcJsonPost;
+
+  // Generic JSON-RPC batch: pack many independent calls (any method) into ONE
+  // HTTP request via JSON-RPC 2.0 array form. Reduces N round-trips to 1
+  // (still counts as N toward the RPC's per-second cap, but only 1 toward
+  // connection limits + 1 throttle slot). All major public RPCs (publicnode,
+  // Ankr, llamarpc, etc.) support this; if a provider returns an error or
+  // single object instead of an array, we fall back to sequential calls.
+  //   requests: [{ method, params }]
+  //   returns:  [result, ...] in same order. Individual failed items return null.
+  async function rpcBatch(rpc, requests) {
+    if (!requests.length) return [];
+    if (requests.length === 1) {
+      try {
+        const r = await rpcJsonPost(rpc, { jsonrpc: '2.0', method: requests[0].method, params: requests[0].params, id: 1 });
+        return [r];
+      } catch { return [null]; }
+    }
+    const body = requests.map((req, i) => ({ jsonrpc: '2.0', method: req.method, params: req.params, id: i + 1 }));
+    const urls = rpcsFor(rpc);
+    let lastErr;
+    for (const url of urls) {
+      try {
+        return await rpcThrottled(url, async () => {
+          const r = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          if (r.status === 429 || r.status >= 500) throw new Error('http ' + r.status + ' from ' + url);
+          const arr = await r.json();
+          if (!Array.isArray(arr)) throw new Error('non-batch response from ' + url);
+          const out = new Array(requests.length).fill(null);
+          for (const item of arr) {
+            // Per-item errors don't fail the whole batch — caller decides what
+            // to do with nulls. Whole-response errors (caught below) trigger
+            // failover to the next URL.
+            if (!item.error && item.id) out[item.id - 1] = item.result;
+          }
+          return out;
+        });
+      } catch (e) { lastErr = e; }
+    }
+    console.warn('Batch failed across all providers; falling back to sequential calls:', lastErr && lastErr.message);
+    const out = [];
+    for (const req of requests) {
+      try { out.push(await rpcJsonPost(rpc, { jsonrpc: '2.0', method: req.method, params: req.params, id: 1 })); }
+      catch { out.push(null); }
+    }
+    return out;
+  }
+  window.__rpcBatch = rpcBatch;
+
+  // Thin wrapper for the common eth_call batch case used by governance.js.
+  // calls: [{ to, data, blockTag? }] -> [hex string in same order]
+  async function rpcBatchCall(rpc, calls) {
+    const requests = calls.map(c => ({ method: 'eth_call', params: [{ to: c.to, data: c.data }, c.blockTag || 'latest'] }));
+    const results = await rpcBatch(rpc, requests);
+    return results.map(r => r || '0x');
+  }
+  window.__rpcBatchCall = rpcBatchCall;
   const TOKEN = {
     ETH: '0x0fF80a1708191C0Da8Aa600Fa487f7aC81D7818c',
     BSC: '0xeCa15e1BbFF172D545Dd6325F3Bae7b737906737',
@@ -1594,10 +1654,19 @@
 
   // ---- audits ----
   async function auditETH() {
-    const sup = await totalSupply(RPC.ETH, TOKEN.ETH);
-    const lockedItems = await Promise.all(ETH_LOCKED.map(async (w) => ({ ...w, amount: await balanceOf(RPC.ETH, TOKEN.ETH, w.addr) })));
-    const bridgeItems = await Promise.all(ETH_BRIDGES.map(async (b) => ({ ...b, amount: await balanceOf(RPC.ETH, TOKEN.ETH, b.addr) })));
-    const safeBal = await balanceOf(RPC.ETH, TOKEN.ETH, SAFE);
+    // One batched HTTP request: totalSupply + safe balance + every locked
+    // wallet + every bridge balance. Was 1+N+M+1 round-trips; now 1.
+    const calls = [
+      { to: TOKEN.ETH, data: '0x18160ddd' },                       // totalSupply
+      { to: TOKEN.ETH, data: '0x70a08231' + pad(SAFE) },           // balanceOf(SAFE)
+      ...ETH_LOCKED.map(w  => ({ to: TOKEN.ETH, data: '0x70a08231' + pad(w.addr) })),
+      ...ETH_BRIDGES.map(b => ({ to: TOKEN.ETH, data: '0x70a08231' + pad(b.addr) })),
+    ];
+    const results = await rpcBatchCall(RPC.ETH, calls);
+    const sup     = BigInt(results[0]);
+    const safeBal = BigInt(results[1]);
+    const lockedItems = ETH_LOCKED .map((w, i) => ({ ...w, amount: BigInt(results[2 + i]) }));
+    const bridgeItems = ETH_BRIDGES.map((b, i) => ({ ...b, amount: BigInt(results[2 + ETH_LOCKED.length + i]) }));
 
     const burned    = lockedItems.filter(x => x.kind === 'burned').reduce((s, x) => s + x.amount, 0n);
     const locked3   = lockedItems.filter(x => x.kind === 'locked').reduce((s, x) => s + x.amount, 0n);
@@ -1618,13 +1687,21 @@
   async function auditChain(key, name, rpc, token) {
     const vault = VAULT[key] || null;
     const lockList = SAT_LOCKED[key] || [];
-    const [sup, dead, safeBal, vaultBal, ...lockBals] = await Promise.all([
-      totalSupply(rpc, token),
-      balanceOf(rpc, token, DEAD),
-      balanceOf(rpc, token, SAFE),
-      vault ? balanceOf(rpc, token, vault) : Promise.resolve(0n),
-      ...lockList.map(w => balanceOf(rpc, token, w.addr)),
-    ]);
+    // One batched HTTP request: totalSupply + balanceOf(DEAD/SAFE/vault) +
+    // every per-chain time-lock contract. Was 4-N round-trips; now 1.
+    const calls = [
+      { to: token, data: '0x18160ddd' },                          // totalSupply
+      { to: token, data: '0x70a08231' + pad(DEAD) },              // balanceOf(DEAD)
+      { to: token, data: '0x70a08231' + pad(SAFE) },              // balanceOf(SAFE)
+      ...(vault ? [{ to: token, data: '0x70a08231' + pad(vault) }] : []),
+      ...lockList.map(w => ({ to: token, data: '0x70a08231' + pad(w.addr) })),
+    ];
+    const results = await rpcBatchCall(rpc, calls);
+    const sup     = BigInt(results[0]);
+    const dead    = BigInt(results[1]);
+    const safeBal = BigInt(results[2]);
+    const vaultBal = vault ? BigInt(results[3]) : 0n;
+    const lockBals = lockList.map((_, i) => BigInt(results[(vault ? 4 : 3) + i]));
     // RKL held directly by the vault + each per-chain time-lock contract.
     // RKL inside LP tokens the vault holds is accounted separately in fetchLPs.
     const lockSum = lockBals.reduce((s, b) => s + b, 0n);
@@ -1647,14 +1724,23 @@
 
   async function fetchTrustAssets(key, rpc) {
     const list = TRUST_ASSETS[key] || [];
+    if (!list.length) return [];
+    // One batched HTTP request reads every trust asset on this chain at
+    // once — mixes eth_getBalance (native) and eth_call (ERC20 balanceOf).
+    // Was: N sequential round-trips. Now: 1.
+    const requests = list.map(a => a.native
+      ? { method: 'eth_getBalance', params: [SAFE, 'latest'] }
+      : { method: 'eth_call',       params: [{ to: a.addr, data: '0x70a08231' + pad(SAFE) }, 'latest'] }
+    );
+    const results = await rpcBatch(rpc, requests);
     const out = [];
-    for (const a of list) {
+    for (let i = 0; i < list.length; i++) {
+      const hex = results[i];
+      if (!hex) continue;
       try {
-        const bal = a.native
-          ? await rpcGetBalance(rpc, SAFE)
-          : await balanceOf(rpc, a.addr, SAFE);
-        if (bal > 0n) out.push({ ...a, amount: bal });
-      } catch { /* skip */ }
+        const bal = BigInt(hex || '0x0');
+        if (bal > 0n) out.push({ ...list[i], amount: bal });
+      } catch { /* skip malformed */ }
     }
     return out;
   }
@@ -1749,16 +1835,24 @@
       try {
         const kind = lp.kind || 'v2';
         if (kind === 'v2') {
-          // Uniswap v2-style pair: getReserves() + token0/token1, plus pro-rata
-          // attribution via vault/dead LP-token balances.
-          const [t0, t1, res, lpSup, vaultLp, deadLp] = await Promise.all([
-            token0(rpc, lp.addr),
-            token1(rpc, lp.addr),
-            getReserves(rpc, lp.addr),
-            totalSupply(rpc, lp.addr),
-            vault ? balanceOf(rpc, lp.addr, vault) : Promise.resolve(0n),
-            balanceOf(rpc, lp.addr, DEAD),
-          ]);
+          // Uniswap v2-style pair: getReserves() + token0/token1 + lp totalSupply
+          // + LP-token balances held by vault and dead. One batched HTTP request.
+          const calls = [
+            { to: lp.addr, data: '0x0dfe1681' },                    // token0
+            { to: lp.addr, data: '0xd21220a7' },                    // token1
+            { to: lp.addr, data: '0x0902f1ac' },                    // getReserves
+            { to: lp.addr, data: '0x18160ddd' },                    // totalSupply
+            ...(vault ? [{ to: lp.addr, data: '0x70a08231' + pad(vault) }] : []),
+            { to: lp.addr, data: '0x70a08231' + pad(DEAD) },        // balanceOf(DEAD)
+          ];
+          const results = await rpcBatchCall(rpc, calls);
+          const t0 = '0x' + results[0].slice(-40);
+          const t1 = '0x' + results[1].slice(-40);
+          const reservesData = results[2].slice(2);
+          const res = { r0: BigInt('0x' + reservesData.slice(0, 64)), r1: BigInt('0x' + reservesData.slice(64, 128)) };
+          const lpSup   = BigInt(results[3]);
+          const vaultLp = vault ? BigInt(results[4]) : 0n;
+          const deadLp  = BigInt(results[vault ? 5 : 4]);
           const rkl = rklToken.toLowerCase();
           const rklIs0 = t0.toLowerCase() === rkl;
           const rklIs1 = t1.toLowerCase() === rkl;
@@ -1786,11 +1880,16 @@
           // will have one token dominate balanceOf, producing a garbage price
           // ratio. We mark them inRange=false so the price-weighting step skips.
           if (!lp.quote?.addr) throw new Error(`${lp.addr} kind=${kind} requires quote.addr`);
-          const [rklRes, quoteRes, liq] = await Promise.all([
-            balanceOf(rpc, rklToken,     lp.addr),
-            balanceOf(rpc, lp.quote.addr, lp.addr),
-            kind === 'v3' ? v3Liquidity(rpc, lp.addr) : Promise.resolve(1n),
-          ]);
+          // Batched: rkl-balance + quote-balance + (v3 liquidity). One HTTP req.
+          const lpCalls = [
+            { to: rklToken,     data: '0x70a08231' + pad(lp.addr) },
+            { to: lp.quote.addr, data: '0x70a08231' + pad(lp.addr) },
+            ...(kind === 'v3' ? [{ to: lp.addr, data: '0x1a686502' }] : []),
+          ];
+          const lpRes = await rpcBatchCall(rpc, lpCalls);
+          const rklRes   = BigInt(lpRes[0] || '0x0');
+          const quoteRes = BigInt(lpRes[1] || '0x0');
+          const liq      = kind === 'v3' ? BigInt(lpRes[2] || '0x0') : 1n;
           out.push({
             ...lp,
             rklAmount:   rklRes,
