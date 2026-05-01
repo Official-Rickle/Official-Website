@@ -72,15 +72,34 @@ async function loadGovSource() {
 
 // ─── low-level RPC ─────────────────────────────────────────────────
 
+// Public RPCs (publicnode, dataseed, ankr-free, etc.) throttle aggressively
+// and will rate-limit / ban callers that burst dozens of concurrent requests.
+// Cap RPC concurrency at 3 — every fetch goes through this semaphore.
+const _rpcSem = { active: 0, queue: [], MAX: 3 };
+async function rpcThrottled(fn) {
+  if (_rpcSem.active >= _rpcSem.MAX) {
+    await new Promise(r => _rpcSem.queue.push(r));
+  }
+  _rpcSem.active++;
+  try { return await fn(); }
+  finally {
+    _rpcSem.active--;
+    const next = _rpcSem.queue.shift();
+    if (next) next();
+  }
+}
+
 async function rpcGetLogs(rpc, params) {
-  const r = await fetch(rpc, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_getLogs', params: [params], id: 1 }),
+  return rpcThrottled(async () => {
+    const r = await fetch(rpc, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_getLogs', params: [params], id: 1 }),
+    });
+    const j = await r.json();
+    if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
+    return j.result || [];
   });
-  const j = await r.json();
-  if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
-  return j.result || [];
 }
 
 // Public BSC RPCs cap eth_getLogs at ~50 000 blocks per query. Walk a long
@@ -110,35 +129,52 @@ async function rpcGetLogsChunked(rpc, baseParams, fromBlock, toBlock, chunkSize 
   return out;
 }
 async function rpcGetCode(rpc, addr) {
-  const r = await fetch(rpc, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_getCode', params: [addr, 'latest'], id: 1 }),
+  return rpcThrottled(async () => {
+    const r = await fetch(rpc, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_getCode', params: [addr, 'latest'], id: 1 }),
+    });
+    const j = await r.json();
+    return j.result || '0x';
   });
-  const j = await r.json();
-  return j.result || '0x';
 }
 async function rpcCallAtBlock(rpc, to, data, blockTag) {
-  const r = await fetch(rpc, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_call', params: [{ to, data }, blockTag], id: 1 }),
+  return rpcThrottled(async () => {
+    const r = await fetch(rpc, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_call', params: [{ to, data }, blockTag], id: 1 }),
+    });
+    const j = await r.json();
+    if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
+    return j.result || '0x';
   });
-  const j = await r.json();
-  if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
-  return j.result || '0x';
 }
 
 function encodeAddress(a) { return '000000000000000000000000' + a.slice(2).toLowerCase(); }
 function encodeUint(n)    { return BigInt(n).toString(16).padStart(64, '0'); }
 
-// balanceOf(address) at a given block — used to verify per-voter eligibility
-// at the proposal's creation block. Public BSC RPC retains state for ~6 months.
+// Cache (addr, block) → balance. Historical balances are immutable, so a
+// session-long memo eliminates duplicate RPC calls when the user re-expands
+// a tally or a voter appears across multiple proposals.
+const _balanceCache = new Map();
 async function balanceOfAtBlock(rpc, token, holder, blockNumber) {
+  const key = rpc + '|' + token.toLowerCase() + '|' + holder.toLowerCase() + '|' + blockNumber;
+  if (_balanceCache.has(key)) return _balanceCache.get(key);
   const data = '0x70a08231' + encodeAddress(holder);
   const blockTag = '0x' + blockNumber.toString(16);
   const hex = await rpcCallAtBlock(rpc, token, data, blockTag);
-  return BigInt(hex || '0x0');
+  const bal = BigInt(hex || '0x0');
+  _balanceCache.set(key, bal);
+  return bal;
+}
+
+// Multisig owner list — fetched once per page load, then memoized.
+let _ownersPromise = null;
+function getCachedOwners() {
+  if (!_ownersPromise) _ownersPromise = fetchMultisigOwners(GOV.RPC, GOV.SAFE).catch(() => []);
+  return _ownersPromise;
 }
 
 // voteNonce(uint256, address) — read current nonce before signing a vote.
@@ -633,6 +669,9 @@ async function renderAuditPanel() {
 
 // ─── wallet status row + propose form ──────────────────────────────
 
+// Render the wallet status row WITHOUT fetching balance. Balance check
+// happens only when the user clicks "Check eligibility" or attempts to
+// vote/propose — minimizes RPC calls on page load.
 async function renderWalletStatus() {
   const row = document.getElementById('gov-wallet');
   if (!row) return;
@@ -643,18 +682,26 @@ async function renderWalletStatus() {
       '<button class="gov-cta sm" id="gov-wallet-connect">Connect</button>' +
       '<span class="ws-meta">connect to vote or propose</span>';
     document.getElementById('gov-wallet-connect').onclick = async () => {
-      try { await requestConnect(); renderWalletStatus(); runGovernance().catch(console.warn); }
+      try { await requestConnect(); await renderWalletStatus(); await renderProposeForm(true); }
       catch (e) { alert(e.message); }
     };
     return;
   }
-  const blk = await currentBlock().catch(() => 0);
-  const bal = await balanceOfAtBlock(GOV.RPC, GOV.AHWA, connected, blk).catch(() => 0n);
-  const ahwa = bal / (10n ** BigInt(GOV.AHWA_DEC));
   row.innerHTML =
     '<span class="ws-label">Wallet:</span> ' +
     '<a href="https://bscscan.com/address/' + connected + '" target="_blank"><code>' + shortAddr(connected) + '</code></a>' +
-    '<span class="ws-meta">' + ahwa.toString() + ' AHWA · ' + (ahwa > 0n ? 'eligible to vote/propose' : 'no AHWA — view-only') + '</span>';
+    '<button class="gov-cta sm" id="gov-wallet-check" style="margin-left:10px">Check AHWA balance</button>' +
+    '<span class="ws-meta" id="gov-wallet-meta">balance not yet checked — voting/propose will verify on-chain when used</span>';
+  document.getElementById('gov-wallet-check').onclick = async () => {
+    const meta = document.getElementById('gov-wallet-meta');
+    meta.textContent = 'checking…';
+    try {
+      const blk = await currentBlock();
+      const bal = await balanceOfAtBlock(GOV.RPC, GOV.AHWA, connected, blk);
+      const ahwa = bal / (10n ** BigInt(GOV.AHWA_DEC));
+      meta.textContent = ahwa.toString() + ' AHWA · ' + (ahwa > 0n ? 'eligible to vote/propose' : 'no AHWA — view-only');
+    } catch (e) { meta.textContent = '✗ ' + e.message; }
+  };
 }
 
 async function renderProposeForm(canPropose) {
@@ -702,147 +749,254 @@ async function renderProposeForm(canPropose) {
 
 // ─── proposal cards ────────────────────────────────────────────────
 
-async function tallyAndRender(proposalsLogs, votesLogs, vetoesLogs, ownerSet, connected, connectedBalance) {
-  const wrap = document.getElementById('gov-proposals');
-  wrap.innerHTML = '';
+// Render a proposal card in COLLAPSED form: title + ID + time-based status,
+// with an explicit "Load tally" button. Heavy RPC work (per-voter balance
+// lookups, multisig owners, LP exclusion balances) is deferred until the
+// user opts in. This keeps a page load to ~1-2 RPC calls (the event scan)
+// and avoids hammering public BSC nodes that rate-limit aggressively.
+// Render a card from STATE only — no event data yet. Title and body come on
+// expand via a single targeted eth_getLogs call. \`p\` has { id, proposer, createdAt }.
+function renderCollapsedCard(p) {
+  const card = document.createElement('div');
+  card.className = 'proposal-card';
 
-  if (proposalsLogs.length === 0) {
-    wrap.innerHTML = '<div class="gov-empty">No proposals yet. Connect your wallet, expand <b>Create a proposal</b>, fill in title and body, sign and submit.</div>';
-    return;
-  }
+  const now = Math.floor(Date.now() / 1000);
+  const closesAt = p.createdAt + 72 * 3600;
+  const finalAt  = closesAt + 3600;
+  let timeStatus, timeClass, timeHelp;
+  if      (now < closesAt) { timeStatus = 'OPEN';     timeClass = 'open';     timeHelp = 'Voting is open — proposal is within its 72-hour window.'; }
+  else if (now < finalAt)  { timeStatus = 'TALLYING'; timeClass = 'tallying'; timeHelp = 'Voting closed; finalizing tally (1-hour buffer for late events).'; }
+  else                     { timeStatus = 'FINAL';    timeClass = 'rejected'; timeHelp = 'Voting window has closed. Click Load tally to compute the result.'; }
 
+  const dateStr = new Date(p.createdAt * 1000).toUTCString().replace(' GMT', ' UTC');
+
+  card.innerHTML =
+    '<div class="ph-head">' +
+      '<div class="ph-title">Proposal #' + p.id + '</div>' +
+      '<span class="ph-status ' + timeClass + '" title="' + escapeHTML(timeHelp) + '">' + timeStatus + '</span>' +
+    '</div>' +
+    '<div class="ph-meta">' +
+      'by <a href="https://bscscan.com/address/' + p.proposer + '" target="_blank"><code>' + shortAddr(p.proposer) + '</code></a>' +
+      ' · created <code>' + dateStr + '</code>' +
+      (now < closesAt ? ' · <span class="ph-countdown" data-closes="' + closesAt + '">' + fmtCountdown(closesAt - now) + ' left</span>' : '') +
+    '</div>' +
+    '<div class="ph-tally-wrap">' +
+      '<button class="gov-cta sm ph-load-btn">Load proposal · text · tally' + (now < closesAt ? ' · vote' : '') + '</button>' +
+    '</div>';
+
+  card.querySelector('.ph-load-btn').onclick = async () => {
+    const wrap = card.querySelector('.ph-tally-wrap');
+    wrap.innerHTML = '<div class="ph-loading">Loading proposal text + tally…</div>';
+    try {
+      // Fetch the ProposalSubmitted event for this id. Estimate block from
+      // createdAt timestamp (BSC ≈ 0.75 s/block recent). 50 K window absorbs
+      // any drift; topic filter narrows to exactly one log.
+      const latestBlk = await currentBlock();
+      const elapsed = Math.max(0, Math.floor(Date.now() / 1000) - p.createdAt);
+      const estBlock = Math.max(0, latestBlk - Math.floor(elapsed * 1.33));
+      const fromBlock = Math.max(0, estBlock - 5000);
+      const toBlock   = Math.min(latestBlk, estBlock + 49000);
+      const proposalLogs = await rpcGetLogs(GOV.RPC, {
+        fromBlock: '0x' + fromBlock.toString(16),
+        toBlock:   '0x' + toBlock.toString(16),
+        address: GOV.CONTRACT,
+        topics:  [GOV.TOPICS.ProposalSubmitted, '0x' + encodeUint(p.id)],
+      });
+      if (proposalLogs.length === 0) throw new Error('ProposalSubmitted event not found in estimated window — try refreshing.');
+      const ev = parseEventLog(proposalLogs[0]);
+      // Augment p with title/body/blockNumber from the event.
+      p.title = ev.title;
+      p.body  = ev.body;
+      p.blockNumber = ev.blockNumber;
+      p.txHash = ev.txHash;
+
+      // Insert title + body section above the tally wrapper (or above the head,
+      // depending on layout). Simplest: replace title text to include event title,
+      // and inject body details before the tally wrap.
+      card.querySelector('.ph-title').textContent = '#' + p.id + ' — ' + p.title;
+      const meta = card.querySelector('.ph-meta');
+      meta.insertAdjacentHTML('beforeend',
+        ' · <a href="https://bscscan.com/tx/' + p.txHash + '" target="_blank">tx</a>' +
+        ' · snapshot block <code>' + p.blockNumber + '</code>'
+      );
+      wrap.insertAdjacentHTML('beforebegin',
+        '<details class="ph-body" open><summary>Proposal text</summary><pre>' + escapeHTML(p.body) + '</pre></details>'
+      );
+
+      // Now fetch vote/veto events for this id. Range: createdAt block to MIN
+      // of (block at end-of-window, latest). Filtered by topic[2] = id, so
+      // results are tiny regardless of range size. One eth_getLogs call.
+      const closesAtBlock = p.blockNumber + Math.ceil(72 * 3600 * 1.33);
+      const voteToBlock = Math.min(latestBlk, closesAtBlock);
+      const idTopic = '0x' + encodeUint(p.id);
+      const eventLogs = await rpcGetLogs(GOV.RPC, {
+        fromBlock: '0x' + p.blockNumber.toString(16),
+        toBlock:   '0x' + voteToBlock.toString(16),
+        address: GOV.CONTRACT,
+        topics:  [[GOV.TOPICS.VoteSubmitted, GOV.TOPICS.VetoSubmitted], null, idTopic],
+      });
+      const myVotes = [], myVetoes = [];
+      for (const log of eventLogs) {
+        const e = parseEventLog(log);
+        if (!e) continue;
+        if (e.type === 'vote') myVotes.push(e);
+        else if (e.type === 'veto') myVetoes.push(e);
+      }
+
+      await renderTallySection(card, p, myVotes, myVetoes);
+    } catch (e) {
+      wrap.innerHTML = '<div class="ph-error">' + escapeHTML(e.message) + '</div>';
+    }
+  };
+
+  return card;
+}
+
+// Heavy work: fetch multisig owners (cached), per-voter balances at the
+// proposal block (cached, throttled to 3 concurrent), exclusion balances
+// for the safe + 7 LPs. Replaces the card body with the full tally + vote
+// buttons.
+async function renderTallySection(card, p, myVotes, myVetoes) {
   const lpSet = new Set(GOV.EXCLUDE_LP.map(a => a.toLowerCase()));
   const safeAddr = GOV.SAFE.toLowerCase();
   const ONE_AHWA = 10n ** BigInt(GOV.AHWA_DEC);
 
-  proposalsLogs.sort((a, b) => b.blockNumber - a.blockNumber);
-  for (const p of proposalsLogs) {
-    const card = document.createElement('div');
-    card.className = 'proposal-card';
-    card.innerHTML = '<div class="ph-loading">Loading proposal #' + p.id + '…</div>';
-    wrap.appendChild(card);
+  const owners = await getCachedOwners();
+  const ownerSet = new Set(owners.map(a => a.toLowerCase()));
+  const connected = await getConnectedAddress();
+  const connectedBalance = connected
+    ? await balanceOfAtBlock(GOV.RPC, GOV.AHWA, connected, p.blockNumber).catch(() => 0n)
+    : 0n;
 
-    (async () => {
-      const myVotes  = votesLogs.filter(v => v.proposalId === p.id);
-      const myVetoes = vetoesLogs.filter(v => v.proposalId === p.id);
+  const voteByVoter = new Map();
+  for (const v of myVotes) {
+    const prev = voteByVoter.get(v.voter);
+    if (!prev || v.nonce > prev.nonce) voteByVoter.set(v.voter, v);
+  }
 
-      const voteByVoter = new Map();
-      for (const v of myVotes) {
-        const prev = voteByVoter.get(v.voter);
-        if (!prev || v.nonce > prev.nonce) voteByVoter.set(v.voter, v);
-      }
+  const yesSet = new Set(), noSet = new Set();
+  const ineligible = [];
+  const voters = [...voteByVoter.keys()];
+  const balances = await Promise.all(voters.map(v =>
+    (v === safeAddr || lpSet.has(v))
+      ? Promise.resolve(0n)
+      : balanceOfAtBlock(GOV.RPC, GOV.AHWA, v, p.blockNumber).catch(() => 0n)
+  ));
+  for (let i = 0; i < voters.length; i++) {
+    const voter = voters[i];
+    const vote  = voteByVoter.get(voter);
+    if (voter === safeAddr || lpSet.has(voter) || balances[i] < ONE_AHWA) {
+      ineligible.push(voter); continue;
+    }
+    (vote.yes ? yesSet : noSet).add(voter);
+  }
 
-      const yesSet = new Set(), noSet = new Set();
-      const ineligible = [];
-      const voters = [...voteByVoter.keys()];
-      const balances = await Promise.all(voters.map(v =>
-        (v === safeAddr || lpSet.has(v))
-          ? Promise.resolve(0n)
-          : balanceOfAtBlock(GOV.RPC, GOV.AHWA, v, p.blockNumber).catch(() => 0n)
-      ));
-      for (let i = 0; i < voters.length; i++) {
-        const voter = voters[i];
-        const vote  = voteByVoter.get(voter);
-        if (voter === safeAddr || lpSet.has(voter) || balances[i] < ONE_AHWA) {
-          ineligible.push(voter); continue;
-        }
-        (vote.yes ? yesSet : noSet).add(voter);
-      }
+  const safeBal = await balanceOfAtBlock(GOV.RPC, GOV.AHWA, GOV.SAFE, p.blockNumber).catch(() => 0n);
+  let exclusions = safeBal > 0n ? 1 : 0;
+  const lpBalances = await Promise.all(GOV.EXCLUDE_LP.map(lp =>
+    balanceOfAtBlock(GOV.RPC, GOV.AHWA, lp, p.blockNumber).catch(() => 0n)
+  ));
+  for (const b of lpBalances) if (b > 0n) exclusions++;
+  const denom = Math.max(0, GOV.HOLDER_COUNT - exclusions);
+  const passThreshold = Math.ceil(denom * 0.51);
 
-      const safeBal = await balanceOfAtBlock(GOV.RPC, GOV.AHWA, GOV.SAFE, p.blockNumber).catch(() => 0n);
-      let exclusions = safeBal > 0n ? 1 : 0;
-      const lpBalances = await Promise.all(GOV.EXCLUDE_LP.map(lp =>
-        balanceOfAtBlock(GOV.RPC, GOV.AHWA, lp, p.blockNumber).catch(() => 0n)
-      ));
-      for (const b of lpBalances) if (b > 0n) exclusions++;
-      const denom = Math.max(0, GOV.HOLDER_COUNT - exclusions);
-      const passThreshold = Math.ceil(denom * 0.51);
+  const vetoSigners = new Set(myVetoes.map(v => v.signer).filter(s => ownerSet.has(s)));
+  const vetoFired   = vetoSigners.size >= 4;
 
-      const vetoSigners = new Set(myVetoes.map(v => v.signer).filter(s => ownerSet.has(s)));
-      const vetoFired   = vetoSigners.size >= 4;
+  const now = Math.floor(Date.now() / 1000);
+  const closesAt = p.timestamp + 72 * 3600;
+  const finalAt  = closesAt + 3600;
+  let status, statusClass, statusHelp;
+  if      (now < closesAt) { status = 'OPEN';              statusClass = 'open';     statusHelp = 'Voting is open — proposal is within its 72-hour window.'; }
+  else if (now < finalAt)  { status = 'TALLYING';          statusClass = 'tallying'; statusHelp = 'Voting closed; finalizing tally (1-hour buffer for late events).'; }
+  else if (vetoFired)      { status = 'VETOED · REJECTED'; statusClass = 'vetoed';   statusHelp = '4 of 5 multisig signers posted Veto signatures — proposal is killed regardless of community tally.'; }
+  else if (yesSet.size >= passThreshold) { status = 'PASSED'; statusClass = 'passed'; statusHelp = '≥51% of eligible holders voted YES. Proposal passed.'; }
+  else                     { status = 'REJECTED';          statusClass = 'rejected'; statusHelp = 'Did not reach 51% YES from eligible holders. Proposal rejected.'; }
 
-      const now = Math.floor(Date.now() / 1000);
-      const closesAt = p.timestamp + 72 * 3600;
-      const finalAt  = closesAt + 3600;
-      let status, statusClass, statusHelp;
-      if      (now < closesAt) { status = 'OPEN';              statusClass = 'open';     statusHelp = 'Voting is open — proposal is within its 72-hour window.'; }
-      else if (now < finalAt)  { status = 'TALLYING';          statusClass = 'tallying'; statusHelp = 'Voting closed; finalizing tally (1-hour buffer for late events).'; }
-      else if (vetoFired)      { status = 'VETOED · REJECTED'; statusClass = 'vetoed';   statusHelp = '4 of 5 multisig signers posted Veto signatures — proposal is killed regardless of community tally.'; }
-      else if (yesSet.size >= passThreshold) { status = 'PASSED'; statusClass = 'passed'; statusHelp = '≥51% of eligible holders voted YES. Proposal passed.'; }
-      else                     { status = 'REJECTED';          statusClass = 'rejected'; statusHelp = 'Did not reach 51% YES from eligible holders. Proposal rejected.'; }
+  // Update the status pill in the head.
+  const statusEl = card.querySelector('.ph-status');
+  if (statusEl) {
+    statusEl.className = 'ph-status ' + statusClass;
+    statusEl.title = statusHelp;
+    statusEl.textContent = status;
+  }
 
-      const yesPct = denom ? (yesSet.size / denom) * 100 : 0;
-      const noPct  = denom ? (noSet.size  / denom) * 100 : 0;
+  const yesPct = denom ? (yesSet.size / denom) * 100 : 0;
+  const noPct  = denom ? (noSet.size  / denom) * 100 : 0;
 
-      const myCurrentVote = connected ? voteByVoter.get(connected) : null;
-      const isOpen = now < closesAt;
-      const canVote = isOpen && connected && (connectedBalance >= ONE_AHWA) && connected !== safeAddr && !lpSet.has(connected);
-      const isMultisigOwner = connected && ownerSet.has(connected);
-      const canVeto = isOpen && isMultisigOwner;
-      const alreadyVetoed = isMultisigOwner && [...vetoSigners].includes(connected);
+  const myCurrentVote = connected ? voteByVoter.get(connected) : null;
+  const isOpen = now < closesAt;
+  const canVote = isOpen && connected && (connectedBalance >= ONE_AHWA) && connected !== safeAddr && !lpSet.has(connected);
+  const isMultisigOwner = connected && ownerSet.has(connected);
+  const canVeto = isOpen && isMultisigOwner;
+  const alreadyVetoed = isMultisigOwner && [...vetoSigners].includes(connected);
 
-      let actionHtml = '';
-      if (canVote || canVeto) {
-        const yesBtnLabel = myCurrentVote ? (myCurrentVote.yes ? '✓ Voted YES' : 'Change to YES') : 'Vote YES';
-        const noBtnLabel  = myCurrentVote ? (!myCurrentVote.yes ? '✓ Voted NO' : 'Change to NO') : 'Vote NO';
-        actionHtml = '<div class="ph-actions">';
-        if (canVote) {
-          actionHtml +=
-            '<button class="gov-cta vote-yes ' + (myCurrentVote && myCurrentVote.yes ? 'active' : '') + '" data-pid="' + p.id + '" data-yes="1">' + yesBtnLabel + '</button>' +
-            '<button class="gov-cta vote-no '  + (myCurrentVote && !myCurrentVote.yes ? 'active' : '') + '" data-pid="' + p.id + '" data-yes="0">' + noBtnLabel  + '</button>';
-        }
-        if (canVeto) {
-          actionHtml += '<button class="gov-cta danger veto-btn" data-pid="' + p.id + '"' + (alreadyVetoed ? ' disabled' : '') + '>' + (alreadyVetoed ? '✓ You vetoed' : 'VETO (multisig)') + '</button>';
-        }
-        actionHtml += '</div>';
-      }
+  let actionHtml = '';
+  if (canVote || canVeto) {
+    const yesBtnLabel = myCurrentVote ? (myCurrentVote.yes ? '✓ Voted YES' : 'Change to YES') : 'Vote YES';
+    const noBtnLabel  = myCurrentVote ? (!myCurrentVote.yes ? '✓ Voted NO' : 'Change to NO') : 'Vote NO';
+    actionHtml = '<div class="ph-actions">';
+    if (canVote) {
+      actionHtml +=
+        '<button class="gov-cta vote-yes ' + (myCurrentVote && myCurrentVote.yes ? 'active' : '') + '" data-pid="' + p.id + '" data-yes="1">' + yesBtnLabel + '</button>' +
+        '<button class="gov-cta vote-no '  + (myCurrentVote && !myCurrentVote.yes ? 'active' : '') + '" data-pid="' + p.id + '" data-yes="0">' + noBtnLabel  + '</button>';
+    }
+    if (canVeto) {
+      actionHtml += '<button class="gov-cta danger veto-btn" data-pid="' + p.id + '"' + (alreadyVetoed ? ' disabled' : '') + '>' + (alreadyVetoed ? '✓ You vetoed' : 'VETO (multisig)') + '</button>';
+    }
+    actionHtml += '</div>';
+  }
 
-      card.innerHTML =
-        '<div class="ph-head">' +
-          '<div class="ph-title">#' + p.id + ' — ' + escapeHTML(p.title) + '</div>' +
-          '<span class="ph-status ' + statusClass + '" title="' + escapeHTML(statusHelp) + '">' + status + '</span>' +
-        '</div>' +
-        '<div class="ph-meta">' +
-          'by <a href="https://bscscan.com/address/' + p.proposer + '" target="_blank"><code>' + shortAddr(p.proposer) + '</code></a>' +
-          ' · <a href="https://bscscan.com/tx/' + p.txHash + '" target="_blank">tx</a>' +
-          ' · snapshot block <code>' + p.blockNumber + '</code>' +
-          ' · <span class="ph-countdown" data-closes="' + closesAt + '">' + fmtCountdown(closesAt - now) + ' left</span>' +
-        '</div>' +
-        '<details class="ph-body" open><summary>Proposal text</summary><pre>' + escapeHTML(p.body) + '</pre></details>' +
-        '<div class="tally-grid">' +
-          '<div class="tally-col" title="Distinct addresses that voted YES (each verified to hold ≥1 AHWA at the proposal block).">' +
-            '<div class="l">YES</div><div class="v">' + yesSet.size + '</div></div>' +
-          '<div class="tally-col" title="Distinct addresses that voted NO (each verified to hold ≥1 AHWA at the proposal block).">' +
-            '<div class="l">NO</div><div class="v">' + noSet.size + '</div></div>' +
-          '<div class="tally-col" title="Total AHWA holders minus the multisig safe and LP/staking pools holding AHWA at the proposal block.">' +
-            '<div class="l">ELIGIBLE</div><div class="v">' + denom + '</div></div>' +
-          '<div class="tally-col" title="ceil(eligible × 0.51) — yes votes required for the proposal to pass.">' +
-            '<div class="l">NEEDED (51%)</div><div class="v">' + passThreshold + '</div></div>' +
-        '</div>' +
-        '<div class="tally-bar">' +
-          '<div class="yes-fill" style="width:' + yesPct.toFixed(1) + '%"></div>' +
-          '<div class="no-fill" style="width:' + noPct.toFixed(1) + '%"></div>' +
-        '</div>' +
-        (myVetoes.length
-          ? '<div class="veto-row">VETO signatures: <b>' + vetoSigners.size + '</b> of 5 multisig owners' +
-              (vetoFired ? ' <span class="veto-pill">VETO FIRED (≥4/5)</span>' : '') + '</div>'
-          : '') +
-        (ineligible.length
-          ? '<div class="veto-row" style="color:var(--text-dim)">Ignored ' + ineligible.length + ' vote' + (ineligible.length === 1 ? '' : 's') + ' from ineligible address' + (ineligible.length === 1 ? '' : 'es') + ' (no AHWA at proposal block, multisig safe, or LP).</div>'
-          : '') +
-        actionHtml;
+  const wrap = card.querySelector('.ph-tally-wrap');
+  wrap.innerHTML =
+    '<div class="tally-grid">' +
+      '<div class="tally-col" title="Distinct addresses that voted YES (each verified to hold ≥1 AHWA at the proposal block).">' +
+        '<div class="l">YES</div><div class="v">' + yesSet.size + '</div></div>' +
+      '<div class="tally-col" title="Distinct addresses that voted NO (each verified to hold ≥1 AHWA at the proposal block).">' +
+        '<div class="l">NO</div><div class="v">' + noSet.size + '</div></div>' +
+      '<div class="tally-col" title="Total AHWA holders minus the multisig safe and LP/staking pools holding AHWA at the proposal block.">' +
+        '<div class="l">ELIGIBLE</div><div class="v">' + denom + '</div></div>' +
+      '<div class="tally-col" title="ceil(eligible × 0.51) — yes votes required for the proposal to pass.">' +
+        '<div class="l">NEEDED (51%)</div><div class="v">' + passThreshold + '</div></div>' +
+    '</div>' +
+    '<div class="tally-bar">' +
+      '<div class="yes-fill" style="width:' + yesPct.toFixed(1) + '%"></div>' +
+      '<div class="no-fill" style="width:' + noPct.toFixed(1) + '%"></div>' +
+    '</div>' +
+    (myVetoes.length
+      ? '<div class="veto-row">VETO signatures: <b>' + vetoSigners.size + '</b> of 5 multisig owners' +
+          (vetoFired ? ' <span class="veto-pill">VETO FIRED (≥4/5)</span>' : '') + '</div>'
+      : '') +
+    (ineligible.length
+      ? '<div class="veto-row" style="color:var(--text-dim)">Ignored ' + ineligible.length + ' vote' + (ineligible.length === 1 ? '' : 's') + ' from ineligible address' + (ineligible.length === 1 ? '' : 'es') + ' (no AHWA at proposal block, multisig safe, or LP).</div>'
+      : '') +
+    actionHtml;
 
-      // Wire vote/veto buttons.
-      card.querySelectorAll('.vote-yes, .vote-no').forEach(btn => {
-        btn.onclick = () => doVote(p.id, btn.dataset.yes === '1', btn).catch(e => {
-          btn.disabled = false; btn.textContent = '✗ ' + e.message.slice(0, 60);
-        });
-      });
-      const vetoBtn = card.querySelector('.veto-btn');
-      if (vetoBtn) vetoBtn.onclick = () => doVeto(p.id, vetoBtn).catch(e => {
-        vetoBtn.disabled = false; vetoBtn.textContent = '✗ ' + e.message.slice(0, 60);
-      });
-    })().catch(e => { card.innerHTML = '<div class="ph-error">Failed to load proposal: ' + escapeHTML(e.message) + '</div>'; });
+  // Wire vote/veto buttons.
+  wrap.querySelectorAll('.vote-yes, .vote-no').forEach(btn => {
+    btn.onclick = () => doVote(p.id, btn.dataset.yes === '1', btn).catch(e => {
+      btn.disabled = false; btn.textContent = '✗ ' + e.message.slice(0, 60);
+    });
+  });
+  const vetoBtn = wrap.querySelector('.veto-btn');
+  if (vetoBtn) vetoBtn.onclick = () => doVeto(p.id, vetoBtn).catch(e => {
+    vetoBtn.disabled = false; vetoBtn.textContent = '✗ ' + e.message.slice(0, 60);
+  });
+}
+
+function tallyAndRender(proposals) {
+  const wrap = document.getElementById('gov-proposals');
+  wrap.innerHTML = '';
+
+  if (proposals.length === 0) {
+    wrap.innerHTML = '<div class="gov-empty">No proposals yet. Connect your wallet, expand <b>Create a proposal</b>, fill in title and body, sign and submit.</div>';
+    return;
+  }
+
+  // Newest first by id (ids are sequential from 1).
+  proposals.sort((a, b) => b.id - a.id);
+  for (const p of proposals) {
+    wrap.appendChild(renderCollapsedCard(p));
   }
 }
 
@@ -860,49 +1014,76 @@ async function runGovernance() {
     return;
   }
 
-  // Resolve scan range. Prefer hardcoded DEPLOY_BLOCK, then localStorage
-  // (saved by the Deploy panel), then a 9-day fallback (~250 000 BSC blocks).
-  const latestBlk = await currentBlock();
-  let scanFrom = GOV.DEPLOY_BLOCK
-    || parseInt(localStorage.getItem('GOV_DEPLOY_BLOCK') || '0', 10)
-    || Math.max(0, latestBlk - 250000);
-  const all = await rpcGetLogsChunked(GOV.RPC, {
-    address: contract,
-    topics: [[GOV.TOPICS.ProposalSubmitted, GOV.TOPICS.VoteSubmitted, GOV.TOPICS.VetoSubmitted]],
-  }, scanFrom, latestBlk);
-  const proposals = [], votes = [], vetoes = [];
-  for (const log of all) {
-    const e = parseEventLog(log);
-    if (!e) continue;
-    if (e.type === 'proposal') proposals.push(e);
-    else if (e.type === 'vote') votes.push(e);
-    else if (e.type === 'veto') vetoes.push(e);
+  // Fast path: read proposalCount() first. If 0, skip the event scan entirely
+  // — nothing to display, no RPC waste. The contract stores proposalCount as
+  // a public uint256 so this is a single eth_call (selector 0xda35c664).
+  let proposalCount = 0;
+  try {
+    const hex = await rpcCallAtBlock(GOV.RPC, contract, '0xda35c664', 'latest');
+    proposalCount = Number(BigInt(hex || '0x0'));
+  } catch (e) {
+    document.getElementById('gov-proposals').innerHTML =
+      '<div class="gov-empty" style="color:var(--red)">RPC error reading proposalCount: ' + escapeHTML(e.message) +
+      '<br><br>If this is a 429 rate-limit, wait a few minutes and refresh.</div>';
+    return;
+  }
+  if (proposalCount === 0) {
+    tallyAndRender([]);
+    const connectedNow = await getConnectedAddress();
+    await renderProposeForm(connectedNow !== null);
+    return;
   }
 
-  const owners = await fetchMultisigOwners(GOV.RPC, GOV.SAFE).catch(() => []);
-  const ownerSet = new Set(owners.map(a => a.toLowerCase()));
+  // State-driven list. Read proposals(id) for each id 1..N. Each call returns
+  // (proposer, createdAt) — enough to render a collapsed card. Title and body
+  // come from the ProposalSubmitted event, fetched lazily when the user clicks
+  // "Load tally". No log scan on initial render — ZERO chunked queries.
+  const proposals = [];
+  for (let id = 1; id <= proposalCount; id++) {
+    try {
+      const hex = await rpcCallAtBlock(
+        GOV.RPC, contract,
+        '0x013cf08b' + encodeUint(id),  // proposals(uint256) selector
+        'latest'
+      );
+      // Returned bytes: [12 zero, 20 byte address][24 zero, 8 byte uint64]
+      const slice = hex.slice(2);
+      const proposer  = '0x' + slice.slice(24, 64).toLowerCase();
+      const createdAt = Number(BigInt('0x' + slice.slice(64, 128)));
+      proposals.push({ id, proposer, createdAt });
+    } catch (e) {
+      console.warn('proposal', id, 'state read failed:', e.message);
+    }
+  }
+
+  // Render state-derived collapsed cards (no titles, no per-voter RPC).
+  tallyAndRender(proposals);
+
+  // Cap propose form visibility to "wallet connected" — the form's own gate
+  // (balance >= 1 AHWA) is checked at submit time, not on render. Avoids one
+  // RPC call per page load.
   const connected = await getConnectedAddress();
-  const connectedBalance = connected
-    ? await balanceOfAtBlock(GOV.RPC, GOV.AHWA, connected, await currentBlock()).catch(() => 0n)
-    : 0n;
+  await renderProposeForm(connected !== null);
 
-  await renderProposeForm(connected !== null && connectedBalance >= (10n ** BigInt(GOV.AHWA_DEC)));
-  await tallyAndRender(proposals, votes, vetoes, ownerSet, connected, connectedBalance);
-
-  setInterval(() => {
-    const now = Math.floor(Date.now() / 1000);
-    document.querySelectorAll('.ph-countdown').forEach(el => {
-      const closes = parseInt(el.dataset.closes, 10);
-      el.textContent = fmtCountdown(closes - now) + ' left';
-    });
-  }, 1000);
+  // Single setInterval drives all countdowns; doesn't fetch RPC.
+  if (!window._govCountdownInterval) {
+    window._govCountdownInterval = setInterval(() => {
+      const now = Math.floor(Date.now() / 1000);
+      document.querySelectorAll('.ph-countdown').forEach(el => {
+        const closes = parseInt(el.dataset.closes, 10);
+        el.textContent = fmtCountdown(closes - now) + ' left';
+      });
+    }, 1000);
+  }
 }
 
 // Auto-run on page load. `defer` ensures DOM is parsed and the inline main
 // script (which defines RPC, SAFE, balanceOf, etc.) has already executed.
-// Also re-render wallet status on accountsChanged / chainChanged events.
+// Wallet events only re-render the wallet status row — they do NOT re-run
+// the full event scan. Avoids re-fetching everything when the wallet
+// auto-reconnects or the user switches accounts.
 if (window.ethereum) {
-  window.ethereum.on?.('accountsChanged', () => runGovernance().catch(console.warn));
-  window.ethereum.on?.('chainChanged',    () => runGovernance().catch(console.warn));
+  window.ethereum.on?.('accountsChanged', () => renderWalletStatus().catch(console.warn));
+  window.ethereum.on?.('chainChanged',    () => renderWalletStatus().catch(console.warn));
 }
 runGovernance().catch(e => console.error('governance failed:', e));
