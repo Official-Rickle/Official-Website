@@ -15,8 +15,8 @@ const GOV = {
   // based fallbacks would let an attacker who can write same-origin storage
   // (XSS in another page, shared/stolen browser, malicious extension) swap
   // in a drainer contract that the user would then approve AHWA to.
-  CONTRACT: '0xFD94bb792b45c5179B5e8F75A7653580C0919025',
-  DEPLOY_BLOCK: 95719427,
+  CONTRACT: '0x75caf86ad4f2b5231e2f5f11ad923725f7765053',
+  DEPLOY_BLOCK: 95780094,
   CHAIN_ID: 56,
   RPC: RPC.BSC,
   AHWA: '0x3A81caafeeDCF2D743Be893858cDa5AcDBF88c11',
