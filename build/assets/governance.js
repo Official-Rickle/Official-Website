@@ -623,31 +623,31 @@ async function renderDeployPanel() {
     } catch { return false; }
   }
 
+  // If a hardcoded CONTRACT is set but its ABI doesn't match this codebase's
+  // contract, treat it as not-set — the user needs to deploy fresh. Don't
+  // dead-end them with just an error message; fall through to the deploy panel.
   if (GOV.CONTRACT) {
-    if (!(await isNewContract(GOV.CONTRACT))) {
-      status.innerHTML = '✗ <code>' + GOV.CONTRACT + '</code> does not match the v2 contract ABI. Update <code>CONTRACT</code> in governance.js to a freshly-deployed instance.';
-      status.className = 'gov-status not-deployed';
+    if (await isNewContract(GOV.CONTRACT)) {
+      status.innerHTML = 'Contract: <a href="https://bscscan.com/address/' + GOV.CONTRACT + '" target="_blank"><code>' + GOV.CONTRACT + '</code></a> (committed)';
+      status.className = 'gov-status deployed';
       panel.hidden = true;
-      return null;
+      return GOV.CONTRACT;
     }
-    status.innerHTML = 'Contract: <a href="https://bscscan.com/address/' + GOV.CONTRACT + '" target="_blank"><code>' + GOV.CONTRACT + '</code></a> (committed)';
-    status.className = 'gov-status deployed';
-    panel.hidden = true;
-    return GOV.CONTRACT;
+    console.warn('GOV.CONTRACT (' + GOV.CONTRACT + ') does not match the current contract ABI; ignoring and showing deploy panel.');
+    GOV.CONTRACT = '';
   }
   if (stored) {
-    if (!(await isNewContract(stored))) {
-      // Stale localStorage from a prior deploy of the old contract — clear it.
-      localStorage.removeItem('GOV_CONTRACT');
-      localStorage.removeItem('GOV_DEPLOY_BLOCK');
-      // Fall through to "needs deploy" UI below.
-    } else {
+    if (await isNewContract(stored)) {
       GOV.CONTRACT = stored;
       status.innerHTML = '⚠ Contract deployed at <a href="https://bscscan.com/address/' + stored + '" target="_blank"><code>' + stored + '</code></a> but address not yet committed. Edit <code>build/assets/governance.js</code> → set <code>CONTRACT: "' + stored + '"</code>, then push.';
       status.className = 'gov-status deployed warn';
       panel.hidden = true;
       return stored;
     }
+    // Stale localStorage from a prior deploy of an older contract — clear it.
+    localStorage.removeItem('GOV_CONTRACT');
+    localStorage.removeItem('GOV_DEPLOY_BLOCK');
+    // Fall through to deploy panel below.
   }
 
   const connected = await getConnectedAddress();
