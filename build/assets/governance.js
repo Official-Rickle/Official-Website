@@ -10,8 +10,11 @@
 // ============================================================
 
 const GOV = {
-  // Populated post-deploy. The Deploy panel writes here + localStorage.
-  // Hardcode after deploy by editing this constant.
+  // Hardcoded post-deploy. This is the only source of truth for the contract
+  // address — no localStorage / sessionStorage / cookie fallback. Storage-
+  // based fallbacks would let an attacker who can write same-origin storage
+  // (XSS in another page, shared/stolen browser, malicious extension) swap
+  // in a drainer contract that the user would then approve AHWA to.
   CONTRACT: '0xFD94bb792b45c5179B5e8F75A7653580C0919025',
   DEPLOY_BLOCK: 95719427,
   CHAIN_ID: 56,
@@ -167,8 +170,7 @@ async function readProposal(id) {
     throw new Error(
       'proposals(' + id + ') returned ' + slice.length + ' hex chars (expected 256). ' +
       'GOV.CONTRACT (' + GOV.CONTRACT + ') is probably the old contract — ' +
-      'redeploy the new one and update CONTRACT + DEPLOY_BLOCK in build/assets/governance.js, ' +
-      'then clear localStorage GOV_CONTRACT.'
+      'redeploy the new one and update CONTRACT + DEPLOY_BLOCK in build/assets/governance.js.'
     );
   }
   return {
@@ -200,7 +202,7 @@ async function readWalletStatus(voter) {
   if (slice.length < 192) {
     throw new Error(
       'walletStatus() not found on ' + GOV.CONTRACT + '. The address points to the old contract — ' +
-      'see governance.js: update CONTRACT + DEPLOY_BLOCK, clear localStorage GOV_CONTRACT.'
+      'see governance.js: update CONTRACT + DEPLOY_BLOCK.'
     );
   }
   return {
@@ -634,11 +636,9 @@ async function renderDeployPanel() {
   const status = document.getElementById('gov-status');
   if (!panel || !status) return null;
 
-  const stored = localStorage.getItem('GOV_CONTRACT');
-
   // Probe: does this address respond to walletStatus() (new contract only)?
-  // If the saved/committed address is the OLD contract (different ABI),
-  // we'd silently misread state. Verify before trusting either source.
+  // If the hardcoded address is the OLD contract (different ABI), we'd
+  // silently misread state. Verify before trusting GOV.CONTRACT.
   async function isNewContract(addr) {
     try {
       const hex = await rpcCallAtBlock(GOV.RPC, addr,
@@ -649,9 +649,11 @@ async function renderDeployPanel() {
     } catch { return false; }
   }
 
-  // If a hardcoded CONTRACT is set but its ABI doesn't match this codebase's
-  // contract, treat it as not-set — the user needs to deploy fresh. Don't
-  // dead-end them with just an error message; fall through to the deploy panel.
+  // GOV.CONTRACT is the SOLE source of truth — no storage-based fallback,
+  // because same-origin storage is an attack vector (XSS or shared browser
+  // could swap in a drainer address that drains AHWA via approve+stake).
+  // If the hardcoded address fails the ABI probe, fall through to deploy
+  // panel rather than dead-ending — the deployer needs to redeploy fresh.
   if (GOV.CONTRACT) {
     if (await isNewContract(GOV.CONTRACT)) {
       status.innerHTML = 'Contract: <a href="https://bscscan.com/address/' + GOV.CONTRACT + '" target="_blank"><code>' + GOV.CONTRACT + '</code></a> (committed)';
@@ -661,19 +663,6 @@ async function renderDeployPanel() {
     }
     console.warn('GOV.CONTRACT (' + GOV.CONTRACT + ') does not match the current contract ABI; ignoring and showing deploy panel.');
     GOV.CONTRACT = '';
-  }
-  if (stored) {
-    if (await isNewContract(stored)) {
-      GOV.CONTRACT = stored;
-      status.innerHTML = '⚠ Contract deployed at <a href="https://bscscan.com/address/' + stored + '" target="_blank"><code>' + stored + '</code></a> but address not yet committed. Edit <code>build/assets/governance.js</code> → set <code>CONTRACT: "' + stored + '"</code>, then push.';
-      status.className = 'gov-status deployed warn';
-      panel.hidden = true;
-      return stored;
-    }
-    // Stale localStorage from a prior deploy of an older contract — clear it.
-    localStorage.removeItem('GOV_CONTRACT');
-    localStorage.removeItem('GOV_DEPLOY_BLOCK');
-    // Fall through to deploy panel below.
   }
 
   const connected = await getConnectedAddress();
@@ -703,10 +692,11 @@ async function renderDeployPanel() {
     const s = document.getElementById('gov-deploy-status');
     try {
       const { addr, blockNumber } = await deployContract(s);
-      localStorage.setItem('GOV_CONTRACT', addr);
-      localStorage.setItem('GOV_DEPLOY_BLOCK', String(blockNumber));
       GOV.CONTRACT = addr;
-      s.innerHTML = '✓ Deployed at <a href="https://bscscan.com/address/' + addr + '" target="_blank"><code>' + addr + '</code></a> (block ' + blockNumber + ').<br>Now locally: edit <code>build/assets/governance.js</code>, set <code>CONTRACT: "' + addr + '"</code> and <code>DEPLOY_BLOCK: ' + blockNumber + '</code>, then <code>npx hardhat verify --network bsc ' + addr + '</code>, commit, push.';
+      s.innerHTML =
+        '✓ Deployed at <a href="https://bscscan.com/address/' + addr + '" target="_blank"><code>' + addr + '</code></a> (block ' + blockNumber + ').' +
+        '<br><b style="color:var(--coral)">⚠ Copy these values NOW — they are not persisted; if you refresh this page, you will need to look the address up on bscscan or in your wallet history.</b>' +
+        '<br>Edit <code>build/assets/governance.js</code>: set <code>CONTRACT: "' + addr + '"</code> and <code>DEPLOY_BLOCK: ' + blockNumber + '</code>, then <code>npx hardhat verify --network bsc ' + addr + '</code>, commit, push.';
       setTimeout(() => runGovernance().catch(console.warn), 2000);
     } catch (e) { s.textContent = '✗ ' + e.message; }
   };
@@ -1134,7 +1124,6 @@ async function runGovernance() {
   await renderAuditPanel();
   await renderWalletStatus();
 
-  if (!GOV.CONTRACT) GOV.CONTRACT = localStorage.getItem('GOV_CONTRACT') || '';
   const contract = await renderDeployPanel();
   if (!contract) {
     document.getElementById('gov-proposals').innerHTML = '<div class="gov-empty">Awaiting contract deploy.</div>';
