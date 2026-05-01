@@ -124,6 +124,38 @@ async function rpcGetCode(rpc, addr) {
   });
 }
 
+// Classify how an on-chain runtime bytecode hex relates to GOV_DEPLOYED_BYTECODE.
+// Returns one of: 'exact' | 'logic' | 'metadata' | 'mismatch'.
+//   exact    — byte-identical (rare; only if no immutables and metadata seed match)
+//   logic    — same opcodes; differs only in immutables (DOMAIN_SEPARATOR, etc.)
+//              and/or the trailing CBOR metadata hash. Both expected.
+//   metadata — same opcodes incl. immutables; only metadata differs (cosmetic).
+//   mismatch — actual logic differs. NOT this contract.
+// Used by both the deploy-panel probe and the user-facing Verify button so
+// the equivalence rule lives in one place.
+function classifyBytecode(onchainHex) {
+  const onchain  = onchainHex.toLowerCase();
+  const expected = GOV_DEPLOYED_BYTECODE.toLowerCase();
+  if (onchain === expected) return 'exact';
+  // Strip the trailing 53-byte CBOR-encoded metadata blob (106 hex chars).
+  const trimMeta = b => b.slice(0, b.length - 106);
+  // Mask immutable slots: in compiled bytecode, each immutable read site
+  // appears as PUSH32 0x000…000 (opcode 0x7f + 32 zero bytes). After deploy,
+  // those zeros are replaced with the immutable's value. Find every PUSH32-
+  // zeros site in the compiled (expected) code and zero out the corresponding
+  // 32 bytes in the on-chain code, then compare.
+  const placeholder = '7f' + '0'.repeat(64);
+  let masked = onchain;
+  let pos = 0;
+  while ((pos = expected.indexOf(placeholder, pos)) !== -1) {
+    masked = masked.slice(0, pos + 2) + '0'.repeat(64) + masked.slice(pos + 66);
+    pos += 66;
+  }
+  if (trimMeta(masked) === trimMeta(expected)) return 'logic';
+  if (trimMeta(onchain) === trimMeta(expected)) return 'metadata';
+  return 'mismatch';
+}
+
 async function rpcCallAtBlock(rpc, to, data, blockTag) {
   return rpcThrottled(async () => {
     const r = await fetch(rpc, {
@@ -636,16 +668,18 @@ async function renderDeployPanel() {
   const status = document.getElementById('gov-status');
   if (!panel || !status) return null;
 
-  // Probe: does this address respond to walletStatus() (new contract only)?
-  // If the hardcoded address is the OLD contract (different ABI), we'd
-  // silently misread state. Verify before trusting GOV.CONTRACT.
+  // Probe: does this address have THIS exact contract deployed? We compare
+  // the deployed runtime bytecode (eth_getCode) against the GOV_DEPLOYED_
+  // BYTECODE constant embedded in this file. This is self-updating — any
+  // contract change makes the embedded constant change and any old deploy
+  // automatically fails the check, no need to bump a hand-picked selector.
+  // We accept three equivalence levels (see classifyBytecode for details):
+  // exact, logic-equivalent (immutables differ, normal), or metadata-only.
   async function isNewContract(addr) {
     try {
-      const hex = await rpcCallAtBlock(GOV.RPC, addr,
-        '0x4d6d0af8' + encodeAddress('0x0000000000000000000000000000000000000000'),
-        'latest'
-      );
-      return hex.slice(2).length >= 192;
+      const onchain = (await rpcGetCode(GOV.RPC, addr)).toLowerCase();
+      if (onchain === '0x' || onchain.length < 4) return false;
+      return classifyBytecode(onchain) !== 'mismatch';
     } catch { return false; }
   }
 
@@ -744,27 +778,19 @@ async function renderAuditPanel() {
     if (!GOV.CONTRACT) { s.textContent = 'No contract deployed yet'; return; }
     s.textContent = 'Fetching deployed bytecode…';
     try {
-      const onchain  = (await rpcGetCode(GOV.RPC, GOV.CONTRACT)).toLowerCase();
-      const expected = GOV_DEPLOYED_BYTECODE.toLowerCase();
-      const trimMeta = b => b.slice(0, b.length - 106);
-      const maskImmutables = (cmp, dep) => {
-        let out = dep;
-        const placeholder = '7f' + '0'.repeat(64);
-        let pos = 0;
-        while ((pos = cmp.indexOf(placeholder, pos)) !== -1) {
-          out = out.slice(0, pos + 2) + '0'.repeat(64) + out.slice(pos + 66);
-          pos += 66;
-        }
-        return out;
-      };
-      if (onchain === expected) {
-        s.innerHTML = '<span style="color:#4caf50">✓ Exact match — runtime bytecode is identical to compiled source.</span>';
-      } else if (trimMeta(maskImmutables(expected, onchain)) === trimMeta(expected)) {
-        s.innerHTML = '<span style="color:#4caf50">✓ Logic match — runtime code matches the source. Differences are only deploy-time-injected immutables (DOMAIN_SEPARATOR) and the metadata hash, both expected and harmless.</span>';
-      } else if (trimMeta(onchain) === trimMeta(expected)) {
-        s.innerHTML = '<span style="color:#c9a227">~ Runtime code matches; metadata hash differs (cosmetic).</span>';
-      } else {
-        s.innerHTML = '<span style="color:#e94545">✗ Mismatch! Deployed bytecode differs from this source.</span>';
+      const onchain = await rpcGetCode(GOV.RPC, GOV.CONTRACT);
+      switch (classifyBytecode(onchain)) {
+        case 'exact':
+          s.innerHTML = '<span style="color:#4caf50">✓ Exact match — runtime bytecode is identical to compiled source.</span>';
+          break;
+        case 'logic':
+          s.innerHTML = '<span style="color:#4caf50">✓ Logic match — runtime code matches the source. Differences are only deploy-time-injected immutables (DOMAIN_SEPARATOR) and the metadata hash, both expected and harmless.</span>';
+          break;
+        case 'metadata':
+          s.innerHTML = '<span style="color:#c9a227">~ Runtime code matches; metadata hash differs (cosmetic).</span>';
+          break;
+        default:
+          s.innerHTML = '<span style="color:#e94545">✗ Mismatch! Deployed bytecode differs from this source.</span>';
       }
     } catch (e) { s.textContent = '✗ ' + e.message; }
   };
