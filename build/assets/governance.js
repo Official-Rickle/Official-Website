@@ -15,7 +15,7 @@ const GOV = {
   // based fallbacks would let an attacker who can write same-origin storage
   // (XSS in another page, shared/stolen browser, malicious extension) swap
   // in a drainer contract that the user would then approve AHWA to.
-  CONTRACT: '0x75caf86ad4f2b5231e2f5f11ad923725f7765053',
+  CONTRACT: '0x75caf86ad4f2b5231e2f5f11ad923257f7765053',
   DEPLOY_BLOCK: 95780094,
   CHAIN_ID: 56,
   RPC: RPC.BSC,
@@ -706,11 +706,29 @@ async function renderDeployPanel() {
   // automatically fails the check, no need to bump a hand-picked selector.
   // We accept three equivalence levels (see classifyBytecode for details):
   // exact, logic-equivalent (immutables differ, normal), or metadata-only.
+  // Result cached on window so subsequent calls (audit-panel Verify button,
+  // re-renders) don't re-fetch ~17KB of bytecode.
   async function isNewContract(addr) {
+    if (window.__GOV_BYTECODE_PROBE && window.__GOV_BYTECODE_PROBE.addr === addr) {
+      return window.__GOV_BYTECODE_PROBE.ok;
+    }
     try {
-      const onchain = (await rpcGetCode(GOV.RPC, addr)).toLowerCase();
-      if (onchain === '0x' || onchain.length < 4) return false;
-      return classifyBytecode(onchain) !== 'mismatch';
+      let onchain = (await rpcGetCode(GOV.RPC, addr)).toLowerCase();
+      // publicnode rate-limits aggressively. If the bytecode call returns
+      // empty (rate-limit hit), wait 30s for the window to roll over and
+      // retry once before deciding the contract is wrong.
+      if (onchain === '0x' || onchain.length < 4) {
+        console.warn('eth_getCode returned empty; waiting 30s for RPC rate-limit window then retrying once');
+        await new Promise(r => setTimeout(r, 30000));
+        onchain = (await rpcGetCode(GOV.RPC, addr)).toLowerCase();
+      }
+      if (onchain === '0x' || onchain.length < 4) {
+        console.warn('eth_getCode still empty after retry — RPC down or address has no code');
+        return false;
+      }
+      const ok = classifyBytecode(onchain) !== 'mismatch';
+      window.__GOV_BYTECODE_PROBE = { addr, ok };
+      return ok;
     } catch { return false; }
   }
 
