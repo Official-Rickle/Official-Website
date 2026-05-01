@@ -43,7 +43,7 @@ contract AhwaGovernance {
         "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
     );
     bytes32 private constant PROPOSAL_TYPEHASH = keccak256(
-        "Proposal(address proposer,string title,string body)"
+        "Proposal(address proposer,string title,string body,uint256 nonce)"
     );
     bytes32 private constant VOTE_TYPEHASH = keccak256(
         "Vote(address voter,bool yes,uint256 proposalId,uint256 nonce)"
@@ -75,6 +75,22 @@ contract AhwaGovernance {
     mapping(uint256 => mapping(address => bool))    public voteYes;
     mapping(uint256 => mapping(address => uint256)) public voteNonce;
     mapping(uint256 => mapping(address => bool))    public hasVetoed;
+    /// @notice Per-proposer nonce for proposal signatures. Increments on each
+    ///         successful submitProposal. Stops signature replay (anyone with
+    ///         a valid old sig can't resubmit it for the same proposer).
+    mapping(address => uint256) public proposalNonce;
+
+    // Minimal reentrancy guard. 1 = unlocked, 2 = locked. Belt-and-suspenders
+    // around stake/unstake — strictly speaking unstake follows CEI and stake
+    // can't be exploited via reentrancy with a normal ERC20, but this costs
+    // ~2.1k gas and removes the question entirely.
+    uint256 private _reentrancyStatus = 1;
+    modifier nonReentrant() {
+        require(_reentrancyStatus == 1, "reentrant");
+        _reentrancyStatus = 2;
+        _;
+        _reentrancyStatus = 1;
+    }
 
     event Staked          (address indexed voter, uint128 amount, uint128 newBalance);
     event Unstaked        (address indexed voter, uint128 amount, uint128 newBalance);
@@ -95,14 +111,14 @@ contract AhwaGovernance {
 
     // ─── Stake / Unstake ────────────────────────────────────────────────
 
-    function stake(uint128 amount) external {
+    function stake(uint128 amount) external nonReentrant {
         require(amount >= MIN_AHWA, "stake >= 1 AHWA");
         require(AHWA.transferFrom(msg.sender, address(this), amount), "transferFrom failed");
         stakedBalance[msg.sender] += amount;
         emit Staked(msg.sender, amount, stakedBalance[msg.sender]);
     }
 
-    function unstake(uint128 amount) external {
+    function unstake(uint128 amount) external nonReentrant {
         require(amount > 0,                          "amount = 0");
         require(amount <= stakedBalance[msg.sender], "exceeds stake");
 
@@ -144,9 +160,11 @@ contract AhwaGovernance {
         address proposer,
         string calldata title,
         string calldata body,
+        uint256 nonce,
         bytes calldata signature
     ) external returns (uint256 id) {
         require(stakedBalance[proposer] >= MIN_AHWA, "proposer must stake to propose");
+        require(nonce == proposalNonce[proposer], "bad nonce");
 
         uint256 tlen = bytes(title).length;
         uint256 blen = bytes(body).length;
@@ -154,11 +172,11 @@ contract AhwaGovernance {
         require(blen > 0 && blen <= BODY_MAX,  "bad body length");
 
         bytes32 structHash = keccak256(abi.encode(
-            PROPOSAL_TYPEHASH, proposer, keccak256(bytes(title)), keccak256(bytes(body))
+            PROPOSAL_TYPEHASH, proposer, keccak256(bytes(title)), keccak256(bytes(body)), nonce
         ));
         require(_recover(_typedHash(structHash), signature) == proposer, "bad signer");
 
-        unchecked { ++proposalCount; }
+        unchecked { ++proposalCount; ++proposalNonce[proposer]; }
         id = proposalCount;
         proposals[id] = Proposal({
             proposer: proposer,

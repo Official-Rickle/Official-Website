@@ -67,7 +67,7 @@ function download(url) {
       optimizer: { enabled: true, runs: 200 },
       evmVersion: 'paris',
       outputSelection: {
-        '*': { '*': ['abi', 'evm.bytecode.object', 'evm.deployedBytecode.object'] },
+        '*': { '*': ['abi', 'evm.bytecode.object', 'evm.deployedBytecode.object', 'evm.methodIdentifiers'] },
       },
     },
   };
@@ -84,6 +84,7 @@ function download(url) {
   const bytecode  = '0x' + c.evm.bytecode.object;
   const runtime   = '0x' + c.evm.deployedBytecode.object;
   const abi       = c.abi;
+  const selectors = c.evm.methodIdentifiers || {};
 
   // 3. Update ABI file (always — tiny file, deterministic format).
   const abiText = JSON.stringify(abi, null, 2) + '\n';
@@ -102,6 +103,11 @@ function download(url) {
   // 5. Report.
   console.log();
   console.log(`Compiled  : ${(bytecode.length - 2) / 2} bytes creation, ${(runtime.length - 2) / 2} bytes runtime, ${abi.length} ABI entries`);
+  console.log('\nFunction selectors (paste into governance.js if signatures changed):');
+  for (const [sig, sel] of Object.entries(selectors).sort()) {
+    console.log(`  0x${sel}  ${sig}`);
+  }
+  console.log();
   console.log(`ABI file  : ${abiChanged ? 'updated' : 'no change'}`);
   console.log(`governance.js: ${govChanged ? 'bytecode constants updated' : 'no change'}`);
   if (!abiChanged && !govChanged) console.log('\n✓ All up to date.');

@@ -52,17 +52,18 @@ Your staked balance is your **voting weight on every proposal you participate in
 
 1. **Connect wallet, and stake at least 1 AHWA first** if you haven't — same threshold as voting (the contract enforces `stakedBalance[proposer] >= 1 AHWA` on `submitProposal`).
 2. **Open "Create a proposal"**, fill in **title** (≤200 chars) and **body** (≤90,000 bytes / ~25,000 words).
-3. **Click "Sign &amp; submit"**. One wallet popup signs EIP-712 typed data:
+3. **Click "Sign &amp; submit"**. The page reads your current `proposalNonce(YOUR_ADDR)` from the contract, then one wallet popup signs EIP-712 typed data:
    ```
    domain  = { name: "AhwaGovernance", version: "1", chainId: 56, verifyingContract: <CONTRACT> }
    types   = { Proposal: [
      { name: "proposer", type: "address" },
      { name: "title",    type: "string"  },
-     { name: "body",     type: "string"  }
+     { name: "body",     type: "string"  },
+     { name: "nonce",    type: "uint256" }
    ]}
-   value   = { proposer: <YOUR_ADDR>, title, body }
+   value   = { proposer: <YOUR_ADDR>, title, body, nonce }
    ```
-   A single tx calls `submitProposal(proposer, title, body, signature)`. The contract assigns a sequential ID and emits `ProposalSubmitted(id, proposer, title, body, timestamp)` — title and body live in the event log.
+   A single tx calls `submitProposal(proposer, title, body, nonce, signature)`. The contract checks `nonce == proposalNonce[proposer]`, increments the nonce on success, assigns a sequential proposal ID, and emits `ProposalSubmitted(id, proposer, title, body, timestamp)` — title and body live in the event log. The nonce is what stops anyone from replaying an old proposal signature against you.
 4. **Voting opens immediately** with a 72-hour window.
 
 ### Voting
@@ -186,6 +187,9 @@ If a deployed contract needs replacing later (e.g., AHWA token migrates), the ex
 - **AHWA token + multisig safe addresses are baked in as `address constant`** at compile time — not constructor parameters. If either ever moves, the governance contract becomes obsolete and a new one must be deployed.
 - **EIP-712 signing** binds each signature to the specific contract address and chain (BSC, chain 56). A signature valid here cannot be replayed on a clone or different chain.
 - **Per-(proposal, voter) nonces** prevent vote-flip replay attacks. An attacker capturing an old vote signature cannot resurrect it after the voter has flipped their position.
+- **Per-proposer nonces on `submitProposal`** prevent proposal-signature replay. A captured proposal signature cannot be resubmitted to spam-mint duplicate proposals under the proposer's identity — the nonce in the signed payload must equal the proposer's current `proposalNonce[proposer]` and increments on each successful submit.
+- **Reentrancy guard** on `stake` and `unstake`. Even though `unstake` follows checks-effects-interactions and `stake` is reentrancy-safe with a vanilla ERC20, a minimal `nonReentrant` modifier removes the question entirely if AHWA ever turns out to have transfer hooks.
+- **Exact-amount allowance.** The page approves only the AHWA being staked, not `MaxUint256`. Users never grant the governance contract an open-ended pull on their AHWA balance — the only AHWA the contract can ever move is what the user explicitly approved for the next stake call.
 - **Anyone can relay** for proposal/vote/veto submission. `msg.sender` is irrelevant; only the recovered EIP-712 signer matters. A holder without BNB for gas can hand their signed message to anyone to submit. Stake/unstake use `msg.sender` directly because they custody tokens.
 - **Eligibility is enforced on-chain.** `submitVote` requires `stakedBalance[voter] >= 1 AHWA`; `submitProposal` requires the same of the proposer. `submitVeto` requires `MULTISIG.isOwner(signer)`. No off-chain trust required.
 - **Timing is enforced on-chain.** `submitVote` and `submitVeto` revert if `block.timestamp > createdAt + VOTING_WINDOW`. The 72-hour cutoff cannot be evaded.
