@@ -5,6 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#000000" />
 
+  <!-- Anti-clickjacking. GitHub Pages can't set X-Frame-Options /
+       CSP frame-ancestors HTTP headers, and browsers ignore those
+       directives via <meta http-equiv>. So we frame-bust in JS,
+       which runs before paint and breaks any iframe overlay attack. -->
+  <script>
+    if (window.top !== window.self) {
+      try { window.top.location = window.self.location; }
+      catch (e) { document.documentElement.style.display = 'none'; }
+    }
+  </script>
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' https: data:; connect-src 'self' https: wss:; font-src 'self' https: data:; object-src 'none'; base-uri 'self'; form-action 'self'" />
+
   <!-- Primary SEO -->
   <title>Rickle — Live Trust Position</title>
   <meta name="description" content="Bringing decentralized finance to the common person." />

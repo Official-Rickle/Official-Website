@@ -311,6 +311,15 @@ function shortAddr(a) { return a.slice(0, 6) + '…' + a.slice(-4); }
 function escapeHTML(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
+// Strip invisible / bidi-override characters that can disguise on-chain text
+// from voters (Trojan Source — U+202E etc., zero-widths, C0/C1 controls, BOM).
+// Keeps tab/newline/carriage-return so multi-line bodies still render in <pre>.
+function stripDeceptive(s) {
+  return String(s).replace(
+    /[ ---​-\u200F\u202A-\u202E\u2066-\u2069﻿]/g,
+    ''
+  );
+}
 function fmtCountdown(seconds) {
   if (seconds <= 0) return 'closed';
   const h = Math.floor(seconds / 3600);
@@ -853,7 +862,8 @@ async function renderProposeForm(canPropose) {
         '<label class="ws-label">Body <span class="ws-meta" id="gov-body-count">0 / ' + GOV.BODY_MAX + ' bytes</span></label>' +
         '<textarea id="gov-body" placeholder="Full proposal text. Goes on-chain as event data — markdown is welcome but rendered as plain text on the page."></textarea>' +
         '<div class="gov-propose-actions">' +
-          '<button class="gov-cta" id="gov-propose-btn">Sign &amp; submit on-chain</button>' +
+          '<button class="gov-cta" id="gov-propose-btn">Sign &amp; submit on-chain</button> ' +
+          '<button class="gov-cta sm" id="gov-propose-clear" type="button">Clear</button>' +
           '<span id="gov-propose-status" class="ws-meta"></span>' +
         '</div>' +
         '<div class="gov-propose-note">Proposing requires <b>≥1 AHWA staked</b> in the governance contract — same threshold as voting. Skin in the game for governance, applies equally to proposers and voters. (Multisig vetoes are exempt — identity-based, not stake-based.)</div>' +
@@ -869,11 +879,25 @@ async function renderProposeForm(canPropose) {
     bCount.textContent = bytes + ' / ' + GOV.BODY_MAX + ' bytes';
     bCount.style.color = bytes > GOV.BODY_MAX ? 'var(--red)' : '';
   };
+  const resetForm = () => {
+    titleEl.value = '';
+    bodyEl.value = '';
+    tCount.textContent = '0 / ' + GOV.TITLE_MAX;
+    bCount.textContent = '0 / ' + GOV.BODY_MAX + ' bytes';
+    bCount.style.color = '';
+  };
+  document.getElementById('gov-propose-clear').onclick = () => {
+    resetForm();
+    const s = document.getElementById('gov-propose-status');
+    s.style.color = '';
+    s.textContent = '';
+  };
   document.getElementById('gov-propose-btn').onclick = async () => {
     const s = document.getElementById('gov-propose-status');
     try {
       s.style.color = '';
       await doPropose(titleEl.value.trim(), bodyEl.value, s);
+      resetForm();
     } catch (e) { s.style.color = 'var(--red)'; s.textContent = '✗ ' + e.message; }
   };
 }
@@ -929,8 +953,8 @@ function renderCollapsedCard(p) {
       });
       if (proposalLogs.length === 0) throw new Error('ProposalSubmitted event not found in estimated window — try refreshing.');
       const ev = parseProposalLog(proposalLogs[0]);
-      p.title = ev.title;
-      p.body  = ev.body;
+      p.title = stripDeceptive(ev.title);
+      p.body  = stripDeceptive(ev.body);
       p.blockNumber = ev.blockNumber;
       p.txHash = ev.txHash;
 
