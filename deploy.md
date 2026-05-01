@@ -6,9 +6,9 @@ Public reference for how the AHWA governance system on rickletoken.com works —
 
 ## What this is
 
-A small Solidity contract on BSC (`AhwaGovernance`) that records AHWA proposals, votes, and vetoes as on-chain events. Proposal title and body live entirely in the event log — **no IPFS, no off-chain dependencies, no third-party services**. All voting policy (eligibility, 51% threshold, timing) is enforced off-chain by the page at rickletoken.com reading these events.
+A small Solidity contract on BSC (`AhwaGovernance`) that records AHWA proposals, votes, and vetoes on-chain. Proposal title and body live in the event log; the live tally (`totalYesWeight` / `totalNoWeight` per proposal) lives in contract state. **No IPFS, no off-chain dependencies, no third-party services.** Eligibility (≥1 AHWA staked) and timing (72-hour window) are enforced on-chain by the contract; the pass/fail determination (`yes > no` of weighted votes cast) is computed by the page reading the on-chain totals — there's nothing to enforce, the totals are already the answer.
 
-The contract itself is deliberately minimal — append-only, no admin, no ownership, no upgrades, no token interactions.
+The contract itself is deliberately scoped: no admin, no ownership, no upgrade path, no pause. It does interact with two external contracts — AHWA (`balanceOf` for the stake's `transferFrom` flow + `transfer` on unstake) and the multisig safe (`isOwner` to gate vetoes). Both are hardcoded as `address constant` at compile time, so they cannot be redirected after deploy.
 
 - **Contract source**: [`build/assets/AhwaGovernance.sol`](build/assets/AhwaGovernance.sol) — also served at `https://rickletoken.com/assets/AhwaGovernance.sol`
 - **ABI**: [`build/assets/AhwaGovernance.abi.json`](build/assets/AhwaGovernance.abi.json) — also at `https://rickletoken.com/assets/AhwaGovernance.abi.json`
@@ -163,35 +163,35 @@ These are pinned in [`hardhat.config.js`](hardhat.config.js). Any change here wo
 
 ## Maintenance
 
-### When AHWA holder count changes
+### Routine maintenance
 
-The 51% denominator depends on the total number of AHWA holders. When holders join or sell out completely, update one constant:
+There isn't any. The page reads everything it needs from contract state — no `HOLDER_COUNT`, no exclusion lists, no off-chain index to keep in sync. The voter set is whoever has staked AHWA in the contract; that information lives entirely on-chain.
 
-1. Check BSCscan: `https://bscscan.com/token/0x3A81caafeeDCF2D743Be893858cDa5AcDBF88c11` → "Holders: N"
-2. Edit [`build/assets/governance.js`](build/assets/governance.js), find `HOLDER_COUNT: 40,` in the `GOV` object, set to N.
-3. Commit and push.
+### When the contract source changes (pre-deployment only)
 
-The page automatically subtracts the multisig safe + LPs holding AHWA at each proposal block — those are not maintained manually.
-
-### When the contract source changes (rare)
-
-The contract is immutable once deployed. Source changes only happen pre-deployment or for a future v2:
+A deployed contract cannot be patched — to change behavior you redeploy and migrate. Pre-deployment edits flow:
 
 1. Edit `build/assets/AhwaGovernance.sol`.
 2. Recompile: `node tools/compile.js` (or `npx hardhat compile`).
 3. The script updates `GOV_BYTECODE` / `GOV_DEPLOYED_BYTECODE` in `governance.js` and the ABI JSON automatically — only if they actually changed.
 4. Review with `git diff`, commit, push.
 
+If a deployed contract needs replacing later (e.g., AHWA token migrates), the existing one is abandoned and a fresh contract deployed; no on-chain state can be carried over.
+
 ---
 
 ## Threat model and design choices
 
-- **Append-only events, no state-changing admin.** The contract has zero ownership, zero upgrade path, zero pause function. Once deployed it cannot be altered.
-- **EIP-712 signing** binds each signature to the specific contract address and chain (BSC, chain 56). A signature valid here cannot be replayed on a clone or a different chain.
-- **Per-(proposal, voter) nonces** prevent vote-flip replay attacks. An attacker capturing an old vote signature cannot resurrect it after the voter has changed their position.
-- **Anyone can relay.** `msg.sender` is irrelevant — only the recovered signer matters. A holder without BNB for gas can hand their signed message to anyone to submit.
-- **Off-chain policy.** All eligibility, threshold, and timing logic lives in the page (and is auditable as plain JavaScript). The contract is intentionally policy-free so policy can evolve without redeploying.
-- **No AHWA token snapshots.** The page checks `balanceOf(voter)` at the proposal's creation block via standard ERC-20 — public BSC RPC retains state for ~6 months which more than covers the 73-hour proposal lifecycle.
+- **No admin, no ownership, no upgrade path, no pause.** Once deployed, no one — including the deployer — can change the contract's behavior. Storage *is* mutable (stakes go up/down, vote weights are added and nullified, tallies update) but only via the public functions whose logic is fixed in bytecode.
+- **AHWA token + multisig safe addresses are baked in as `address constant`** at compile time — not constructor parameters. If either ever moves, the governance contract becomes obsolete and a new one must be deployed.
+- **EIP-712 signing** binds each signature to the specific contract address and chain (BSC, chain 56). A signature valid here cannot be replayed on a clone or different chain.
+- **Per-(proposal, voter) nonces** prevent vote-flip replay attacks. An attacker capturing an old vote signature cannot resurrect it after the voter has flipped their position.
+- **Anyone can relay** for proposal/vote/veto submission. `msg.sender` is irrelevant; only the recovered EIP-712 signer matters. A holder without BNB for gas can hand their signed message to anyone to submit. Stake/unstake use `msg.sender` directly because they custody tokens.
+- **Eligibility is enforced on-chain.** `submitVote` requires `stakedBalance[voter] >= 1 AHWA`; `submitProposal` requires the same of the proposer. `submitVeto` requires `MULTISIG.isOwner(signer)`. No off-chain trust required.
+- **Timing is enforced on-chain.** `submitVote` and `submitVeto` revert if `block.timestamp > createdAt + VOTING_WINDOW`. The 72-hour cutoff cannot be evaded.
+- **Pass/fail is purely arithmetic.** No threshold check needed — the page just compares `totalYesWeight` to `totalNoWeight`, both of which are kept live in contract state by the contract itself. There's no "denominator" to maintain.
+- **No archive RPC required.** All voting state (stakes, vote weights, totals) lives in contract storage at the latest block. The page reads it via plain `eth_call` — no historical state lookups, no snapshot mechanism.
+- **Vote-shuffle and vote-buying are impossible.** Staked AHWA is custodied by the contract; it can't be in two wallets at once. Voting power can't be acquired after a proposal opens unless the buyer also stakes (which puts the AHWA in the contract, not their wallet).
 - **No IPFS, no API keys.** Proposal text lives on-chain in event data. No client-side credentials, no off-chain pinning service, no risk of a "site key" being scraped and abused.
 - **On-chain size cap.** The contract enforces `body ≤ 90,000 bytes` and `title ≤ 200 chars` so proposers can't abuse the gas economics. Practical proposal cost: ~$0.05–$1 in BNB depending on length.
 
