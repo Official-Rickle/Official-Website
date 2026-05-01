@@ -206,6 +206,60 @@ async function readProposalCount() {
   return Number(safeBig(hex.slice(2)));
 }
 
+// Pre-fetch ProposalSubmitted + VetoSubmitted events for ALL proposals in
+// two log scans (one per event type, with NO proposalId filter), then
+// distribute the decoded events back to each proposal object in memory.
+// Per-click renders use these cached values — no redundant log scans.
+//
+// Block range is bounded by GOV.DEPLOY_BLOCK (the contract didn't exist
+// before that), and chunked at 5000 to respect publicnode's per-call cap.
+async function hydrateProposalEvents(proposals) {
+  if (!proposals.length) return;
+  const latestBlk = await currentBlock();
+  const fromBlock = Math.max(0, GOV.DEPLOY_BLOCK || latestBlk - 200000);
+
+  // ProposalSubmitted: one scan covers every proposal id.
+  const propLogs = await rpcGetLogsChunked(GOV.RPC, {
+    address: GOV.CONTRACT,
+    topics:  [GOV.TOPICS.ProposalSubmitted],
+  }, fromBlock, latestBlk, 5000);
+  const eventByPid = new Map();
+  for (const log of propLogs) {
+    try {
+      const ev = parseProposalLog(log);
+      eventByPid.set(ev.id, ev);
+    } catch (e) { console.warn('parseProposalLog failed:', e.message); }
+  }
+
+  // VetoSubmitted: one scan, group by proposalId. Vetoes can only land
+  // while voting is open (≤72h), but the cap is enforced on-chain so we
+  // don't need to clip the upper bound — we'd just see no events past it.
+  const vetoLogs = await rpcGetLogsChunked(GOV.RPC, {
+    address: GOV.CONTRACT,
+    topics:  [GOV.TOPICS.VetoSubmitted],
+  }, fromBlock, latestBlk, 5000);
+  const vetosByPid = new Map();
+  for (const log of vetoLogs) {
+    try {
+      const v = parseVetoLog(log);
+      if (!vetosByPid.has(v.proposalId)) vetosByPid.set(v.proposalId, []);
+      vetosByPid.get(v.proposalId).push(v);
+    } catch (e) { console.warn('parseVetoLog failed:', e.message); }
+  }
+
+  // Attach to each proposal object in memory.
+  for (const p of proposals) {
+    const ev = eventByPid.get(p.id);
+    if (ev) {
+      p.title = stripDeceptive(ev.title);
+      p.body  = stripDeceptive(ev.body);
+      p.blockNumber = ev.blockNumber;
+      p.txHash = ev.txHash;
+    }
+    p.vetoes = vetosByPid.get(p.id) || [];
+  }
+}
+
 // Read all proposals 1..count in a single batched HTTP request. Reduces
 // page-load round-trips from O(count) to 1.
 async function readProposalsBatch(count) {
@@ -1082,12 +1136,15 @@ function renderCollapsedCard(p) {
     const wrap = card.querySelector('.ph-tally-wrap');
     wrap.innerHTML = '<div class="ph-loading">Loading proposal text + tally…</div>';
     try {
-      // Fetch ProposalSubmitted event for title/body. Search the entire
-      // post-deploy range (chunked to respect publicnode's per-call block
-      // limit). DEPLOY_BLOCK is the absolute floor — no events from this
-      // contract can exist before then. This is bounded and avoids the
-      // brittle block-time-heuristic that silently misses when chain block
-      // rate doesn't match our 1.33 blocks/sec assumption.
+      // Happy path: events were pre-fetched by hydrateProposalEvents at
+      // page load — title/body/blockNumber/txHash and vetoes are already
+      // on the proposal object. Render directly with zero RPC calls.
+      if (p.title && p.body) {
+        await renderTallySection(card, p, p.vetoes || []);
+        return;
+      }
+      // Fallback: hydration failed for this proposal (e.g., partial RPC
+      // outage during initial scan). Do the per-proposal fetch.
       const latestBlk = await currentBlock();
       const fromBlock = Math.max(0, GOV.DEPLOY_BLOCK || latestBlk - 200000);
       const proposalLogs = await rpcGetLogsChunked(GOV.RPC, {
@@ -1101,22 +1158,15 @@ function renderCollapsedCard(p) {
       p.blockNumber = ev.blockNumber;
       p.txHash = ev.txHash;
 
-      // Vetoes can only land while voting is open (≤72h after creation).
-      // Chunked fetch from the proposal block forward.
       const closesAtBlock = p.blockNumber + Math.ceil(72 * 3600 * 1.5);
       const vetoToBlock = Math.min(latestBlk, closesAtBlock);
       const vetoLogs = await rpcGetLogsChunked(GOV.RPC, {
         address: GOV.CONTRACT,
         topics:  [GOV.TOPICS.VetoSubmitted, null, '0x' + encodeUint(p.id)],
       }, p.blockNumber, vetoToBlock, 5000);
-      const vetoes = vetoLogs.map(parseVetoLog);
+      p.vetoes = vetoLogs.map(parseVetoLog);
 
-      // Refresh tally from state (in case it changed since initial load).
-      const fresh = await readProposal(p.id);
-      p.totalYesWeight = fresh.totalYesWeight;
-      p.totalNoWeight  = fresh.totalNoWeight;
-
-      await renderTallySection(card, p, vetoes);
+      await renderTallySection(card, p, p.vetoes);
     } catch (e) {
       wrap.innerHTML = '<div class="ph-error">' + escapeHTML(e.message) + '</div>';
     }
@@ -1296,6 +1346,15 @@ async function runGovernance() {
       catch (err) { console.warn('proposal', id, 'failed:', err.message); }
     }
   }
+
+  // Hydrate every proposal's title/body/blockNumber/txHash + vetoes from the
+  // event log in TWO scans total, regardless of how many proposals exist.
+  // Was: per-click scan filtered by proposalId — one set of chunked log
+  // queries per card opened. Now: scan once with no topic[1] filter, group
+  // results by id, attach to each proposal in memory. Per-click becomes
+  // pure render with zero RPC calls.
+  try { await hydrateProposalEvents(proposals); }
+  catch (e) { console.warn('hydrateProposalEvents failed; click handler will fall back to per-proposal fetch:', e.message); }
 
   tallyAndRender(proposals);
   const connected = await getConnectedAddress();
