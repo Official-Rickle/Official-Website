@@ -1071,32 +1071,40 @@
     <details class="gov-explainer">
       <summary>How voting works</summary>
       <div class="body">
-        <h4>Who can vote</h4>
+        <h4>Stake to vote</h4>
         <ul>
-          <li>Anyone holding <b>≥1 AHWA</b> at the proposal block — <b>1 vote</b>, regardless of how much you hold.</li>
-          <li>Multisig signers (caretakers) <b>can vote</b> from their personal wallets if they hold AHWA personally — they're individuals.</li>
-          <li>Excluded: the multisig safe contract address itself, and AHWA LP / staking pools.</li>
+          <li>To vote, first <b>stake AHWA</b> in the governance contract via the wallet panel above. Your staked balance is your <b>voting weight</b> on every proposal.</li>
+          <li>Stake stays put until you actively unstake — no per-proposal lock, no expiry, no reminder needed.</li>
+          <li>One-time per wallet: approve AHWA spending (<code>~$0.03</code>), then call <code>stake(amount)</code> (<code>~$0.05</code>).</li>
+        </ul>
+
+        <h4>Vote weight = staked AHWA</h4>
+        <ul>
+          <li>A holder with <b>100 AHWA staked</b> casts a vote with weight <b>100</b>. A holder with <b>1 AHWA staked</b> casts weight <b>1</b>.</li>
+          <li>Splitting AHWA across many wallets gives <b>no advantage</b> — sprawled stake sums to the same total weight, plus extra gas. Whales' influence is proportional and visible, not hidden.</li>
+          <li>Multisig signers (caretakers) <b>can vote</b> by staking just like anyone else — they're individuals here.</li>
+          <li>The multisig safe contract itself can't stake; only personal wallets can.</li>
         </ul>
 
         <h4>Creating a proposal</h4>
         <ol>
-          <li>Connect your wallet — must hold <b>≥1 AHWA</b> at the current block.</li>
+          <li>Connect your wallet (no stake needed to <i>propose</i>, only to <i>vote</i>).</li>
           <li>Expand <b>Create a proposal</b> above the proposals list; fill in title (≤200 chars) and body (≤90 KB).</li>
-          <li>Click <b>Sign &amp; submit</b>. Your wallet pops up once for an EIP-712 signature, then a single tx commits the full proposal text on-chain in the event data — no IPFS, no off-chain dependencies.</li>
-          <li>The <b>72-hour voting window</b> opens immediately; +1 hour finalization buffer for tally.</li>
+          <li>Click <b>Sign &amp; submit</b>. One EIP-712 signature, one tx — full proposal text commits on-chain in the event data.</li>
+          <li>The <b>72-hour voting window</b> opens immediately; +1 hour finalization buffer.</li>
         </ol>
 
         <h4>How votes are counted</h4>
         <ul>
-          <li>One holder = one vote. A 400-AHWA holder and a 1-AHWA holder both get exactly 1 vote.</li>
-          <li>You can <b>change your mind</b> during the window — re-sign with the next <code>nonce</code>. Old signatures become invalid.</li>
-          <li><b>Pass threshold: ≥51% of eligible holders must vote YES.</b></li>
-          <li>Eligible = total AHWA holders − multisig safe − LP / staking pools holding AHWA at the proposal block.</li>
+          <li>The contract maintains a <b>live, on-chain tally</b>: <code>totalYesWeight</code> and <code>totalNoWeight</code> per proposal — sum of all stakers' weights on each side.</li>
+          <li>You can <b>change your vote</b> during the window — re-sign with the next <code>nonce</code>. Old signatures become invalid.</li>
+          <li>If you <b>unstake</b> while a proposal is open, your vote is automatically nullified (weight removed from the live tally). Closed-proposal votes are frozen and survive.</li>
+          <li><b>Passes when:</b> <code>totalYesWeight &gt; totalNoWeight</code> at window close, AND no multisig veto fired.</li>
         </ul>
 
         <h4>How vetoes work</h4>
         <ul>
-          <li>The <b>5 multisig signers</b> (caretakers) can each post a <code>Veto</code> signature.</li>
+          <li>The <b>5 multisig signers</b> (caretakers) can each post a <code>Veto</code> signature on any open proposal.</li>
           <li><b>4 of 5 vetoes kills the proposal</b>, regardless of the community tally.</li>
           <li>Vetoes are <b>final</b> — cannot be rescinded. A new proposal would be required.</li>
           <li>A vetoed proposal shows BOTH <code>VETOED · REJECTED</code> and the community tally — you see what holders said <i>and</i> what the caretakers did.</li>
