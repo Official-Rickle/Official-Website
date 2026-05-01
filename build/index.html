@@ -15,8 +15,14 @@
       catch (e) { document.documentElement.style.display = 'none'; }
     }
   </script>
+  <!-- 'unsafe-eval' is needed because wallet provider content scripts
+       (MetaMask, Rabby, Coinbase Wallet, etc.) use eval/Function internally
+       to inject window.ethereum. Without it, console floods with CSP eval
+       blocks and wallet connection can silently fail. The other defenses
+       (object-src 'none', base-uri 'self', frame-busting JS, escaped output)
+       still apply. -->
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' https: data:; connect-src 'self' https: wss:; font-src 'self' https: data:; object-src 'none'; base-uri 'self'; form-action 'self'" />
+        content="default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' https: data:; connect-src 'self' https: wss:; font-src 'self' https: data:; object-src 'none'; base-uri 'self'; form-action 'self'" />
 
   <!-- Primary SEO -->
   <title>Rickle — Live Trust Position</title>

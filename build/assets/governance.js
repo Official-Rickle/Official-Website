@@ -730,8 +730,8 @@ async function renderAuditPanel() {
       '<button class="gov-cta sm" id="gov-verify-btn">Verify on chain</button>' +
       '<span class="gov-verify-status" id="gov-verify-status"></span>' +
     '</div>' +
-    '<details class="gov-audit-block" id="gov-src-detail"><summary>Solidity source · <a href="/assets/AhwaGovernance.sol" target="_blank">raw file</a></summary><pre id="gov-src-pre">…loading…</pre></details>' +
-    '<details class="gov-audit-block" id="gov-abi-detail"><summary>ABI · <a href="/assets/AhwaGovernance.abi.json" target="_blank">raw json</a></summary><pre id="gov-abi-pre">…loading…</pre></details>' +
+    '<details class="gov-audit-block" id="gov-src-detail"><summary>Solidity source</summary><div class="gov-audit-link"><a href="/assets/AhwaGovernance.sol" target="_blank" rel="noopener">Open raw file ↗</a></div><pre id="gov-src-pre">…loading…</pre></details>' +
+    '<details class="gov-audit-block" id="gov-abi-detail"><summary>ABI</summary><div class="gov-audit-link"><a href="/assets/AhwaGovernance.abi.json" target="_blank" rel="noopener">Open raw json ↗</a></div><pre id="gov-abi-pre">…loading…</pre></details>' +
     '<details class="gov-audit-block"><summary>Creation bytecode (' + ((GOV_BYTECODE.length - 2) / 2) + ' bytes)</summary><pre class="hex">' + GOV_BYTECODE + '</pre></details>' +
     '<details class="gov-audit-block"><summary>Deployed bytecode (' + ((GOV_DEPLOYED_BYTECODE.length - 2) / 2) + ' bytes — what the chain runs)</summary><pre class="hex">' + GOV_DEPLOYED_BYTECODE + '</pre></details>';
 
@@ -832,7 +832,7 @@ async function renderWalletStatus() {
       (s.isMultisigSigner ? ' · <span style="color:var(--coral)">multisig signer (can veto)</span>' : '') +
     '</div>' +
     '<div class="ws-row" style="margin-top:6px">' +
-      '<input type="number" min="1" step="1" placeholder="amount of AHWA" id="gov-stake-amt" style="width:140px;padding:4px 8px;background:var(--bg-2);border:1px solid var(--hairline);color:var(--text);font-family:var(--mono);font-size:12px;border-radius:2px">' +
+      '<input type="number" min="1" step="1" placeholder="amount of AHWA" id="gov-stake-amt" aria-label="Amount of AHWA to stake or unstake" style="width:140px;padding:4px 8px;background:var(--bg-2);border:1px solid var(--hairline);color:var(--text);font-family:var(--mono);font-size:12px;border-radius:2px">' +
       '<button class="gov-cta sm" id="gov-stake-go" style="margin-left:6px">Stake</button> ' +
       '<button class="gov-cta sm" id="gov-unstake-go">Unstake</button>' +
       '<span id="gov-stake-status" class="ws-meta" style="margin-left:10px"></span>' +
@@ -874,9 +874,9 @@ async function renderProposeForm(canPropose) {
     '<details class="gov-propose-card">' +
       '<summary>Create a proposal</summary>' +
       '<div class="gov-propose-body">' +
-        '<label class="ws-label">Title <span class="ws-meta" id="gov-title-count">0 / ' + GOV.TITLE_MAX + '</span></label>' +
+        '<label class="ws-label" for="gov-title">Title <span class="ws-meta" id="gov-title-count">0 / ' + GOV.TITLE_MAX + '</span></label>' +
         '<input type="text" id="gov-title" maxlength="' + GOV.TITLE_MAX + '" placeholder="Short headline (e.g. \'Reduce LP fee to 0.2%\')">' +
-        '<label class="ws-label">Body <span class="ws-meta" id="gov-body-count">0 / ' + GOV.BODY_MAX + ' bytes</span></label>' +
+        '<label class="ws-label" for="gov-body">Body <span class="ws-meta" id="gov-body-count">0 / ' + GOV.BODY_MAX + ' bytes</span></label>' +
         '<textarea id="gov-body" placeholder="Full proposal text. Goes on-chain as event data — markdown is welcome but rendered as plain text on the page."></textarea>' +
         '<div class="gov-propose-actions">' +
           '<button class="gov-cta" id="gov-propose-btn">Sign &amp; submit on-chain</button> ' +
