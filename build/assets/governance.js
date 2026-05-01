@@ -59,33 +59,17 @@ async function loadGovSource() {
   return _govSource;
 }
 
-// ─── low-level RPC (throttled) ─────────────────────────────────────
-
-const _rpcSem = { active: 0, queue: [], MAX: 3 };
-async function rpcThrottled(fn) {
-  if (_rpcSem.active >= _rpcSem.MAX) {
-    await new Promise(r => _rpcSem.queue.push(r));
-  }
-  _rpcSem.active++;
-  try { return await fn(); }
-  finally {
-    _rpcSem.active--;
-    const next = _rpcSem.queue.shift();
-    if (next) next();
-  }
-}
+// ─── low-level RPC ─────────────────────────────────────────────────
+// Uses the shared throttle + multi-RPC failover layer set up in index.html
+// (window.__rpcJsonPost). That layer enforces per-host concurrency, per-
+// host minimum-interval rate-limit, and walks through fallback providers
+// on 429 / 5xx / network failure. Both this file and the trust-position
+// section in index.html share the same throttle state, so they don't burst
+// on top of each other and trip public-RPC limits.
 
 async function rpcGetLogs(rpc, params) {
-  return rpcThrottled(async () => {
-    const r = await fetch(rpc, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_getLogs', params: [params], id: 1 }),
-    });
-    const j = await r.json();
-    if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
-    return j.result || [];
-  });
+  const r = await window.__rpcJsonPost(rpc, { jsonrpc: '2.0', method: 'eth_getLogs', params: [params], id: 1 });
+  return r || [];
 }
 
 async function rpcGetLogsChunked(rpc, baseParams, fromBlock, toBlock, chunkSize = 49000) {
@@ -113,15 +97,8 @@ async function rpcGetLogsChunked(rpc, baseParams, fromBlock, toBlock, chunkSize 
 }
 
 async function rpcGetCode(rpc, addr) {
-  return rpcThrottled(async () => {
-    const r = await fetch(rpc, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_getCode', params: [addr, 'latest'], id: 1 }),
-    });
-    const j = await r.json();
-    return j.result || '0x';
-  });
+  const r = await window.__rpcJsonPost(rpc, { jsonrpc: '2.0', method: 'eth_getCode', params: [addr, 'latest'], id: 1 });
+  return r || '0x';
 }
 
 // Classify how an on-chain runtime bytecode hex relates to GOV_DEPLOYED_BYTECODE.
@@ -176,16 +153,8 @@ function classifyBytecode(onchainHex) {
 }
 
 async function rpcCallAtBlock(rpc, to, data, blockTag) {
-  return rpcThrottled(async () => {
-    const r = await fetch(rpc, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_call', params: [{ to, data }, blockTag], id: 1 }),
-    });
-    const j = await r.json();
-    if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
-    return j.result || '0x';
-  });
+  const r = await window.__rpcJsonPost(rpc, { jsonrpc: '2.0', method: 'eth_call', params: [{ to, data }, blockTag], id: 1 });
+  return r || '0x';
 }
 
 function encodeAddress(a) { return '000000000000000000000000' + a.slice(2).toLowerCase(); }
@@ -406,13 +375,8 @@ function fmtAhwa(weiBig) {
   return whole.toLocaleString('en-US');
 }
 async function currentBlock() {
-  const r = await fetch(GOV.RPC, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_blockNumber', params: [], id: 1 }),
-  });
-  const j = await r.json();
-  return parseInt(j.result, 16);
+  const r = await window.__rpcJsonPost(GOV.RPC, { jsonrpc: '2.0', method: 'eth_blockNumber', params: [], id: 1 });
+  return parseInt(r, 16);
 }
 
 // ─── Wallet helpers ────────────────────────────────────────────────
@@ -469,13 +433,10 @@ async function sendTx(from, to, data) {
   });
   for (let i = 0; i < 60; i++) {
     await new Promise(r => setTimeout(r, 2500));
-    const res = await fetch(GOV.RPC, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_getTransactionReceipt', params: [txHash], id: 1 }),
-    });
-    const j = await res.json();
-    if (j.result) return { txHash, receipt: j.result };
+    try {
+      const result = await window.__rpcJsonPost(GOV.RPC, { jsonrpc: '2.0', method: 'eth_getTransactionReceipt', params: [txHash], id: 1 });
+      if (result) return { txHash, receipt: result };
+    } catch { /* keep polling */ }
   }
   throw new Error('Receipt never arrived (>2.5 min). Check tx on BSCscan: ' + txHash);
 }
@@ -681,15 +642,12 @@ async function deployContract(statusEl) {
   statusEl.innerHTML = 'Tx sent: <a href="https://bscscan.com/tx/' + txHash + '" target="_blank">' + txHash.slice(0, 10) + '…</a><br>Waiting for receipt…';
   for (let i = 0; i < 60; i++) {
     await new Promise(r => setTimeout(r, 2500));
-    const res = await fetch(GOV.RPC, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_getTransactionReceipt', params: [txHash], id: 1 }),
-    });
-    const j = await res.json();
-    if (j.result && j.result.contractAddress) {
-      return { addr: j.result.contractAddress, blockNumber: parseInt(j.result.blockNumber, 16) };
-    }
+    try {
+      const result = await window.__rpcJsonPost(GOV.RPC, { jsonrpc: '2.0', method: 'eth_getTransactionReceipt', params: [txHash], id: 1 });
+      if (result && result.contractAddress) {
+        return { addr: result.contractAddress, blockNumber: parseInt(result.blockNumber, 16) };
+      }
+    } catch { /* keep polling */ }
   }
   throw new Error('Receipt never arrived (>2.5 min). Check the tx on BSCscan.');
 }

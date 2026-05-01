@@ -1203,6 +1203,82 @@
     BASE:   'https://base-rpc.publicnode.com',
     STABLE: 'https://rpc.stable.xyz',
   };
+
+  // Per-primary fallback list. On HTTP 429 / 5xx / network error we walk
+  // this list, so a single rate-limited node doesn't kill the page. Each
+  // host has its own throttle (below), so traffic naturally redistributes
+  // across providers as one gets saturated.
+  const RPC_FALLBACKS = {
+    'https://ethereum-rpc.publicnode.com':     ['https://eth.llamarpc.com', 'https://rpc.ankr.com/eth', 'https://eth.drpc.org'],
+    'https://bsc-rpc.publicnode.com':          ['https://bsc-dataseed.binance.org', 'https://bsc-dataseed1.defibit.io', 'https://rpc.ankr.com/bsc'],
+    'https://polygon-bor-rpc.publicnode.com':  ['https://polygon-rpc.com', 'https://rpc.ankr.com/polygon', 'https://polygon.drpc.org'],
+    'https://gnosis-rpc.publicnode.com':       ['https://rpc.gnosischain.com', 'https://rpc.ankr.com/gnosis'],
+    'https://arbitrum-one-rpc.publicnode.com': ['https://arb1.arbitrum.io/rpc', 'https://rpc.ankr.com/arbitrum'],
+    'https://base-rpc.publicnode.com':         ['https://mainnet.base.org', 'https://rpc.ankr.com/base'],
+    'https://rpc.stable.xyz':                  [],
+  };
+  function rpcsFor(rpc) { return [rpc, ...(RPC_FALLBACKS[rpc] || [])]; }
+  window.__rpcsFor = rpcsFor;
+
+  // Per-host throttle: caps in-flight calls (concurrency) AND enforces a
+  // minimum interval between consecutive calls (rate). Without rate-limit
+  // we burst hundreds of requests on page load and trip public-RPC limits;
+  // without per-host scoping the failover gain disappears (one slow host
+  // would stall calls bound for every other host). Tune the constants if
+  // you still see 429s / empty responses, or for snappier loads.
+  const RPC_MAX_CONCURRENT  = 2;
+  const RPC_MIN_INTERVAL_MS = 1000;
+  const _rpcThrottles = new Map();
+  function _rpcSlot(url) {
+    let host;
+    try { host = new URL(url).host; } catch { host = url; }
+    let s = _rpcThrottles.get(host);
+    if (!s) { s = { active: 0, queue: [], lastStart: 0 }; _rpcThrottles.set(host, s); }
+    return s;
+  }
+  async function rpcThrottled(url, fn) {
+    const t = _rpcSlot(url);
+    if (t.active >= RPC_MAX_CONCURRENT) await new Promise(r => t.queue.push(r));
+    const wait = Math.max(0, t.lastStart + RPC_MIN_INTERVAL_MS - Date.now());
+    if (wait > 0) await new Promise(r => setTimeout(r, wait));
+    t.lastStart = Date.now();
+    t.active++;
+    try { return await fn(); }
+    finally {
+      t.active--;
+      const next = t.queue.shift();
+      if (next) next();
+    }
+  }
+  window.__rpcThrottled = rpcThrottled;
+
+  // Shared JSON-RPC POST: throttle, fall back across alternative providers
+  // on 429 / 5xx / network failure. Used by both index.html and governance.js
+  // (governance.js looks for window.__rpcJsonPost).
+  async function rpcJsonPost(rpc, body) {
+    const urls = rpcsFor(rpc);
+    let lastErr;
+    for (const url of urls) {
+      try {
+        return await rpcThrottled(url, async () => {
+          const r = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          if (r.status === 429 || r.status >= 500) throw new Error('http ' + r.status + ' from ' + url);
+          const j = await r.json();
+          if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
+          return j.result;
+        });
+      } catch (e) {
+        lastErr = e;
+        // Try next URL in the failover list.
+      }
+    }
+    throw lastErr || new Error('all RPCs failed for ' + rpc);
+  }
+  window.__rpcJsonPost = rpcJsonPost;
   const TOKEN = {
     ETH: '0x0fF80a1708191C0Da8Aa600Fa487f7aC81D7818c',
     BSC: '0xeCa15e1BbFF172D545Dd6325F3Bae7b737906737',
@@ -1459,23 +1535,11 @@
   // ---- low-level RPC ----
   function pad(addr) { return '000000000000000000000000' + addr.slice(2).toLowerCase(); }
   async function rpcCall(rpc, to, data) {
-    const r = await fetch(rpc, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_call', params: [{ to, data }, 'latest'], id: 1 }),
-    });
-    const j = await r.json();
-    if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
-    return j.result || '0x0';
+    return (await rpcJsonPost(rpc, { jsonrpc: '2.0', method: 'eth_call', params: [{ to, data }, 'latest'], id: 1 })) || '0x0';
   }
   async function rpcGetBalance(rpc, addr) {
-    const r = await fetch(rpc, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_getBalance', params: [addr, 'latest'], id: 1 }),
-    });
-    const j = await r.json();
-    return BigInt(j.result || '0x0');
+    const result = await rpcJsonPost(rpc, { jsonrpc: '2.0', method: 'eth_getBalance', params: [addr, 'latest'], id: 1 });
+    return BigInt(result || '0x0');
   }
   async function totalSupply(rpc, t)  { return BigInt(await rpcCall(rpc, t, '0x18160ddd')); }
   async function balanceOf(rpc, t, h) { return BigInt(await rpcCall(rpc, t, '0x70a08231' + pad(h))); }
