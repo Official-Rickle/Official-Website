@@ -20,7 +20,10 @@
 //  once committed — same security model as AhwaGovernance.
 // ============================================================
 
-const VAULT = {
+// Renamed from VAULT → BURN_VAULT to avoid colliding with index.html's
+// Winston-vault address map (also `const VAULT`). Both files share global
+// scope when loaded as plain <script> tags.
+const BURN_VAULT = {
   // Filled after deploy. Empty → deploy panel shows for the deployer.
   IMPLEMENTATION: '',
   FACTORY:        '',
@@ -71,7 +74,7 @@ function vShortAddr(a)  { return a.slice(0, 6) + '…' + a.slice(-4); }
 function vIsAddr(s) { return /^0x[0-9a-fA-F]{40}$/.test((s || '').trim()); }
 
 async function vRpcCall(to, data) {
-  const r = await window.__rpcJsonPost(VAULT.RPC, {
+  const r = await window.__rpcJsonPost(BURN_VAULT.RPC, {
     jsonrpc: '2.0', method: 'eth_call', params: [{ to, data }, 'latest'], id: 1,
   });
   return r || '0x';
@@ -82,7 +85,7 @@ async function vWaitReceipt(txHash) {
   for (let i = 0; i < 150; i++) {
     await new Promise(r => setTimeout(r, 2000));
     try {
-      const result = await window.__rpcJsonPost(VAULT.RPC, {
+      const result = await window.__rpcJsonPost(BURN_VAULT.RPC, {
         jsonrpc: '2.0', method: 'eth_getTransactionReceipt', params: [txHash], id: 1,
       });
       if (result) return result;
@@ -112,10 +115,10 @@ async function vConnect() {
 async function vEnsureBSC() {
   if (!window.ethereum) throw new Error('No wallet');
   const cid = await window.ethereum.request({ method: 'eth_chainId' });
-  if (parseInt(cid, 16) !== VAULT.CHAIN_ID) {
+  if (parseInt(cid, 16) !== BURN_VAULT.CHAIN_ID) {
     await window.ethereum.request({
       method: 'wallet_switchEthereumChain',
-      params: [{ chainId: '0x' + VAULT.CHAIN_ID.toString(16) }],
+      params: [{ chainId: '0x' + BURN_VAULT.CHAIN_ID.toString(16) }],
     });
   }
 }
@@ -130,17 +133,17 @@ async function vSendTx(from, to, data, valueHex) {
 // ─── Reads ──────────────────────────────────────────────────────────
 
 async function vGetVaultCount() {
-  if (!VAULT.FACTORY) return 0;
+  if (!BURN_VAULT.FACTORY) return 0;
   try {
-    const hex = await vRpcCall(VAULT.FACTORY, VAULT_SEL.vaultCount);
+    const hex = await vRpcCall(BURN_VAULT.FACTORY, VAULT_SEL.vaultCount);
     return Number(BigInt('0x' + (hex.slice(2) || '0')));
   } catch { return 0; }
 }
 
 async function vGetVaultsOf(addr) {
-  if (!VAULT.FACTORY || !addr) return [];
+  if (!BURN_VAULT.FACTORY || !addr) return [];
   try {
-    const hex = await vRpcCall(VAULT.FACTORY, VAULT_SEL.vaultsOf + vEncodeAddr(addr));
+    const hex = await vRpcCall(BURN_VAULT.FACTORY, VAULT_SEL.vaultsOf + vEncodeAddr(addr));
     // Decode address[] return: 32-byte offset, 32-byte length, then N×32 bytes.
     const data = hex.slice(2);
     if (data.length < 128) return [];
@@ -158,7 +161,7 @@ async function vGetVaultsOf(addr) {
 
 async function vDeployImplementation(statusEl) {
   const from = await vConnect();
-  if (from !== VAULT.DEPLOYER) throw new Error('Only the deployer wallet can deploy.');
+  if (from !== BURN_VAULT.DEPLOYER) throw new Error('Only the deployer wallet can deploy.');
   await vEnsureBSC();
   statusEl.textContent = 'Sign the implementation deploy in your wallet…';
   const txHash = await vSendTx(from, null, VAULT_BYTECODE, null);
@@ -171,7 +174,7 @@ async function vDeployImplementation(statusEl) {
 async function vDeployFactory(implAddr, statusEl) {
   if (!vIsAddr(implAddr)) throw new Error('Implementation address looks invalid.');
   const from = await vConnect();
-  if (from !== VAULT.DEPLOYER) throw new Error('Only the deployer wallet can deploy.');
+  if (from !== BURN_VAULT.DEPLOYER) throw new Error('Only the deployer wallet can deploy.');
   await vEnsureBSC();
   // Append ABI-encoded constructor arg (the impl address) to the creation code.
   const data = FACTORY_BYTECODE + vEncodeAddr(implAddr);
@@ -186,7 +189,7 @@ async function vDeployFactory(implAddr, statusEl) {
 // ─── Public action: create a vault ──────────────────────────────────
 
 async function vCreateVault(recipient, bnbWei, statusEl) {
-  if (!VAULT.FACTORY) throw new Error('Factory not deployed yet.');
+  if (!BURN_VAULT.FACTORY) throw new Error('Factory not deployed yet.');
   if (!vIsAddr(recipient)) throw new Error('Recipient address looks invalid.');
   if (bnbWei <= 0n) throw new Error('Seed amount must be > 0.');
 
@@ -195,7 +198,7 @@ async function vCreateVault(recipient, bnbWei, statusEl) {
   const data = VAULT_SEL.createVault + vEncodeAddr(recipient);
   const valueHex = '0x' + bnbWei.toString(16);
   statusEl.textContent = 'Sign the create-vault tx in your wallet (' + (Number(bnbWei) / 1e18).toFixed(4) + ' BNB seed)…';
-  const txHash = await vSendTx(from, VAULT.FACTORY, data, valueHex);
+  const txHash = await vSendTx(from, BURN_VAULT.FACTORY, data, valueHex);
   statusEl.innerHTML = 'Tx sent: <a href="https://bscscan.com/tx/' + txHash + '" target="_blank">' + txHash.slice(0, 12) + '…</a>. Waiting for receipt…';
   const receipt = await vWaitReceipt(txHash);
   if (receipt.status === '0x0') throw new Error('Tx reverted.');
@@ -203,7 +206,7 @@ async function vCreateVault(recipient, bnbWei, statusEl) {
   // last log is the new vault address from the indexed `vault` topic).
   let newVault = null;
   for (const log of (receipt.logs || [])) {
-    if ((log.address || '').toLowerCase() === VAULT.FACTORY.toLowerCase() && log.topics && log.topics.length === 4) {
+    if ((log.address || '').toLowerCase() === BURN_VAULT.FACTORY.toLowerCase() && log.topics && log.topics.length === 4) {
       newVault = '0x' + log.topics[2].slice(-40);
       break;
     }
@@ -232,18 +235,18 @@ async function renderVaultDeployPanel(connected) {
   if (!root) return;
   root.innerHTML = '';
 
-  const isDeployer = connected && connected.toLowerCase() === VAULT.DEPLOYER;
-  const implMissing = !VAULT.IMPLEMENTATION;
-  const factoryMissing = !VAULT.FACTORY;
+  const isDeployer = connected && connected.toLowerCase() === BURN_VAULT.DEPLOYER;
+  const implMissing = !BURN_VAULT.IMPLEMENTATION;
+  const factoryMissing = !BURN_VAULT.FACTORY;
 
   // Status banner: implementation + factory state
   const status = vEl('div', { class: 'vault-status' });
   status.innerHTML =
-    'Implementation: ' + (VAULT.IMPLEMENTATION
-      ? '<a href="https://bscscan.com/address/' + VAULT.IMPLEMENTATION + '" target="_blank"><code>' + vShortAddr(VAULT.IMPLEMENTATION) + '</code></a> ✓'
+    'Implementation: ' + (BURN_VAULT.IMPLEMENTATION
+      ? '<a href="https://bscscan.com/address/' + BURN_VAULT.IMPLEMENTATION + '" target="_blank"><code>' + vShortAddr(BURN_VAULT.IMPLEMENTATION) + '</code></a> ✓'
       : '<span style="color:var(--text-dim)">not deployed</span>') +
-    ' &nbsp;·&nbsp; Factory: ' + (VAULT.FACTORY
-      ? '<a href="https://bscscan.com/address/' + VAULT.FACTORY + '" target="_blank"><code>' + vShortAddr(VAULT.FACTORY) + '</code></a> ✓'
+    ' &nbsp;·&nbsp; Factory: ' + (BURN_VAULT.FACTORY
+      ? '<a href="https://bscscan.com/address/' + BURN_VAULT.FACTORY + '" target="_blank"><code>' + vShortAddr(BURN_VAULT.FACTORY) + '</code></a> ✓'
       : '<span style="color:var(--text-dim)">not deployed</span>');
   root.appendChild(status);
 
@@ -264,7 +267,7 @@ async function renderVaultDeployPanel(connected) {
         '<div class="vault-deploy-headline">Step 2 — Deploy Factory</div>' +
         '<div class="vault-deploy-sub">Constructor takes the implementation address. Pre-filled below.</div>' +
         '<div class="vault-deploy-row" style="flex-wrap:wrap;gap:8px">' +
-          '<input type="text" id="vault-impl-input" value="' + VAULT.IMPLEMENTATION + '" style="flex:1;min-width:280px;padding:6px 10px;background:var(--bg-2);border:1px solid var(--hairline);color:var(--text);font-family:var(--mono);font-size:12px;border-radius:2px">' +
+          '<input type="text" id="vault-impl-input" value="' + BURN_VAULT.IMPLEMENTATION + '" style="flex:1;min-width:280px;padding:6px 10px;background:var(--bg-2);border:1px solid var(--hairline);color:var(--text);font-family:var(--mono);font-size:12px;border-radius:2px">' +
           '<button class="cta sm" id="vault-deploy-factory-btn">Deploy Factory</button>' +
         '</div>' +
         '<div class="vault-deploy-status" id="vault-deploy-factory-status" style="margin-top:8px"></div>';
@@ -297,7 +300,7 @@ async function renderVaultDeployPanel(connected) {
   }
 
   // Public Commonwealth panel — visible to ALL once factory exists
-  if (VAULT.FACTORY) {
+  if (BURN_VAULT.FACTORY) {
     const total = await vGetVaultCount();
     const totalLine = vEl('div', { class: 'vault-stats' });
     totalLine.innerHTML = 'Vaults created: <b>' + total.toLocaleString('en-US') + '</b>';
@@ -354,7 +357,7 @@ async function renderVaultDeployPanel(connected) {
 
         const choice = create.querySelector('input[name="vault-recipient"]:checked').value;
         let recipient;
-        if (choice === 'dead') recipient = VAULT.DEAD;
+        if (choice === 'dead') recipient = BURN_VAULT.DEAD;
         else if (choice === 'self') recipient = await vConnect();
         else recipient = customInput.value.trim();
 
