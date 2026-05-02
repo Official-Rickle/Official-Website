@@ -470,7 +470,7 @@
 
     /* Trust per-chain table */
     .trust-table { background: var(--surface); border: 1px solid var(--hairline); border-radius: 4px; overflow: hidden; }
-    .trust-head, .trust-row > summary, .trust-total { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr 22px; gap: 14px; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--hairline); }
+    .trust-head, .trust-row > summary, .trust-total { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr 1fr 1fr 1.1fr 22px; gap: 12px; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--hairline); }
     .trust-head { background: var(--bg-2); font-size: 10px; letter-spacing: 2.2px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
     .trust-head .num { text-align: right; }
     .trust-row { border-bottom: 1px solid var(--hairline); }
@@ -551,6 +551,60 @@
     .guardian .num { display: block; font-family: var(--mono); font-size: 9px; color: var(--text-dim); margin-bottom: 6px; }
 
     .pagefoot { margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--hairline); display: flex; justify-content: space-between; gap: 12px; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); }
+
+    /* Auto-Burn Vault · Commonwealth */
+    #vault-section { display: flex; flex-direction: column; gap: 14px; }
+    .vault-status { font-size: 12px; color: var(--text-soft); padding: 12px 14px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 4px; }
+    .vault-stats { font-size: 12px; color: var(--text-dim); padding: 8px 14px; background: var(--bg-2); border: 1px solid var(--hairline); border-radius: 3px; font-variant-numeric: tabular-nums; }
+    .vault-stats b { color: var(--text); font-family: var(--mono); }
+    .vault-deploy-panel, .vault-create-panel { background: var(--surface); border: 1px solid var(--hairline); border-radius: 4px; padding: 16px; }
+    .vault-deploy-headline, .vault-create-headline { font-size: 13px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--coral); margin-bottom: 6px; }
+    .vault-deploy-sub, .vault-create-sub { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 12px; }
+    .vault-deploy-row, .vault-create-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+    .vault-deploy-status, .vault-create-status { font-size: 11px; color: var(--text-soft); }
+    .vault-label { font-size: 10px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; display: block; width: 100%; margin-bottom: 4px; }
+    .vault-radio-group { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-soft); }
+    .vault-radio-group label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    #vault-bnb-amt { width: 140px; padding: 6px 10px; background: var(--bg-2); border: 1px solid var(--hairline); color: var(--text); font-family: var(--mono); font-size: 13px; border-radius: 2px; }
+    .vault-mine-empty { font-size: 11px; color: var(--text-dim); padding: 8px 14px; }
+    .vault-mine-headline { font-size: 11px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; padding: 8px 14px 4px; }
+    .vault-mine-list { display: flex; flex-direction: column; gap: 4px; padding: 0 14px 8px; }
+    .vault-mine-row { font-size: 12px; }
+    .vault-mine-row code { color: var(--text); font-family: var(--mono); }
+
+    /* Chain Audit · Forensic Snapshot */
+    .audit-section { background: var(--surface); border: 1px solid var(--hairline); border-radius: 4px; padding: 18px; }
+    .audit-blurb { font-size: 12px; color: var(--text-soft); line-height: 1.6; margin-bottom: 18px; }
+    .audit-blurb a { color: var(--coral); text-decoration: none; border-bottom: 1px dashed var(--coral); }
+    .audit-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+    .audit-card { background: var(--bg-2); border: 1px solid var(--hairline); border-radius: 3px; padding: 14px; }
+    .audit-card .label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 10px; }
+    .audit-card .stat-row { display: flex; justify-content: space-between; font-size: 11px; padding: 4px 0; border-top: 1px dotted var(--hairline); font-variant-numeric: tabular-nums; }
+    .audit-card .stat-row:first-of-type { border-top: none; }
+    .audit-card .stat-row .k { color: var(--text-dim); }
+    .audit-card .stat-row .v { color: var(--text); font-family: var(--mono); }
+    .audit-empty { grid-column: 1 / -1; text-align: center; color: var(--text-dim); font-size: 11px; padding: 24px; }
+    .audit-inspector { background: var(--bg-2); border: 1px solid var(--hairline); border-radius: 3px; padding: 14px; }
+    .audit-inspector h3 { font-size: 12px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--text); margin: 0 0 8px; }
+    .audit-inspector-help { font-size: 11px; color: var(--text-dim); margin: 0 0 12px; line-height: 1.5; }
+    .audit-search { display: flex; gap: 8px; margin-bottom: 14px; }
+    .audit-search input { flex: 1; min-width: 0; padding: 8px 10px; background: var(--surface); border: 1px solid var(--hairline); color: var(--text); font-family: var(--mono); font-size: 12px; border-radius: 2px; }
+    .audit-search input:focus { outline: none; border-color: var(--coral); }
+    .audit-search .cta { flex: 0 0 auto; padding: 8px 14px; }
+    .audit-results { font-size: 12px; }
+    .audit-result-row { background: var(--surface); border: 1px solid var(--hairline); border-radius: 2px; padding: 10px 12px; margin-bottom: 8px; }
+    .audit-result-row .token-tag { display: inline-block; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--coral); font-weight: 700; margin-bottom: 6px; }
+    .audit-result-row .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 11px; }
+    .audit-result-row .grid > div { display: flex; flex-direction: column; gap: 2px; }
+    .audit-result-row .grid .k { color: var(--text-dim); font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; }
+    .audit-result-row .grid .v { color: var(--text); }
+    .audit-result-row.empty { color: var(--text-dim); font-style: italic; }
+    .audit-results .audit-summary { font-size: 11px; color: var(--text-dim); margin-bottom: 10px; }
+
+    @media (max-width: 720px) {
+      .audit-cards { grid-template-columns: repeat(2, 1fr); }
+      .audit-result-row .grid { grid-template-columns: repeat(2, 1fr); }
+    }
 
     .err { color: var(--red); font-size: 11px; }
 
@@ -1053,7 +1107,9 @@
         <div class="num">Burned</div>
         <div class="num">Locked</div>
         <div class="num">In Trust</div>
+        <div class="num">LPs</div>
         <div class="num">Wallets</div>
+        <div class="num" title="Float = LPs + Wallets (everything not burned, locked, or in trust)">Circulating</div>
         <div></div>
       </div>
       <div id="trust-rows"></div>
@@ -1062,7 +1118,9 @@
         <div class="num" id="tot-burned">—</div>
         <div class="num" id="tot-locked">—</div>
         <div class="num" id="tot-trust">—</div>
+        <div class="num" id="tot-lps">—</div>
         <div class="num" id="tot-wallets">—</div>
+        <div class="num" id="tot-circ">—</div>
         <div></div>
       </div>
     </div>
@@ -1156,6 +1214,11 @@
 
     <div class="stripe"></div>
 
+    <div class="section-head"><h2>Auto-Burn Vault · The Commonwealth</h2><span class="meta">Self-Compounding Liquidity · Permanent Burn · BSC</span></div>
+    <div id="vault-section"></div>
+
+    <div class="stripe"></div>
+
     <div class="section-head"><h2>Community · Discord</h2><span class="meta">Talk to the Governance Team</span></div>
     <div class="join-discord">
       <div class="badge">You're Welcome Here</div>
@@ -1179,6 +1242,31 @@
         <div class="guardian">Awesomeest</div>
         <div class="guardian">Payment Designer</div>
         <div class="guardian">Dreamingrainbow</div>
+      </div>
+    </div>
+
+    <div class="stripe"></div>
+
+    <div class="section-head">
+      <h2>Chain Audit · Forensic Snapshot</h2>
+      <span class="meta">Indexed Events · <span id="audit-as-of">loading…</span></span>
+    </div>
+    <div class="audit-section">
+      <div class="audit-blurb">
+        Every Transfer event for AHWA, Winston, and RKL on BSC + Ethereum since each token's deploy block — indexed locally, committed to this repo, served as plain JSON.
+        <a href="https://github.com/Official-Rickle/Official-Website/tree/main/build/audit" target="_blank" rel="noopener">Browse the raw data →</a>
+      </div>
+      <div class="audit-cards" id="audit-cards">
+        <div class="audit-empty">Loading snapshot…</div>
+      </div>
+      <div class="audit-inspector">
+        <h3>Inspect any address</h3>
+        <p class="audit-inspector-help">See an address's balance, total in/out, and tx count across every audited token. Powered entirely by the static snapshot — no RPC calls.</p>
+        <div class="audit-search">
+          <input type="text" id="audit-addr-input" placeholder="0xabc... or your wallet address" autocomplete="off" spellcheck="false" aria-label="Address to inspect">
+          <button class="cta" id="audit-search-btn" type="button">Inspect</button>
+        </div>
+        <div class="audit-results" id="audit-results"></div>
       </div>
     </div>
 
@@ -2041,6 +2129,12 @@
 
   function renderChainSummary(c, data, trustAssets, lps, prices) {
     const dec = data.decimals;
+    // Split LP-pooled RKL out of the wallets bucket so the summary row matches
+    // the consolidated row's bucket logic. Circulating supply (the float) is
+    // explicitly LPs + Wallets — everything not burned, locked, or in trust.
+    const lpAmt = (lps || []).reduce((s, p) => s + (p.rklAmount || 0n), 0n);
+    const walletsOnly = data.wallets > lpAmt ? data.wallets - lpAmt : 0n;
+    const circulating = lpAmt + walletsOnly;  // == data.wallets pre-split, by design
     return `
       <details class="trust-row">
         <summary>
@@ -2048,7 +2142,9 @@
           <div class="num">${fmtCompact(data.burned, dec)}<small>${pct(data.burned, data.supply)}</small></div>
           <div class="num">${fmtCompact(data.locked, dec)}<small>${pct(data.locked, data.supply)}</small></div>
           <div class="num">${fmtCompact(data.trust, dec)}<small>${pct(data.trust, data.supply)}</small></div>
-          <div class="num">${fmtCompact(data.wallets, dec)}<small>${pct(data.wallets, data.supply)}</small></div>
+          <div class="num">${fmtCompact(lpAmt, dec)}<small>${pct(lpAmt, data.supply)}</small></div>
+          <div class="num">${fmtCompact(walletsOnly, dec)}<small>${pct(walletsOnly, data.supply)}</small></div>
+          <div class="num">${fmtCompact(circulating, dec)}<small>${pct(circulating, data.supply)}</small></div>
           <svg class="chev" viewBox="0 0 14 14" fill="currentColor"><path d="M5 3 l5 4 l-5 4 z"/></svg>
         </summary>
         <div class="detail">${renderChainDetail(c, data, trustAssets, lps, prices)}</div>
@@ -2060,7 +2156,10 @@
     const sup = data.supply;
     const lpAmt = (lps || []).reduce((s, p) => s + (p.rklAmount || 0n), 0n);
     const walletsMinusLPs = data.wallets > lpAmt ? data.wallets - lpAmt : 0n;
-    const circ = sup - data.burned - data.locked;
+    // Circulating = float = LPs + Wallets. Excludes Trust because the multisig
+    // holds it on behalf of the protocol (not actively trading). Matches the
+    // top-level table's Circulating column definition.
+    const circ = lpAmt + walletsMinusLPs;
     const amts = { burned: data.burned, locked: data.locked, trust: data.trust, lps: lpAmt, wallets: walletsMinusLPs };
     const segs = [
       { cls: 'burned',  amt: amts.burned,  label: 'Burned' },
@@ -2543,6 +2642,9 @@
       winSupplyP,
       stratP,
     ]);
+    // Expose CoinGecko prices for any other script (e.g. vault.js) that
+    // needs them. Read-only consumers should not mutate this object.
+    window.__prices = prices;
 
     // Consolidated math
     const eth = chainResults[0].ok ? chainResults[0].d : null;
@@ -2553,14 +2655,18 @@
       const totals = consolidate(eth, sats, lpTotal);
       renderConsolidated(eth, totals);
       // Bottom row of trust table = same totals, formatted to match per-chain
-      // rows (value + small % of canonical supply).
+      // rows (value + small % of canonical supply). Circulating is the float
+      // — LPs + Wallets, i.e. everything not burned, locked, or in trust.
       const dec = eth.decimals;
       const sup = eth.supply;
       const cell = (amt) => `${fmtCompact(amt, dec)}<small>${pct(amt, sup)}</small>`;
+      const circulating = (totals.lps || 0n) + (totals.wallets || 0n);
       document.getElementById('tot-burned').innerHTML  = cell(totals.burned);
       document.getElementById('tot-locked').innerHTML  = cell(totals.locked);
       document.getElementById('tot-trust').innerHTML   = cell(totals.trust);
+      document.getElementById('tot-lps').innerHTML     = cell(totals.lps || 0n);
       document.getElementById('tot-wallets').innerHTML = cell(totals.wallets);
+      document.getElementById('tot-circ').innerHTML    = cell(circulating);
     }
 
     // AHWA voter token breakdown + per-token liquidity panels + Founders disclosure
@@ -2694,6 +2800,167 @@
 
 
 
+  // ─── Chain Audit · Forensic Snapshot consumer ────────────────────────
+  // Reads the static JSON files produced by tools/ponder + snapshot.ts
+  // (committed under build/audit/). All data is local — no RPC calls.
+
+  const AUDIT_TOKEN_LABELS = {
+    'ahwa':    { name: 'AHWA',    chain: 'BSC' },
+    'win':     { name: 'Winston', chain: 'BSC' },
+    'rkl-bsc': { name: 'RKL',     chain: 'BSC' },
+    'rkl-eth': { name: 'RKL',     chain: 'ETH' },
+  };
+  // Address labels — paint the inspector results when an address is special.
+  const AUDIT_ADDR_LABELS = {
+    '0x000000000000000000000000000000000000dead': 'BURN',
+    '0x40e4da770530e960ae671634d14625f29e3ddb12': 'TRUST',
+    '0x75578ebbefe274f240b8e1b5859ca34f342157d9': 'WINSTON',
+    '0x75caf86ad4f2b5231e2f5f11ad923257f7765053': 'AHWA_GOV',
+    '0x3a81caafeedcf2d743be893858cda5acdbf88c11': 'AHWA_TOKEN',
+    '0xeca15e1bbff172d545dd6325f3bae7b737906737': 'RKL_BSC_TOKEN',
+    '0x0ff80a1708191c0da8aa600fa487f7ac81d7818c': 'RKL_ETH_TOKEN',
+  };
+
+  // Cache loaded JSON in memory so the inspector doesn't refetch.
+  const _auditCache = { manifest: null, holders: {}, stats: {} };
+
+  // Normalize big integer strings to compact human format. All audited
+  // tokens are 18 decimals; if that ever changes, take decimals from
+  // tokenStats. Keep raw value too so users can audit precisely.
+  function fmtBigToken(weiStr) {
+    if (!weiStr || weiStr === '0') return '0';
+    const w = BigInt(weiStr);
+    const whole = w / 10n ** 18n;
+    if (whole >= 1_000_000_000n) return (Number(whole) / 1e9).toFixed(2) + 'B';
+    if (whole >= 1_000_000n)     return (Number(whole) / 1e6).toFixed(2) + 'M';
+    if (whole >= 1_000n)         return (Number(whole) / 1e3).toFixed(2) + 'K';
+    return whole.toLocaleString('en-US');
+  }
+
+  async function runChainAudit() {
+    const cardsEl  = document.getElementById('audit-cards');
+    const asOfEl   = document.getElementById('audit-as-of');
+
+    // 1. Load manifest. Bail with a friendly message if it doesn't exist
+    //    yet (i.e. snapshot has never been run).
+    let manifest;
+    try {
+      const r = await fetch('/audit/index.json', { cache: 'no-cache' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      manifest = await r.json();
+    } catch (e) {
+      cardsEl.innerHTML = '<div class="audit-empty">Audit snapshot not yet generated. Run <code>yarn sync</code> in tools/ponder/ then commit build/audit/.</div>';
+      asOfEl.textContent = 'snapshot pending';
+      return;
+    }
+    _auditCache.manifest = manifest;
+
+    if (manifest.generatedAt) {
+      const d = new Date(manifest.generatedAt * 1000);
+      asOfEl.textContent = d.toUTCString().replace('GMT', 'UTC');
+    }
+
+    // 2. Load each token's stats in parallel — small files, snappy.
+    const tokenKeys = Object.keys(manifest.tokens || {});
+    if (!tokenKeys.length) {
+      cardsEl.innerHTML = '<div class="audit-empty">Manifest has no tokens.</div>';
+      return;
+    }
+    const stats = await Promise.all(tokenKeys.map(async (tk) => {
+      try {
+        const r = await fetch('/audit/' + manifest.tokens[tk].statsFile, { cache: 'no-cache' });
+        const s = await r.json();
+        _auditCache.stats[tk] = s;
+        return { tk, s };
+      } catch { return { tk, s: null }; }
+    }));
+
+    // 3. Render token cards.
+    cardsEl.innerHTML = '';
+    for (const { tk, s } of stats) {
+      const meta  = manifest.tokens[tk] || {};
+      const label = AUDIT_TOKEN_LABELS[tk] || { name: tk, chain: '?' };
+      const card  = document.createElement('div');
+      card.className = 'audit-card';
+      card.innerHTML =
+        '<div class="label">' + label.name + ' · ' + label.chain + '</div>' +
+        (s ?
+          '<div class="stat-row"><span class="k">Total supply</span><span class="v">' + fmtBigToken(s.totalSupply) + '</span></div>' +
+          '<div class="stat-row"><span class="k">Holders</span><span class="v">' + (meta.holdersWithBalance ?? '—').toLocaleString('en-US') + '</span></div>' +
+          '<div class="stat-row"><span class="k">Total minted</span><span class="v">' + fmtBigToken(s.totalMinted) + '</span></div>' +
+          '<div class="stat-row"><span class="k">Total burned</span><span class="v">' + fmtBigToken(s.totalBurned) + '</span></div>' +
+          '<div class="stat-row"><span class="k">Transfers</span><span class="v">' + (s.transferCount || 0).toLocaleString('en-US') + '</span></div>'
+        : '<div class="stat-row"><span class="k err">stats missing</span></div>');
+      cardsEl.appendChild(card);
+    }
+
+    // 4. Wire the inspector. Lazy-loads holders.json files on first search.
+    document.getElementById('audit-search-btn').onclick = () => doInspect();
+    document.getElementById('audit-addr-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') doInspect();
+    });
+  }
+
+  async function doInspect() {
+    const input    = document.getElementById('audit-addr-input');
+    const resultsEl = document.getElementById('audit-results');
+    const raw  = (input.value || '').trim().toLowerCase();
+    if (!/^0x[0-9a-f]{40}$/.test(raw)) {
+      resultsEl.innerHTML = '<div class="audit-result-row empty">Enter a valid 0x-prefixed 40-hex-char address.</div>';
+      return;
+    }
+    resultsEl.innerHTML = '<div class="audit-result-row empty">Searching…</div>';
+
+    const manifest = _auditCache.manifest;
+    if (!manifest) { resultsEl.innerHTML = '<div class="audit-result-row empty">Manifest not loaded.</div>'; return; }
+    const tokenKeys = Object.keys(manifest.tokens || {});
+
+    // Lazy-load holders.json files in parallel; cache for next search.
+    const loadHolders = async (tk) => {
+      if (_auditCache.holders[tk]) return _auditCache.holders[tk];
+      const r = await fetch('/audit/' + manifest.tokens[tk].holdersFile, { cache: 'no-cache' });
+      const j = await r.json();
+      // Build a Map keyed by lowercase address for O(1) lookup.
+      const m = new Map();
+      for (const row of j.rows || []) m.set(row.addr.toLowerCase(), row);
+      _auditCache.holders[tk] = m;
+      return m;
+    };
+    const maps = await Promise.all(tokenKeys.map(loadHolders));
+
+    // Find the address in each token's holder set.
+    const found = [];
+    for (let i = 0; i < tokenKeys.length; i++) {
+      const row = maps[i].get(raw);
+      if (row) found.push({ tk: tokenKeys[i], row });
+    }
+
+    const label = AUDIT_ADDR_LABELS[raw];
+    let html = '<div class="audit-summary">' +
+      'Address: <code>' + raw + '</code>' +
+      (label ? ' <span style="color:var(--coral)">[' + label + ']</span>' : '') +
+      '</div>';
+
+    if (!found.length) {
+      html += '<div class="audit-result-row empty">No transfers for this address in any audited token. Address may have never held AHWA, Winston, or RKL — or the snapshot is older than its first transfer.</div>';
+    } else {
+      for (const { tk, row } of found) {
+        const tlabel = AUDIT_TOKEN_LABELS[tk] || { name: tk, chain: '?' };
+        html +=
+          '<div class="audit-result-row">' +
+            '<div class="token-tag">' + tlabel.name + ' · ' + tlabel.chain + '</div>' +
+            '<div class="grid">' +
+              '<div><span class="k">Balance</span><span class="v">' + fmtBigToken(row.balance) + '</span></div>' +
+              '<div><span class="k">Total in</span><span class="v">' + fmtBigToken(row.totalIn) + '</span></div>' +
+              '<div><span class="k">Total out</span><span class="v">' + fmtBigToken(row.totalOut) + '</span></div>' +
+              '<div><span class="k">Tx count</span><span class="v">' + row.txCount.toLocaleString('en-US') + '</span></div>' +
+            '</div>' +
+          '</div>';
+      }
+    }
+    resultsEl.innerHTML = html;
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     startScanTicker();
     runAudit()
@@ -2702,8 +2969,14 @@
         document.getElementById('audit-time').textContent = 'error: ' + e.message;
       })
       .finally(hideLoading);
+    runChainAudit().catch(e => {
+      console.error('chain audit failed:', e);
+      const el = document.getElementById('audit-as-of');
+      if (el) el.textContent = 'error: ' + e.message;
+    });
   });
   </script>
   <script src="/assets/governance.js" defer></script>
+  <script src="/assets/vault.js" defer></script>
 </body>
 </html>

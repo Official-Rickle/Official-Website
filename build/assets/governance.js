@@ -9,6 +9,63 @@
 //  (totalYesWeight, totalNoWeight) directly from contract state.
 // ============================================================
 
+// ─── Page cache (localStorage) ──────────────────────────────────────
+// Two tiers:
+//   - permanent: facts about (address, code-hash) pairs that never change
+//                — keyed by content; once verified, valid forever
+//   - block-pinned: current-state reads tagged with their block number
+//                — fresh while chain hasn't advanced past N more blocks
+// Audit data being cached (worst case: shows wrong/stale numbers briefly,
+// fully verifiable on bscscan, refreshable on demand) is materially different
+// from caching the contract address (which we explicitly REFUSE to do because
+// of the drainer-poisoning attack vector). Refresh button clears block-pinned
+// entries; permanent verifications survive a refresh because their key
+// already encodes content (address + bytecode hash).
+const _CACHE_NS = 'gov:v1:';
+function pcacheGet(key) {
+  try { const raw = localStorage.getItem(_CACHE_NS + key); return raw ? JSON.parse(raw) : null; }
+  catch { return null; }
+}
+function pcacheSet(key, value) {
+  try { localStorage.setItem(_CACHE_NS + key, JSON.stringify(value)); }
+  catch { /* quota / private mode — ignore */ }
+}
+function pcacheClearPrefix(prefix) {
+  try {
+    const full = _CACHE_NS + prefix;
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(full)) localStorage.removeItem(k);
+    }
+  } catch {}
+}
+// Block-pinned cache. Tag every entry with the chain block at which it was
+// written. On read, accept the cached value as long as the chain hasn't
+// advanced more than `freshBlocks` past that block. Default = 100 blocks
+// (~75 seconds on BSC) — fresh enough for "you just refreshed the page"
+// but not so long that votes/balances feel frozen.
+function pcacheBlockGet(key, currentBlock, freshBlocks) {
+  const v = pcacheGet(key);
+  if (!v || typeof v.block !== 'number') return null;
+  if (typeof currentBlock === 'number' && currentBlock - v.block > (freshBlocks || 100)) {
+    return null;   // too stale; caller fetches fresh
+  }
+  return v.value;
+}
+function pcacheBlockSet(key, block, value) {
+  pcacheSet(key, { block, value, ts: Date.now() });
+}
+// Permanent (content-key) cache for facts that don't change with time, only
+// with content. Used for proposal events (title, body, txHash, blockNumber)
+// since events are immutable on-chain — once written, never re-fetch.
+function pcacheGetPerm(key) {
+  const v = pcacheGet(key);
+  return v && typeof v === 'object' && v.value !== undefined ? v.value : null;
+}
+function pcacheSetPerm(key, value) {
+  pcacheSet(key, { value, ts: Date.now() });
+}
+
 const GOV = {
   // Hardcoded post-deploy. This is the only source of truth for the contract
   // address — no localStorage / sessionStorage / cookie fallback. Storage-
@@ -198,7 +255,14 @@ const _walletCache = {
   status: null,         // { addr, staked, trackedVotes, isMultisigSigner }
   ahwa: null,           // { addr, balance }
   votes: new Map(),     // pid:addr -> { weight, yes }
-  invalidate() { this.status = null; this.ahwa = null; this.votes.clear(); },
+  invalidate() {
+    this.status = null;
+    this.ahwa = null;
+    this.votes.clear();
+    // Veto cache is block-pinned in localStorage; flush so the next
+    // hydrate sees the just-submitted tx's effects.
+    pcacheClearPrefix('vetos:');
+  },
 };
 
 async function readProposalCount() {
@@ -206,45 +270,95 @@ async function readProposalCount() {
   return Number(safeBig(hex.slice(2)));
 }
 
-// Pre-fetch ProposalSubmitted + VetoSubmitted events for ALL proposals in
-// two log scans (one per event type, with NO proposalId filter), then
-// distribute the decoded events back to each proposal object in memory.
-// Per-click renders use these cached values — no redundant log scans.
+// Pre-fetch ProposalSubmitted + VetoSubmitted events for ALL proposals.
+// Two-tier cache:
+//   - Permanent: ProposalSubmitted events (title, body, blockNumber, txHash)
+//     — events are immutable on-chain, so once seen they're cached forever
+//     keyed by (contract, proposalId). Subsequent page loads skip the log
+//     scan entirely if every visible proposal is already cached.
+//   - Block-pinned: VetoSubmitted events for OPEN proposals (vetoes can
+//     still land within 72h). For closed proposals, vetoes are frozen and
+//     would be safe to cache permanently — left as block-pinned for now
+//     since refresh frequency is fine and complexity savings are worth it.
 //
-// Block range is bounded by GOV.DEPLOY_BLOCK (the contract didn't exist
-// before that), and chunked at 5000 to respect publicnode's per-call cap.
+// On a fresh page with no cache: same behavior as before (two chunked log
+// scans). On a returning visit: zero log scans on the happy path, only an
+// incremental scan if proposalCount has grown.
 async function hydrateProposalEvents(proposals) {
   if (!proposals.length) return;
-  const latestBlk = await currentBlock();
-  const fromBlock = Math.max(0, GOV.DEPLOY_BLOCK || latestBlk - 200000);
 
-  // ProposalSubmitted: one scan covers every proposal id.
-  const propLogs = await rpcGetLogsChunked(GOV.RPC, {
-    address: GOV.CONTRACT,
-    topics:  [GOV.TOPICS.ProposalSubmitted],
-  }, fromBlock, latestBlk, 5000);
+  // Step 1: try cache for each proposal's ProposalSubmitted event.
   const eventByPid = new Map();
-  for (const log of propLogs) {
-    try {
-      const ev = parseProposalLog(log);
-      eventByPid.set(ev.id, ev);
-    } catch (e) { console.warn('parseProposalLog failed:', e.message); }
+  const uncachedIds = [];
+  for (const p of proposals) {
+    const cached = pcacheGetPerm('propEvent:' + GOV.CONTRACT.toLowerCase() + ':' + p.id);
+    if (cached) eventByPid.set(p.id, cached);
+    else uncachedIds.push(p.id);
   }
 
-  // VetoSubmitted: one scan, group by proposalId. Vetoes can only land
-  // while voting is open (≤72h), but the cap is enforced on-chain so we
-  // don't need to clip the upper bound — we'd just see no events past it.
-  const vetoLogs = await rpcGetLogsChunked(GOV.RPC, {
-    address: GOV.CONTRACT,
-    topics:  [GOV.TOPICS.VetoSubmitted],
-  }, fromBlock, latestBlk, 5000);
-  const vetosByPid = new Map();
-  for (const log of vetoLogs) {
-    try {
-      const v = parseVetoLog(log);
-      if (!vetosByPid.has(v.proposalId)) vetosByPid.set(v.proposalId, []);
-      vetosByPid.get(v.proposalId).push(v);
-    } catch (e) { console.warn('parseVetoLog failed:', e.message); }
+  // Step 2: only scan the chain if at least one proposal isn't cached.
+  // The scan still fetches ALL events in one go (no per-id filter), so even
+  // if just one proposal is missing, we get all of them back and refill the
+  // cache for next time.
+  let vetosByPid = new Map();
+  if (uncachedIds.length > 0) {
+    const latestBlk = await currentBlock();
+    const fromBlock = Math.max(0, GOV.DEPLOY_BLOCK || latestBlk - 200000);
+
+    const propLogs = await rpcGetLogsChunked(GOV.RPC, {
+      address: GOV.CONTRACT,
+      topics:  [GOV.TOPICS.ProposalSubmitted],
+    }, fromBlock, latestBlk, 5000);
+    for (const log of propLogs) {
+      try {
+        const ev = parseProposalLog(log);
+        const persistShape = {
+          id: ev.id, proposer: ev.proposer, title: ev.title, body: ev.body,
+          timestamp: ev.timestamp, blockNumber: ev.blockNumber, txHash: ev.txHash,
+        };
+        eventByPid.set(ev.id, persistShape);
+        pcacheSetPerm('propEvent:' + GOV.CONTRACT.toLowerCase() + ':' + ev.id, persistShape);
+      } catch (e) { console.warn('parseProposalLog failed:', e.message); }
+    }
+
+    const vetoLogs = await rpcGetLogsChunked(GOV.RPC, {
+      address: GOV.CONTRACT,
+      topics:  [GOV.TOPICS.VetoSubmitted],
+    }, fromBlock, latestBlk, 5000);
+    for (const log of vetoLogs) {
+      try {
+        const v = parseVetoLog(log);
+        if (!vetosByPid.has(v.proposalId)) vetosByPid.set(v.proposalId, []);
+        vetosByPid.get(v.proposalId).push(v);
+      } catch (e) { console.warn('parseVetoLog failed:', e.message); }
+    }
+    // Cache the veto map (block-pinned) so subsequent loads within ~75s
+    // can skip even the veto scan. Keyed by contract.
+    pcacheBlockSet('vetos:' + GOV.CONTRACT.toLowerCase(), latestBlk,
+      Array.from(vetosByPid.entries()));
+  } else {
+    // Every proposal event was cached. Try the veto cache too.
+    const latestBlk = await currentBlock();
+    const cachedVetos = pcacheBlockGet('vetos:' + GOV.CONTRACT.toLowerCase(), latestBlk);
+    if (cachedVetos) {
+      vetosByPid = new Map(cachedVetos);
+    } else {
+      // Veto cache stale; do just the veto scan, not the proposal one.
+      const fromBlock = Math.max(0, GOV.DEPLOY_BLOCK || latestBlk - 200000);
+      const vetoLogs = await rpcGetLogsChunked(GOV.RPC, {
+        address: GOV.CONTRACT,
+        topics:  [GOV.TOPICS.VetoSubmitted],
+      }, fromBlock, latestBlk, 5000);
+      for (const log of vetoLogs) {
+        try {
+          const v = parseVetoLog(log);
+          if (!vetosByPid.has(v.proposalId)) vetosByPid.set(v.proposalId, []);
+          vetosByPid.get(v.proposalId).push(v);
+        } catch (e) { console.warn('parseVetoLog failed:', e.message); }
+      }
+      pcacheBlockSet('vetos:' + GOV.CONTRACT.toLowerCase(), latestBlk,
+        Array.from(vetosByPid.entries()));
+    }
   }
 
   // Attach to each proposal object in memory.
@@ -827,6 +941,28 @@ async function renderDeployPanel() {
     if (window.__GOV_BYTECODE_PROBE && window.__GOV_BYTECODE_PROBE.addr === addr) {
       return window.__GOV_BYTECODE_PROBE.ok;
     }
+    // Permanent verification: keyed by (address, embedded-bytecode-hash). If
+    // the embedded bytecode constant changes (new compile), the key changes
+    // and we re-verify. If the address changes (new deploy), same. So the
+    // cache is self-invalidating; we only re-fetch when something actually
+    // could have changed.
+    const embeddedSha = (typeof crypto !== 'undefined' && crypto.subtle)
+      ? null  // computed below if needed
+      : null;
+    // Quick path: synchronous content-key from a stored hash of the embedded
+    // constant. Computed once per page-load, cached on window.
+    if (!window.__GOV_EMBEDDED_SHA) {
+      const enc = new TextEncoder().encode(GOV_DEPLOYED_BYTECODE);
+      const buf = await crypto.subtle.digest('SHA-256', enc);
+      window.__GOV_EMBEDDED_SHA = Array.from(new Uint8Array(buf)).slice(0, 4)
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    const cacheKey = 'verified:' + addr.toLowerCase() + ':' + window.__GOV_EMBEDDED_SHA;
+    const cached = pcacheGet(cacheKey);
+    if (cached === true) {
+      window.__GOV_BYTECODE_PROBE = { addr, ok: true };
+      return true;
+    }
     try {
       let onchain = (await rpcGetCode(GOV.RPC, addr)).toLowerCase();
       // publicnode rate-limits aggressively. If the bytecode call returns
@@ -843,6 +979,11 @@ async function renderDeployPanel() {
       }
       const ok = classifyBytecode(onchain) !== 'mismatch';
       window.__GOV_BYTECODE_PROBE = { addr, ok };
+      // Persist successful verifications. The cache key includes our
+      // embedded-bytecode hash (window.__GOV_EMBEDDED_SHA) so it auto-
+      // invalidates when we recompile + redeploy. Failures are not
+      // cached — we want to retry next page load if RPC was just flaky.
+      if (ok) pcacheSet(cacheKey, true);
       return ok;
     } catch { return false; }
   }
@@ -1132,45 +1273,56 @@ function renderCollapsedCard(p) {
       '<button class="gov-cta sm ph-load-btn">Load proposal · text · vote</button>' +
     '</div>';
 
-  card.querySelector('.ph-load-btn').onclick = async () => {
+  const loadHandler = async () => {
     const wrap = card.querySelector('.ph-tally-wrap');
     wrap.innerHTML = '<div class="ph-loading">Loading proposal text + tally…</div>';
+    const LOAD_TIMEOUT_MS = 30000;
     try {
       // Happy path: events were pre-fetched by hydrateProposalEvents at
       // page load — title/body/blockNumber/txHash and vetoes are already
       // on the proposal object. Render directly with zero RPC calls.
       if (p.title && p.body) {
-        await renderTallySection(card, p, p.vetoes || []);
+        await withTimeout(renderTallySection(card, p, p.vetoes || []), LOAD_TIMEOUT_MS, 'render');
         return;
       }
-      // Fallback: hydration failed for this proposal (e.g., partial RPC
-      // outage during initial scan). Do the per-proposal fetch.
-      const latestBlk = await currentBlock();
-      const fromBlock = Math.max(0, GOV.DEPLOY_BLOCK || latestBlk - 200000);
-      const proposalLogs = await rpcGetLogsChunked(GOV.RPC, {
-        address: GOV.CONTRACT,
-        topics:  [GOV.TOPICS.ProposalSubmitted, '0x' + encodeUint(p.id)],
-      }, fromBlock, latestBlk, 5000);
-      if (proposalLogs.length === 0) throw new Error('ProposalSubmitted event not found between blocks ' + fromBlock + ' and ' + latestBlk + '. Verify GOV.CONTRACT and DEPLOY_BLOCK in governance.js.');
-      const ev = parseProposalLog(proposalLogs[0]);
-      p.title = stripDeceptive(ev.title);
-      p.body  = stripDeceptive(ev.body);
-      p.blockNumber = ev.blockNumber;
-      p.txHash = ev.txHash;
+      // Fallback: hydration failed for this proposal (partial RPC outage
+      // during page-load scan). Do the per-proposal fetch with a hard
+      // timeout so a stalled RPC doesn't pin the UI on "Loading…".
+      await withTimeout((async () => {
+        const latestBlk = await currentBlock();
+        const fromBlock = Math.max(0, GOV.DEPLOY_BLOCK || latestBlk - 200000);
+        const proposalLogs = await rpcGetLogsChunked(GOV.RPC, {
+          address: GOV.CONTRACT,
+          topics:  [GOV.TOPICS.ProposalSubmitted, '0x' + encodeUint(p.id)],
+        }, fromBlock, latestBlk, 5000);
+        if (proposalLogs.length === 0) throw new Error('ProposalSubmitted event not found between blocks ' + fromBlock + ' and ' + latestBlk + '. Verify GOV.CONTRACT and DEPLOY_BLOCK in governance.js.');
+        const ev = parseProposalLog(proposalLogs[0]);
+        p.title = stripDeceptive(ev.title);
+        p.body  = stripDeceptive(ev.body);
+        p.blockNumber = ev.blockNumber;
+        p.txHash = ev.txHash;
 
-      const closesAtBlock = p.blockNumber + Math.ceil(72 * 3600 * 1.5);
-      const vetoToBlock = Math.min(latestBlk, closesAtBlock);
-      const vetoLogs = await rpcGetLogsChunked(GOV.RPC, {
-        address: GOV.CONTRACT,
-        topics:  [GOV.TOPICS.VetoSubmitted, null, '0x' + encodeUint(p.id)],
-      }, p.blockNumber, vetoToBlock, 5000);
-      p.vetoes = vetoLogs.map(parseVetoLog);
+        const closesAtBlock = p.blockNumber + Math.ceil(72 * 3600 * 1.5);
+        const vetoToBlock = Math.min(latestBlk, closesAtBlock);
+        const vetoLogs = await rpcGetLogsChunked(GOV.RPC, {
+          address: GOV.CONTRACT,
+          topics:  [GOV.TOPICS.VetoSubmitted, null, '0x' + encodeUint(p.id)],
+        }, p.blockNumber, vetoToBlock, 5000);
+        p.vetoes = vetoLogs.map(parseVetoLog);
 
-      await renderTallySection(card, p, p.vetoes);
+        await renderTallySection(card, p, p.vetoes);
+      })(), LOAD_TIMEOUT_MS, 'fallback fetch');
     } catch (e) {
-      wrap.innerHTML = '<div class="ph-error">' + escapeHTML(e.message) + '</div>';
+      // Surface the error AND a retry button so the user can re-fire without
+      // refreshing the whole page.
+      wrap.innerHTML =
+        '<div class="ph-error">' + escapeHTML(e.message) + '</div>' +
+        '<button class="gov-cta sm ph-retry-btn">↻ Retry</button>';
+      const retry = wrap.querySelector('.ph-retry-btn');
+      if (retry) retry.onclick = loadHandler;
     }
   };
+  card.querySelector('.ph-load-btn').onclick = loadHandler;
 
   return card;
 }
@@ -1295,8 +1447,38 @@ function tallyAndRender(proposals) {
   const wrap = document.getElementById('gov-proposals');
   wrap.innerHTML = '';
 
+  // Toolbar with manual refresh — useful when an RPC stall has left a card
+  // stuck on "Loading…" or after submitting a tx where the auto-refresh is
+  // taking too long to pick up the new state.
+  const toolbar = document.createElement('div');
+  toolbar.className = 'gov-toolbar';
+  toolbar.style.cssText = 'display:flex;justify-content:flex-end;margin-bottom:8px;gap:8px';
+  toolbar.innerHTML = '<button class="gov-cta sm" id="gov-refresh-btn" title="Re-read everything from chain">↻ Refresh</button>';
+  wrap.appendChild(toolbar);
+  document.getElementById('gov-refresh-btn').onclick = () => {
+    const btn = document.getElementById('gov-refresh-btn');
+    btn.disabled = true;
+    btn.textContent = '↻ Refreshing…';
+    _walletCache.invalidate();
+    if (window.__GOV_BYTECODE_PROBE) delete window.__GOV_BYTECODE_PROBE;
+    pcacheClearPrefix('verified:');   // re-verify bytecode from chain
+    pcacheClearPrefix('vetos:');      // re-fetch open-proposal vetoes
+    // Note: 'propEvent:' entries are NOT cleared — they're content-keyed
+    // (per proposal id, immutable on-chain), so refreshing wouldn't change
+    // them. They auto-invalidate on contract redeploy because the address
+    // in the key changes.
+    runGovernance().catch(e => {
+      btn.disabled = false;
+      btn.textContent = '↻ Refresh failed — retry?';
+      console.error(e);
+    });
+  };
+
   if (proposals.length === 0) {
-    wrap.innerHTML = '<div class="gov-empty">No proposals yet. Connect your wallet, stake at least 1 AHWA, then create a proposal or vote on one.</div>';
+    const empty = document.createElement('div');
+    empty.className = 'gov-empty';
+    empty.textContent = 'No proposals yet. Connect your wallet, stake at least 1 AHWA, then create a proposal or vote on one.';
+    wrap.appendChild(empty);
     return;
   }
 
@@ -1304,6 +1486,16 @@ function tallyAndRender(proposals) {
   for (const p of proposals) {
     wrap.appendChild(renderCollapsedCard(p));
   }
+}
+
+// Wraps a promise with a hard timeout. Used on RPC-heavy proposal loads so a
+// stalled provider can't leave the UI stuck on "Loading…" indefinitely.
+function withTimeout(promise, ms, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('Timed out (' + (ms / 1000) + 's): ' + label)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 // ─── main ──────────────────────────────────────────────────────────

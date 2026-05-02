@@ -29,3 +29,17 @@ yarn-error.log*
 
 # standalone solc cache (downloaded by tools/compile.js)
 /tools/.cache
+
+# local audit-indexer config (RPC keys, custom block ranges, etc.).
+# tools/audit-config.local.example.js IS committed as a template.
+/tools/audit-config.local.js
+/.env
+
+# Ponder indexer — local-only. The audit deliverable is the JSON the
+# snapshot script writes into build/audit/, not the indexer source.
+# Skip the whole tree.
+/tools/ponder/
+
+# Local dev artifacts from contract bytecode extraction.
+/tools/.vault-bytecode.json
+/tools/.vault-bytecode-strs.txt
