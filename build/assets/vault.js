@@ -123,10 +123,12 @@ async function vEnsureBSC() {
   }
 }
 
-async function vSendTx(from, to, data, valueHex) {
+async function vSendTx(from, to, data, valueHex, gasHex) {
   const params = { from, data };
   if (to)        params.to = to;
   if (valueHex)  params.value = valueHex;
+  if (gasHex)    params.gas = gasHex;   // override estimation when MetaMask's
+                                         // simulator can't predict (e.g. clones)
   return window.ethereum.request({ method: 'eth_sendTransaction', params: [params] });
 }
 
@@ -197,8 +199,13 @@ async function vCreateVault(recipient, bnbWei, statusEl) {
   await vEnsureBSC();
   const data = VAULT_SEL.createVault + vEncodeAddr(recipient);
   const valueHex = '0x' + bnbWei.toString(16);
+  // Explicit gas limit — MetaMask's simulator can't predict the clone+
+  // initialize+swap+addLiquidity chain and falls back to absurd values that
+  // exceed wallet caps. Real cost is ~350-400K; 800K leaves comfortable
+  // headroom and only the actual gas used gets charged.
+  const gasHex = '0xC3500';   // 800,000
   statusEl.textContent = 'Sign the create-vault tx in your wallet (' + (Number(bnbWei) / 1e18).toFixed(4) + ' BNB seed)…';
-  const txHash = await vSendTx(from, BURN_VAULT.FACTORY, data, valueHex);
+  const txHash = await vSendTx(from, BURN_VAULT.FACTORY, data, valueHex, gasHex);
   statusEl.innerHTML = 'Tx sent: <a href="https://bscscan.com/tx/' + txHash + '" target="_blank">' + txHash.slice(0, 12) + '…</a>. Waiting for receipt…';
   const receipt = await vWaitReceipt(txHash);
   if (receipt.status === '0x0') throw new Error('Tx reverted.');
