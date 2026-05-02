@@ -59,6 +59,54 @@ The vault is now self-running. First harvest unlocks 29 days from this
 moment. Anyone (you, a bot, anyone) calls `harvest()` after that and the
 loop runs forever.
 
+## Manual verification on BSCscan (no Hardhat needed)
+
+If you'd rather just paste the source into BSCscan's UI, here's exactly what
+to fill in for each contract. Both go through the same form — only the
+address, contract name, source file, and constructor-args field change.
+
+### Common settings (both contracts)
+
+| Field | Value |
+|---|---|
+| **Compiler Type** | `Solidity (Single file)` |
+| **Compiler Version** | `v0.8.24+commit.e11b9ed9` |
+| **Open Source License Type** | `MIT License (MIT)` |
+| **Optimization** | `Yes` |
+| **Optimization Runs** | `200` |
+| **EVM Version** | `paris` |
+
+These match `hardhat.config.js` exactly. If any of these differ, verification
+will fail with a "bytecode mismatch" error even when the source is identical.
+
+### Implementation contract
+
+1. Go to: <https://bscscan.com/verifyContract?a=0x7C5B5b39bF7e5a6922ABb74E08317f6f9fA9540a>
+2. **Contract Name**: `RickleAutoBurnVault`
+3. **Source code**: paste the entire content of [`build/assets/RickleAutoBurnVault.sol`](RickleAutoBurnVault.sol)
+4. **Constructor Arguments ABI-encoded**: leave blank (no constructor args)
+5. Click **Verify and Publish**
+
+### Factory contract
+
+1. Go to: <https://bscscan.com/verifyContract?a=0x6cc4a005324c90e31eb788594ebd1f672a2a6857>
+2. **Contract Name**: `RickleAutoBurnVaultFactory`
+3. **Source code**: paste the entire content of [`build/assets/RickleAutoBurnVaultFactory.sol`](RickleAutoBurnVaultFactory.sol)
+4. **Constructor Arguments ABI-encoded**:
+   ```
+   0000000000000000000000007c5b5b39bf7e5a6922abb74e08317f6f9fa9540a
+   ```
+   (This is the implementation address, lowercase, padded to 32 bytes — paste **without** the `0x` prefix.)
+5. Click **Verify and Publish**
+
+If BSCscan complains "ParserError: ..." double-check that the entire `.sol`
+file content is pasted including the `// SPDX-License-Identifier: MIT` and
+`pragma solidity 0.8.24;` lines at the top.
+
+If it complains "compiled bytecode does not match" — usually one of the
+common settings is off. The most common culprits are EVM version (`paris`,
+not `default`) and optimization runs (`200`, not blank).
+
 ## Verification of clones
 
 Clone bytecode is the EIP-1167 minimal proxy template (45 bytes pointing at

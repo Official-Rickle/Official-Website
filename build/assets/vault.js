@@ -26,7 +26,7 @@
 const BURN_VAULT = {
   // Filled after deploy. Empty → deploy panel shows for the deployer.
   IMPLEMENTATION: '0x7C5B5b39bF7e5a6922ABb74E08317f6f9fA9540a',
-  FACTORY:        '',
+  FACTORY:        '0x6cc4a005324c90e31eb788594ebd1f672a2a6857',
 
   CHAIN_ID:       56,
   RPC:            'https://bsc-rpc.publicnode.com',
