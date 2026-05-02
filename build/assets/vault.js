@@ -25,7 +25,7 @@
 // scope when loaded as plain <script> tags.
 const BURN_VAULT = {
   // Filled after deploy. Empty → deploy panel shows for the deployer.
-  IMPLEMENTATION: '',
+  IMPLEMENTATION: '0x7C5B5b39bF7e5a6922ABb74E08317f6f9fA9540a',
   FACTORY:        '',
 
   CHAIN_ID:       56,

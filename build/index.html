@@ -1296,13 +1296,15 @@
   // this list, so a single rate-limited node doesn't kill the page. Each
   // host has its own throttle (below), so traffic naturally redistributes
   // across providers as one gets saturated.
+  // Ankr endpoints removed — they now require an API key on free tier
+  // and return Unauthorized errors that just burn failover slots.
   const RPC_FALLBACKS = {
-    'https://ethereum-rpc.publicnode.com':     ['https://eth.llamarpc.com', 'https://rpc.ankr.com/eth', 'https://eth.drpc.org'],
-    'https://bsc-rpc.publicnode.com':          ['https://bsc-dataseed.binance.org', 'https://bsc-dataseed1.defibit.io', 'https://rpc.ankr.com/bsc'],
-    'https://polygon-bor-rpc.publicnode.com':  ['https://polygon-rpc.com', 'https://rpc.ankr.com/polygon', 'https://polygon.drpc.org'],
-    'https://gnosis-rpc.publicnode.com':       ['https://rpc.gnosischain.com', 'https://rpc.ankr.com/gnosis'],
-    'https://arbitrum-one-rpc.publicnode.com': ['https://arb1.arbitrum.io/rpc', 'https://rpc.ankr.com/arbitrum'],
-    'https://base-rpc.publicnode.com':         ['https://mainnet.base.org', 'https://rpc.ankr.com/base'],
+    'https://ethereum-rpc.publicnode.com':     ['https://eth.llamarpc.com', 'https://eth.drpc.org'],
+    'https://bsc-rpc.publicnode.com':          ['https://bsc-dataseed.binance.org', 'https://bsc-dataseed1.defibit.io'],
+    'https://polygon-bor-rpc.publicnode.com':  ['https://polygon-rpc.com', 'https://polygon.drpc.org'],
+    'https://gnosis-rpc.publicnode.com':       ['https://rpc.gnosischain.com'],
+    'https://arbitrum-one-rpc.publicnode.com': ['https://arb1.arbitrum.io/rpc'],
+    'https://base-rpc.publicnode.com':         ['https://mainnet.base.org'],
     'https://rpc.stable.xyz':                  [],
   };
   function rpcsFor(rpc) { return [rpc, ...(RPC_FALLBACKS[rpc] || [])]; }
