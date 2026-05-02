@@ -93,12 +93,16 @@ contract RickleAutoBurnVault {
     bool    public initialized;
 
     // ─── Reentrancy guard ─────────────────────────────────────────────
-    uint256 private _locked = 1;
+    // Uses 0 as the "unlocked" state so EIP-1167 clones work without an
+    // explicit initializer. Clones inherit zeroed storage and the
+    // implementation's `uint256 private _locked = 1` would only fire in
+    // the impl's constructor — never for clones — bricking initialize.
+    uint256 private _locked;
     modifier nonReentrant() {
-        require(_locked == 1, "reentrant");
-        _locked = 2;
-        _;
+        require(_locked == 0, "reentrant");
         _locked = 1;
+        _;
+        _locked = 0;
     }
 
     // ─── Events ───────────────────────────────────────────────────────
