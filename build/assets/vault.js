@@ -29,7 +29,7 @@ const BURN_VAULT = {
   // history): IMPLEMENTATION 0x7C5B5b39bF7e5a6922ABb74E08317f6f9fA9540a,
   // FACTORY 0x6cc4a005324c90e31eb788594ebd1f672a2a6857. Both are abandoned —
   // the old impl can never initialize a clone.
-  IMPLEMENTATION: '',
+  IMPLEMENTATION: '0xfb65d11a375e7d61fcd8ea205558375521e8a30f',
   FACTORY:        '',
 
   CHAIN_ID:       56,
