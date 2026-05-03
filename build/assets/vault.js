@@ -30,7 +30,7 @@ const BURN_VAULT = {
   // FACTORY 0x6cc4a005324c90e31eb788594ebd1f672a2a6857. Both are abandoned —
   // the old impl can never initialize a clone.
   IMPLEMENTATION: '0xfb65d11a375e7d61fcd8ea205558375521e8a30f',
-  FACTORY:        '',
+  FACTORY:        '0xde2fccfc40f148f2c2f1d579907116e0bd35680e',
 
   CHAIN_ID:       56,
   RPC:            'https://bsc-rpc.publicnode.com',
