@@ -1447,6 +1447,43 @@ function tallyAndRender(proposals) {
   const wrap = document.getElementById('gov-proposals');
   wrap.innerHTML = '';
 
+  // Audit-status banner: read window.__audit (loaded by audit-loader.js)
+  // and surface where the project's audit JSON stands relative to live
+  // chain state. Asynchronous — banner renders empty initially and
+  // populates when validation completes. Falls back silently if the
+  // audit data isn't available (default visitor sees the existing flow
+  // exactly as before).
+  if (window.__audit) {
+    const banner = document.createElement('div');
+    banner.id = 'gov-audit-banner';
+    banner.className = 'gov-audit-banner';
+    banner.style.cssText = 'font-size:11px;color:var(--text-dim);padding:8px 12px;border:1px solid var(--hairline);border-radius:3px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;';
+    banner.innerHTML = '<span class="gov-audit-msg">Checking audit status…</span><span class="gov-audit-detail" style="font-family:var(--mono);font-size:10px;color:var(--text-muted)"></span>';
+    wrap.appendChild(banner);
+
+    (async () => {
+      try {
+        await window.__audit.ready;
+        const gs = window.__audit.governanceState();
+        if (!gs) return;
+        const msg = banner.querySelector('.gov-audit-msg');
+        const detail = banner.querySelector('.gov-audit-detail');
+        msg.textContent = 'Audit indexed ' + gs.proposalCount + ' proposals through block ' + gs.lastBlock + '. Verifying…';
+        const v = await window.__audit.validateGovernance();
+        if (v.current) {
+          msg.innerHTML = '<span style="color:#57c98b">✓</span> Audit matches chain · ' + gs.proposalCount + ' proposals tracked';
+          detail.textContent = 'block ' + gs.lastBlock;
+        } else {
+          msg.innerHTML = '<span style="color:#ff7a59">⚠</span> Audit drift: ' + Math.abs(v.drift) + ' new proposal(s) since last audit run';
+          detail.textContent = 'audit: ' + v.audit + ' · live: ' + v.live;
+        }
+      } catch (e) {
+        const msg = banner.querySelector('.gov-audit-msg');
+        if (msg) msg.textContent = 'Audit status: unavailable (' + (e.message || 'unknown') + ')';
+      }
+    })();
+  }
+
   // Toolbar with manual refresh — useful when an RPC stall has left a card
   // stuck on "Loading…" or after submitting a tx where the auto-refresh is
   // taking too long to pick up the new state.

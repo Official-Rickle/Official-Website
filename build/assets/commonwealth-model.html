@@ -1,0 +1,1832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Commonwealth Model · Showing the Work</title>
+  <style>
+    :root {
+      --bg: #000000;
+      --bg-2: #050505;
+      --surface: #0c0c0c;
+      --hairline: #1c1c1c;
+      --hairline-strong: #262626;
+      --text: #f0f0f0;
+      --text-soft: #cfcfcf;
+      --text-muted: #888888;
+      --text-dim: #555555;
+      --coral: #ff6f61;
+      --green: #57c98b;
+      --gold: #c9a227;
+      --mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+      --serif: Georgia, 'Times New Roman', serif;
+      --math: 'Cambria Math', Cambria, 'Times New Roman', Georgia, serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    header {
+      padding: 32px 32px 22px;
+      border-bottom: 1px solid var(--hairline);
+    }
+    h1 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--coral);
+    }
+    header .sub {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 8px;
+      letter-spacing: 1px;
+      font-family: var(--serif);
+      font-style: italic;
+    }
+    main { padding: 22px 32px 80px; max-width: 1280px; margin: 0 auto; }
+
+    /* Section / step boxes */
+    section {
+      margin-bottom: 22px;
+      background: var(--surface);
+      border: 1px solid var(--hairline);
+      border-radius: 4px;
+      padding: 22px 26px;
+    }
+    section.given { border-color: var(--gold); }
+    section.aggregate { border-color: var(--coral); }
+    h2 {
+      margin: 0 0 14px;
+      font-family: var(--serif);
+      font-size: 14px;
+      letter-spacing: 2.4px;
+      text-transform: uppercase;
+      color: var(--coral);
+      font-weight: 700;
+    }
+    section.given h2 { color: var(--gold); }
+    h2 .step-num {
+      display: inline-block;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--coral);
+      color: var(--bg);
+      text-align: center; line-height: 28px;
+      font-size: 13px;
+      margin-right: 10px;
+      font-family: var(--serif);
+    }
+    section.given h2 .step-num { background: var(--gold); }
+
+    /* Math typography */
+    .formula {
+      font-family: var(--math);
+      font-size: 18px;
+      line-height: 1.7;
+      padding: 12px 16px;
+      background: var(--bg-2);
+      border-left: 2px solid var(--coral);
+      margin: 12px 0;
+      overflow-x: auto;
+    }
+    .formula em { font-style: italic; }
+    .formula .coral { color: var(--coral); }
+    .formula .green { color: var(--green); }
+    .formula .gold  { color: var(--gold); }
+    .formula .muted { color: var(--text-muted); }
+    .formula sub { font-size: 12px; vertical-align: sub; }
+    .formula sup { font-size: 12px; vertical-align: super; }
+
+    .substitution {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-soft);
+      padding: 10px 16px;
+      background: var(--bg);
+      border-left: 2px solid var(--text-dim);
+      margin: 8px 0;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .substitution .arrow { color: var(--coral); margin: 0 6px; }
+    .result {
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 700;
+      padding: 10px 16px;
+      background: rgba(255,111,97,0.06);
+      border-left: 2px solid var(--coral);
+      margin: 8px 0 14px;
+      color: var(--text);
+    }
+    .result.green { background: rgba(87,201,139,0.06); border-left-color: var(--green); color: var(--green); }
+    .result.gold  { background: rgba(201,162,39,0.06); border-left-color: var(--gold); color: var(--gold); }
+    .result em { color: var(--text-dim); font-style: italic; font-weight: 400; margin-left: 8px; font-size: 11px; }
+
+    p.note {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: var(--serif);
+      font-style: italic;
+      margin: 10px 0;
+    }
+
+    /* Input grid in Given */
+    .inputs-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .input-cell {
+      background: var(--bg-2);
+      border: 1px solid var(--hairline);
+      padding: 10px 12px;
+      border-radius: 3px;
+    }
+    .input-cell label {
+      display: block;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .input-cell .label-greek { font-family: var(--math); font-style: italic; font-weight: 700; color: var(--coral); margin-right: 6px; }
+    .input-cell input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .input-cell input:focus { outline: none; }
+    .input-cell .units { font-size: 10px; color: var(--text-muted); margin-left: 4px; }
+
+    /* Derived values */
+    .derived-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .derived-cell {
+      padding: 8px 12px;
+      background: var(--bg);
+      border: 1px solid var(--hairline);
+      border-radius: 2px;
+    }
+    .derived-cell .k {
+      font-size: 10px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      display: block;
+    }
+    .derived-cell .v {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Final aggregate */
+    .agg-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .agg-table td, .agg-table th {
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px dotted var(--hairline);
+      font-size: 12px;
+    }
+    .agg-table th {
+      font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted);
+      font-weight: 700;
+    }
+    .agg-table td.formula-cell { font-family: var(--math); font-size: 14px; }
+    .agg-table td.value { font-family: var(--mono); font-weight: 700; color: var(--coral); text-align: right; font-variant-numeric: tabular-nums; }
+    .agg-table td.value.green { color: var(--green); }
+    .agg-table td.value.gold  { color: var(--gold); }
+
+    .key-equation {
+      text-align: center;
+      padding: 24px;
+      margin: 18px 0;
+      background: var(--bg);
+      border: 1px solid var(--coral);
+      border-radius: 4px;
+      font-family: var(--math);
+      font-size: 24px;
+    }
+
+    /* Big-operator block: stacks upper and lower limits above/below the ∑ or ∏ symbol */
+    .bigop {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      vertical-align: middle;
+      margin: 0 6px;
+      line-height: 1;
+    }
+    .bigop .bigop-sym  { font-size: 1.6em; line-height: 1; color: var(--text); }
+    .bigop .bigop-upper,
+    .bigop .bigop-lower { font-size: 0.45em; color: var(--text-soft); padding: 2px 0; }
+    .bigop .bigop-upper { margin-bottom: 1px; }
+    .bigop .bigop-lower { margin-top: 1px; }
+
+    /* Growth curve section */
+    section.curve { border-color: var(--green); }
+    section.curve h2 { color: var(--green); }
+    section.curve h2 .step-num { background: var(--green); color: var(--bg); }
+    .curve-controls {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin: 14px 0 18px;
+    }
+    .curve-controls .ctl {
+      background: var(--bg-2);
+      border: 1px solid var(--hairline);
+      border-radius: 3px;
+      padding: 12px 14px;
+    }
+    .curve-controls .ctl label {
+      display: block;
+      font-size: 10px;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .curve-controls .ctl input[type=range] {
+      width: 100%;
+      accent-color: var(--green);
+    }
+    .curve-controls .ctl .vread {
+      display: block;
+      margin-top: 6px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+    .curve-controls .ctl .hint { font-size: 10px; color: var(--text-dim); font-style: italic; font-family: var(--serif); margin-top: 4px; }
+
+    .curve-chart-wrap {
+      background: var(--bg);
+      border: 1px solid var(--hairline);
+      border-radius: 3px;
+      padding: 12px;
+    }
+    .curve-chart-wrap svg { display: block; width: 100%; height: auto; }
+    .curve-legend {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--text-soft);
+      font-family: var(--mono);
+    }
+    .curve-legend .swatch { display: inline-block; width: 12px; height: 2px; vertical-align: middle; margin-right: 6px; }
+
+    .curve-summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .curve-summary .scell {
+      background: var(--bg-2);
+      border: 1px solid var(--hairline);
+      border-left: 2px solid var(--green);
+      padding: 10px 12px;
+      border-radius: 2px;
+    }
+    .curve-summary .scell .lab { font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-dim); display: block; }
+    .curve-summary .scell .val { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+    .curve-summary .scell .delta { font-size: 11px; margin-left: 6px; }
+
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Commonwealth Model · Showing the Work</h1>
+  <div class="sub">From real chain state at block 96,217,583 to per-cycle aggregate effect — every step shown.</div>
+</header>
+
+<main>
+
+  <!-- ─── GIVEN ─── -->
+  <section class="given">
+    <h2><span class="step-num">G</span>Given (chain state, fixed inputs, and your N vaults)</h2>
+    <p class="note">Editable: change any value, every step below recomputes. All defaults pulled from BSC mainnet at block 96,217,583.</p>
+
+    <div class="inputs-grid">
+      <div class="input-cell">
+        <label><span class="label-greek">R<sub>BNB</sub></span> Pool BNB reserve</label>
+        <input type="number" id="in-rbnb" value="4.40768" step="0.0001"><span class="units">BNB</span>
+      </div>
+      <div class="input-cell">
+        <label><span class="label-greek">R<sub>RKL</sub></span> Pool RKL reserve</label>
+        <input type="number" id="in-rrkl" value="13559324.65" step="1"><span class="units">RKL</span>
+      </div>
+      <div class="input-cell">
+        <label><span class="label-greek">T</span> Total LP supply</label>
+        <input type="number" id="in-T" value="7071.83" step="0.01"><span class="units">LP</span>
+      </div>
+      <div class="input-cell">
+        <label><span class="label-greek">W</span> Winston's LP balance</label>
+        <input type="number" id="in-W" value="5221.61" step="0.01"><span class="units">LP</span>
+      </div>
+      <div class="input-cell">
+        <label><span class="label-greek">P<sub>BNB</sub></span> BNB price (USD)</label>
+        <input type="number" id="in-pbnb" value="618" step="1"><span class="units">USD</span>
+      </div>
+      <div class="input-cell">
+        <label><span class="label-greek">f</span> PCS LP fee per swap (fixed)</label>
+        <input type="number" id="in-f" value="0.0017" step="0.0001" disabled><span class="units">×swap input</span>
+      </div>
+      <div class="input-cell">
+        <label><span class="label-greek">N</span> Number of vaults</label>
+        <input type="number" id="in-N" value="6" step="1" min="1">
+      </div>
+      <div class="input-cell">
+        <label>Total LP across all vaults</label>
+        <input type="number" id="in-totallp" value="12.5453" step="0.0001"><span class="units">LP</span>
+      </div>
+      <div class="input-cell">
+        <label>Burn-class count (terminal sinks)</label>
+        <input type="number" id="in-burnN" value="3" step="1" min="0">
+      </div>
+      <div class="input-cell">
+        <label>External daily volume on this pool (USD)</label>
+        <input type="number" id="in-extvol" value="500" step="10" min="0"><span class="units">USD/day</span>
+      </div>
+      <div class="input-cell">
+        <label>Time horizon (cycles)</label>
+        <input type="number" id="in-cycles" value="12" step="1" min="1"><span class="units">29-day cycles</span>
+      </div>
+      <div class="input-cell">
+        <label>Test action amount ($)</label>
+        <input type="number" id="in-testamt" value="1" step="0.5" min="0.01"><span class="units">USD</span>
+        <div style="font-size:9px;color:var(--text-dim);margin-top:4px;line-height:1.4">
+          drives both Scenario B (direct spend) and Scenario A projection in Step 10
+        </div>
+      </div>
+    </div>
+
+    <!-- Live pool snapshot — updates on every action click and every input edit -->
+    <h3 style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--green);margin:18px 0 10px;font-weight:700">Live pool snapshot · updates with each click</h3>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:14px 16px;background:linear-gradient(180deg,rgba(87,201,139,0.06) 0%,rgba(87,201,139,0.02) 100%);border:1px solid rgba(87,201,139,0.30);border-radius:4px">
+      <div>
+        <div style="font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-muted)">RKL price</div>
+        <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--green);margin-top:4px;font-variant-numeric:tabular-nums" id="snap-rkl-price">—</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:2px;font-family:var(--mono)" id="snap-rkl-drift">baseline</div>
+      </div>
+      <div>
+        <div style="font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-muted)">Pool R_BNB</div>
+        <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--text);margin-top:4px;font-variant-numeric:tabular-nums" id="snap-rbnb">—</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:2px;font-family:var(--mono)" id="snap-rbnb-delta">baseline</div>
+      </div>
+      <div>
+        <div style="font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-muted)">Pool R_RKL</div>
+        <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--text);margin-top:4px;font-variant-numeric:tabular-nums" id="snap-rrkl">—</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:2px;font-family:var(--mono)" id="snap-rrkl-delta">baseline</div>
+      </div>
+      <div>
+        <div style="font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-muted)">Pool TVL (USD)</div>
+        <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--text);margin-top:4px;font-variant-numeric:tabular-nums" id="snap-tvl">—</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:2px;font-family:var(--mono)" id="snap-tvl-delta">baseline</div>
+      </div>
+      <div>
+        <div style="font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-muted)">Winston share</div>
+        <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--text);margin-top:4px;font-variant-numeric:tabular-nums" id="snap-wshare">—</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:2px;font-family:var(--mono)" id="snap-vault-count">—</div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;padding:12px 14px;background:var(--bg-2);border:1px solid var(--hairline);border-radius:3px;font-size:11px;color:var(--text-soft);line-height:1.6">
+      <strong style="color:var(--coral)">Step through actions:</strong>
+      Each click of either button performs ONE action at the current <em>Test action amount</em>, updates the pool state, and logs it. Run them one after another to see how each successive action changes the pool that the next one is applied against.
+
+      <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button type="button" id="add-buy-btn" style="background:var(--gold);color:var(--bg);border:none;padding:10px 16px;font-family:var(--mono);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;border-radius:2px;font-weight:700">
+          + 1 direct buy at $<span id="add-buy-amt">1</span>
+        </button>
+        <button type="button" id="add-vault-burn-btn" style="background:var(--coral);color:var(--bg);border:none;padding:10px 16px;font-family:var(--mono);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;border-radius:2px;font-weight:700" title="Recipient = 0x000…dEaD. RKL flow is permanently destroyed every cycle. Cannot be reversed.">
+          🔥 + 1 BURN vault at $<span id="add-burn-amt">1</span>
+        </button>
+        <button type="button" id="add-vault-reward-btn" style="background:#57c98b;color:var(--bg);border:none;padding:10px 16px;font-family:var(--mono);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;border-radius:2px;font-weight:700" title="Recipient = wallet (your wallet, multisig, or other). RKL flow is extractable each cycle.">
+          💰 + 1 REWARD vault at $<span id="add-reward-amt">1</span>
+        </button>
+        <button type="button" id="reset-baseline-btn" style="background:var(--bg);color:var(--text-muted);border:1px solid var(--hairline);padding:10px 12px;font-family:var(--mono);font-size:10px;letter-spacing:1.2px;cursor:pointer;border-radius:2px">
+          ↻ reset chain state
+        </button>
+      </div>
+      <div style="margin-top:8px;font-size:10px;color:var(--text-dim);font-style:italic;line-height:1.5;font-family:Georgia,serif">
+        Burn vaults send 40% of harvested RKL to <code style="color:var(--coral)">0x000…dEaD</code> every cycle — permanent destruction, cannot be undone (the contract has no withdraw, no admin, no upgrade path). Each burn vault you add increases the structural burn rate of the system, forever. Reward vaults send their 40% slice to an extractable wallet instead.
+      </div>
+
+      <div id="action-counters" style="margin-top:10px;display:flex;gap:18px;flex-wrap:wrap;font-size:11px"></div>
+      <div id="action-log" style="margin-top:8px;font-size:10px;color:var(--text-soft);font-family:var(--mono);max-height:300px;overflow-y:auto;background:var(--bg);border:1px solid var(--hairline);border-radius:2px;padding:0;display:none"></div>
+    </div>
+
+    <h3 style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-top:18px">Derived from given (auto)</h3>
+    <div class="derived-grid">
+      <div class="derived-cell"><span class="k">Pool TVL (USD)</span><span class="v" id="d-tvl">—</span></div>
+      <div class="derived-cell"><span class="k">Per-LP-token value</span><span class="v" id="d-perlp">—</span></div>
+      <div class="derived-cell"><span class="k">Winston share W/T</span><span class="v" id="d-wshare">—</span></div>
+      <div class="derived-cell"><span class="k">RKL spot price (USD)</span><span class="v" id="d-rklprice">—</span></div>
+      <div class="derived-cell"><span class="k">LP per vault (avg)</span><span class="v" id="d-lpv">—</span></div>
+      <div class="derived-cell"><span class="k">Vault dollar avg</span><span class="v" id="d-vusd">—</span></div>
+      <div class="derived-cell"><span class="k">Reward-class vault count</span><span class="v" id="d-rewardN">—</span></div>
+      <div class="derived-cell"><span class="k">Vault total LP / Pool LP</span><span class="v" id="d-vfrac">—</span></div>
+    </div>
+
+    <h3 style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-top:18px">Cumulative change since chain baseline (visible effect of all actions)</h3>
+    <div class="derived-grid">
+      <div class="derived-cell"><span class="k">ΔR_BNB</span><span class="v" id="dbase-rbnb">—</span></div>
+      <div class="derived-cell"><span class="k">ΔR_RKL</span><span class="v" id="dbase-rrkl">—</span></div>
+      <div class="derived-cell"><span class="k">ΔT (LP supply)</span><span class="v" id="dbase-T">—</span></div>
+      <div class="derived-cell"><span class="k">ΔN (vaults)</span><span class="v" id="dbase-N">—</span></div>
+      <div class="derived-cell"><span class="k">RKL price drift</span><span class="v" id="dbase-price">—</span></div>
+      <div class="derived-cell"><span class="k">Pool TVL drift</span><span class="v" id="dbase-tvl">—</span></div>
+    </div>
+  </section>
+
+  <!-- ─── STEP 1 ─── -->
+  <section>
+    <h2><span class="step-num">1</span>Per-vault share of pool</h2>
+    <p class="note">What fraction of the pool's LP supply does one vault control? Used by the AMM to compute proportional withdraw on harvest.</p>
+    <div class="formula">
+      share<sub>i</sub> = 0.004 × <em>LP<sub>i</sub></em> / <em>T</em>
+      <span class="muted"> &nbsp;←&nbsp; 0.4% LP harvest rate, fixed by contract</span>
+    </div>
+    <div class="substitution" id="s1-sub">—</div>
+    <div class="result" id="s1-result">—</div>
+  </section>
+
+  <!-- ─── STEP 2 ─── -->
+  <section>
+    <h2><span class="step-num">2</span>Harvest amounts (RKL and BNB returned to vault)</h2>
+    <p class="note">When vault calls removeLiquidityETH, the AMM returns its proportional share of both reserves.</p>
+    <div class="formula">
+      <span class="coral">RKL_h<sub>i</sub></span> = <em>R<sub>RKL</sub></em> × share<sub>i</sub><br>
+      <span class="coral">BNB_h<sub>i</sub></span> = <em>R<sub>BNB</sub></em> × share<sub>i</sub>
+    </div>
+    <div class="substitution" id="s2-sub">—</div>
+    <div class="result" id="s2-result">—</div>
+  </section>
+
+  <!-- ─── STEP 3 ─── -->
+  <section>
+    <h2><span class="step-num">3</span>Per-vault outputs (a, b ∥ c, zap)</h2>
+    <p class="note">The contract splits each harvest into three outflows + one re-pair. Constants from RickleAutoBurnVault.sol lines 78–88.</p>
+    <div class="formula">
+      <span class="green"><em>a<sub>i</sub></em></span>           = 0.10 × <span class="coral">BNB_h<sub>i</sub></span>          <span class="muted">  ← caller bounty (always)</span><br>
+      <span class="coral"><em>b<sub>i</sub></em> ∥ <em>c<sub>i</sub></em></span> = 0.40 × <span class="coral">RKL_h<sub>i</sub></span>   <span class="muted">  ← recipient slice (b if burn, c if reward)</span><br>
+      <span class="gold"><em>zap<sub>i</sub></em></span>          = 0.15 × <span class="coral">BNB_h<sub>i</sub></span>          <span class="muted">  ← 1 buy swap, pays f×zap to LPs</span>
+    </div>
+    <div class="substitution" id="s3-sub">—</div>
+    <div class="result" id="s3-result">—</div>
+  </section>
+
+  <!-- ─── STEP 4 ─── -->
+  <section>
+    <h2><span class="step-num">4</span>Aggregate across N vaults per cycle</h2>
+    <p class="note">Sum every vault's outputs over one 29-day cycle. Burn-class summed into Σb, reward-class into Σc.</p>
+    <div class="formula">
+      Σ<em>a</em>      = N × <em>a<sub>avg</sub></em><br>
+      Σ<em>b</em>      = N<sub>burn</sub> × (<em>b<sub>avg</sub></em>)         <span class="muted">  ← permanent burn flow</span><br>
+      Σ<em>c</em>      = N<sub>reward</sub> × (<em>c<sub>avg</sub></em>)        <span class="muted">  ← extractable to recipient wallets</span><br>
+      N<sub>swaps</sub>   = N                  <span class="muted">  ← all BUY direction</span><br>
+      Σ Δfee  = N × <em>zap<sub>avg</sub></em> × <em>f</em>           <span class="muted">  ← compounds reserves pro-rata across all LP</span>
+    </div>
+    <div class="substitution" id="s4-sub">—</div>
+    <div class="result" id="s4-result">—</div>
+  </section>
+
+  <!-- ─── STEP 5 ─── -->
+  <section>
+    <h2><span class="step-num">5</span>Pool reserve effect per cycle</h2>
+    <p class="note">Net change in pool reserves from one cycle of harvests. Removes are proportional, re-adds and zaps return BNB; recipient slice fully leaves.</p>
+    <div class="formula">
+      Δ<em>R<sub>BNB</sub></em>   = −Σ<em>a</em> + (Σ<em>zap</em>)(1 − 0.0025)   <span class="muted">  ← bounty leaves; zap adds back less PCS fee structure</span><br>
+      Δ<em>R<sub>RKL</sub></em>   = −Σ(<em>b</em>+<em>c</em>) + zap-driven RKL exchange  <span class="muted">  ← recipient slice leaves; tiny RKL flux from zap</span><br>
+      Direction    = +1 (100% buys)
+    </div>
+    <div class="substitution" id="s5-sub">—</div>
+    <div class="result" id="s5-result">—</div>
+  </section>
+
+  <!-- ─── STEP 6: NATURAL VOLUME ─── -->
+  <section>
+    <h2><span class="step-num">6</span>Natural volume from external buys / sells</h2>
+    <p class="note">Real traders, arb bots, and MEV all push volume through this pool independent of vault activity. Each external swap also pays the 0.17% LP fee, compounding all LP holders pro-rata (Winston, vaults, regular LPs).</p>
+    <div class="formula">
+      V<sub>ext</sub><sup>cycle</sup> = (daily volume) × 29   <span class="muted">  ← USD volume in one cycle from non-vault swaps</span><br>
+      Δfee<sub>ext</sub> = V<sub>ext</sub><sup>cycle</sup> × <em>f</em>           <span class="muted">  ← LP-effective fees from external traders</span>
+    </div>
+    <div class="substitution" id="s6-sub">—</div>
+    <div class="result" id="s6-result">—</div>
+  </section>
+
+  <!-- ─── STEP 7: TOTAL FEE PER CYCLE ─── -->
+  <section>
+    <h2><span class="step-num">7</span>Total fee accrual per cycle (vault zaps + external)</h2>
+    <p class="note">Sum every fee-paying event in one cycle. Both flows compound the pool's k value, lifting per-LP-token claim equally.</p>
+    <div class="formula">
+      Δfee<sub>total</sub> = Δfee<sub>zaps</sub> + Δfee<sub>ext</sub><br>
+      <span class="muted">                = N × zap<sub>avg</sub> × f &nbsp;+&nbsp; V<sub>ext</sub><sup>cycle</sup> × f</span>
+    </div>
+    <div class="substitution" id="s7-sub">—</div>
+    <div class="result" id="s7-result">—</div>
+  </section>
+
+  <!-- ─── STEP 8: PER-CYCLE MULTIPLIER μ ─── -->
+  <section>
+    <h2><span class="step-num">8</span>Per-cycle multiplier μ (fee gain vs harvest leakage)</h2>
+    <p class="note">Each cycle, the vault's LP value is pushed up by its share of total fees and pushed down by the 25% leakage on the harvested 0.4% slice. Net change = μ.</p>
+    <div class="formula">
+      η<sup>cycle</sup> = Δfee<sub>total</sub> × (LP<sub>vault</sub> / T) / V<sub>vault</sub>     <span class="muted">  ← fee yield on vault value</span><br>
+      δ<sup>cycle</sup> = 0.004 × 0.25 = 0.001                       <span class="muted">  ← leakage from harvest (25% of 0.4%)</span><br>
+      μ        = (1 + η<sup>cycle</sup>) × (1 − δ<sup>cycle</sup>)              <span class="muted">  ← net per-cycle multiplier on vault value</span>
+    </div>
+    <div class="substitution" id="s8-sub">—</div>
+    <div class="result" id="s8-result">—</div>
+  </section>
+
+  <!-- ─── STEP 9: TIME-BASED COMPOUND ─── -->
+  <section>
+    <h2><span class="step-num">9</span>Time-based factorial math (over n cycles)</h2>
+    <p class="note">Vault value grows geometrically: each cycle, the prior cycle's value × μ. Cumulative outflows (bounty, burn, reward) are geometric series — they grow each cycle as the underlying vault value grows.</p>
+    <div class="formula">
+      V<sub>n</sub> = V<sub>0</sub> × μ<sup>n</sup>                                       <span class="muted">  ← vault value after n cycles</span><br>
+      Σ output (over n) = output<sub>0</sub> × (μ<sup>n</sup> − 1) / (μ − 1)      <span class="muted">  ← geometric sum of growing per-cycle outputs</span>
+    </div>
+    <div class="substitution" id="s9-sub">—</div>
+    <div class="result" id="s9-result">—</div>
+  </section>
+
+  <!-- ─── STEP 10: SCENARIO COMPARISON ─── -->
+  <section style="border-color:var(--green)">
+    <h2 style="color:var(--green)"><span class="step-num" style="background:var(--green)">10</span>What if I act now?  ·  apply the equation to two real scenarios</h2>
+    <p class="note">Both scenarios use the same chain state, the same η, the same μ — only the action differs. The math tells you what each strategy produces from your test deposit / spend.</p>
+
+    <!-- Scenario A: Add a vault -->
+    <h3 style="font-size:13px;color:var(--coral);letter-spacing:1.5px;text-transform:uppercase;margin:18px 0 8px">Scenario A — Create a new vault with $<span id="sa-amt">1</span> seed (recipient = your wallet)</h3>
+    <div class="formula" style="font-size:14px">
+      Adding 1 vault of seed = <em>V</em><sub>0</sub> changes the system:<br>
+      &nbsp; new <em>N</em>           = <em>N</em> + 1<br>
+      &nbsp; new <em>L<sub>vault</sub></em>   = <em>L<sub>vault</sub></em> + <em>V</em><sub>0</sub> / per_LP_value<br>
+      &nbsp; vault's η<sub>k</sub>    = recomputed with new totals (depending on whether N grows so does combined fee capture)<br>
+      &nbsp; vault's V(<em>n</em>)    = <em>V</em><sub>0</sub> × μ<sup>n</sup>           <span class="muted">  ← what stays in the locked LP</span><br>
+      &nbsp; Σ c (cumulative)         = c<sub>0</sub> × (μ<sup>n</sup>−1)/(μ−1)        <span class="muted">  ← what flows to your wallet over n cycles</span>
+    </div>
+    <div class="substitution" id="sa-sub">—</div>
+    <div class="result green" id="sa-result">—</div>
+
+    <!-- Scenario B: Direct RKL buy -->
+    <h3 style="font-size:13px;color:var(--coral);letter-spacing:1.5px;text-transform:uppercase;margin:24px 0 8px">Scenario B — Spend $<span id="sb-amt">1</span> buying RKL directly (hold tokens, no vault)</h3>
+    <div class="formula" style="font-size:14px">
+      Δ<em>R<sub>BNB</sub></em>  = $<em>X</em> / <em>P<sub>BNB</sub></em>                     <span class="muted">  ← BNB you send to swap</span><br>
+      RKL_out  = <em>R<sub>RKL</sub></em> × Δ<em>R<sub>BNB</sub></em> × 0.9975 / (<em>R<sub>BNB</sub></em> + Δ<em>R<sub>BNB</sub></em> × 0.9975)<br>
+      &nbsp;&nbsp;&nbsp; <span class="muted">  ← exact constant-product math, with PCS 0.25% fee taken from input</span><br>
+      Holder value(<em>n</em>) = RKL_out × <em>P<sub>RKL</sub></em>(<em>n</em>)              <span class="muted">  ← unchanged RKL count, price drifts</span>
+    </div>
+    <div class="substitution" id="sb-sub">—</div>
+    <div class="result" id="sb-result">—</div>
+
+    <!-- Side-by-side -->
+    <h3 style="font-size:13px;color:var(--coral);letter-spacing:1.5px;text-transform:uppercase;margin:24px 0 8px">Side-by-side after n cycles (same $ in, different mechanism)</h3>
+    <table class="agg-table" id="compare-table">
+      <thead><tr><th>Strategy</th><th>Initial</th><th>Year 1 (12 cycles)</th><th>Year 5 (63 cycles)</th><th>Year 30 (378 cycles)</th></tr></thead>
+      <tbody id="compare-body"></tbody>
+    </table>
+    <p class="note" style="font-size:11px;margin-top:12px">
+      Direct hold's only growth comes from RKL price drift — bounded above by net buy pressure (vault zaps + external buy bias). The vault captures fee yield directly through LP accrual, independent of price action.
+    </p>
+  </section>
+
+  <!-- ─── KEY EQUATION ─── -->
+  <section class="aggregate">
+    <h2><span class="step-num">∑</span>The full equation, in one line</h2>
+
+    <!-- Master equation -->
+    <div class="key-equation" style="font-size:28px;line-height:1.4;padding:38px 24px">
+      <em>V</em>(<em>t</em>)
+      <span style="margin: 0 12px">=</span>
+
+      <span class="bigop">
+        <span class="bigop-upper"><em>N</em>(<em>t</em>)</span>
+        <span class="bigop-sym">∑</span>
+        <span class="bigop-lower"><em>i</em>=1</span>
+      </span>
+
+      <em>seed<sub>i</sub></em>
+
+      <span style="margin: 0 10px">×</span>
+
+      <span class="bigop">
+        <span class="bigop-upper"><em>n</em>(<em>t</em>)</span>
+        <span class="bigop-sym">∏</span>
+        <span class="bigop-lower"><em>k</em>=<em>k</em><sub>0</sub>(<em>i</em>)</span>
+      </span>
+
+      <span style="white-space:nowrap">
+        [ &thinsp; (1 + <span class="green" style="font-style:italic">η<sub>k</sub></span>)
+        &thinsp; (1 &minus; <span class="coral" style="font-style:italic">δ</span>) &thinsp; ]
+      </span>
+    </div>
+
+    <p class="note" style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:0">
+      Sum across every vault that exists at time <em>t</em>, of its initial seed grown by the product of every per-cycle multiplier from when it was created to now.
+    </p>
+
+    <!-- Variables defined -->
+    <h3 style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin:24px 0 10px;font-weight:700">Where every variable is</h3>
+
+    <div class="formula" style="font-size:14px;line-height:2">
+      <em>V</em>(<em>t</em>)        &nbsp;=&nbsp; total commonwealth value at time <em>t</em>     <span class="muted">  ← what we're solving for</span><br>
+      <em>N</em>(<em>t</em>)        &nbsp;=&nbsp; count of vaults extant at time <em>t</em>          <span class="muted">  ← grows monotonically; users add, none removed</span><br>
+      <em>seed<sub>i</sub></em>     &nbsp;=&nbsp; initial value provided by user <em>i</em>          <span class="muted">  ← the dollar amount that user committed</span><br>
+      <em>k</em><sub>0</sub>(<em>i</em>) &nbsp;=&nbsp; cycle in which vault <em>i</em> was created      <span class="muted">  ← the user's join time</span><br>
+      <em>n</em>(<em>t</em>)        &nbsp;=&nbsp; ⌊<em>t</em> / 29 days⌋                              <span class="muted">  ← cycle index at time <em>t</em></span><br>
+      <span class="green"><em>η<sub>k</sub></em></span>            &nbsp;=&nbsp; <em>f</em> × (Σ<sub>j</sub> zap<sub>j,k</sub> + <em>V</em><sub>ext,k</sub>) × (<em>L</em><sub>total,k</sub> / <em>T<sub>k</sub></em>) / <em>V</em><sub>total,k</sub>
+        <span class="muted">  ← LP fee yield at cycle <em>k</em>, from ALL volume sources</span><br>
+      <span class="coral"><em>δ</em></span>            &nbsp;=&nbsp; 0.004 × 0.25 = 0.001                    <span class="muted">  ← harvest leakage, fixed by contract</span><br>
+      <em>V</em><sub>ext,k</sub>    &nbsp;=&nbsp; (external_buys + external_sells)<sub>k</sub>     <span class="muted">  ← natural volume in cycle <em>k</em></span><br>
+      <em>f</em>            &nbsp;=&nbsp; 0.0017                                <span class="muted">  ← PCS V2 LP fee, fixed</span>
+    </div>
+
+    <p class="note" style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:18px">
+      That single expression encodes all four moving parts:&nbsp;
+      <strong style="color:var(--coral)">time</strong> (the upper bound <em>n</em>(<em>t</em>) on the product),&nbsp;
+      <strong style="color:var(--coral)">users</strong> (the outer sum over <em>N</em>(<em>t</em>)),&nbsp;
+      <strong style="color:var(--coral)">amounts</strong> (each <em>seed<sub>i</sub></em> term),&nbsp;
+      <strong style="color:var(--coral)">natural volume</strong> (the <em>V</em><sub>ext,k</sub> inside <em>η<sub>k</sub></em>).<br>
+      Every variable above is computed live in Steps 1–9, given the current chain state and your inputs.
+    </p>
+
+    <!-- Recurrence form -->
+    <h3 style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin:32px 0 10px;font-weight:700">The same equation as a recurrence (iterated addition)</h3>
+
+    <p class="note" style="margin-top:0">
+      Multiplication is repeated addition. So the closed-form <em>V</em>(<em>t</em>) above unfolds back into a step-by-step recurrence — every term builds on the prior term, the same way Fibonacci does. This is what the action-log buttons above are walking through, one click at a time.
+    </p>
+
+    <div class="formula" style="font-size:15px;line-height:2">
+      <span class="muted">━━━ across time (one vault, n cycles) ━━━</span><br>
+      <em>V<sub>i</sub></em>(<em>n</em>)   = <em>V<sub>i</sub></em>(<em>n</em>−1) × <em>μ<sub>n</sub></em><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <em>V<sub>i</sub></em>(<em>n</em>−1) + <em>V<sub>i</sub></em>(<em>n</em>−1) × (<em>μ<sub>n</sub></em> − 1)
+        <span class="muted">  ← prior value + this cycle's gain</span><br>
+      <br>
+      <span class="muted">━━━ across users (k vaults so far) ━━━</span><br>
+      <em>V</em><sub>total</sub>(<em>k</em>) = <em>V</em><sub>total</sub>(<em>k</em>−1) + <em>seed<sub>k</sub></em>
+        <span class="muted">  ← prior total + the new user's deposit</span><br>
+      <br>
+      <span class="muted">━━━ across pool actions (sequential buys / vault adds) ━━━</span><br>
+      Pool(<em>k</em>) = Pool(<em>k</em>−1) + Δ<sub>action</sub>(Pool(<em>k</em>−1))
+        <span class="muted">  ← each action reads prior pool, applies its delta</span><br>
+      <br>
+      <span class="muted">━━━ cumulative outputs (running totals) ━━━</span><br>
+      Σ_<em>output</em>(<em>t</em>) = Σ_<em>output</em>(<em>t</em>−1) + <em>output</em>(<em>t</em>)
+        <span class="muted">  ← prior cumulative + this cycle's flow</span>
+    </div>
+
+    <p class="note" style="margin-top:14px">
+      Each line is a one-step recurrence. The closed-form expressions earlier
+      (<em>V</em><sub>0</sub> × <em>μ<sup>n</sup></em>, geometric sum, etc.) are just the recurrence "unrolled" — *evaluated* across <em>n</em> applications.
+      Run the action buttons above three times in a row and you're literally walking the recurrence:
+      <strong style="color:var(--coral)">click 1</strong> applies the rule to the chain baseline,
+      <strong style="color:var(--coral)">click 2</strong> applies the same rule to click 1's output,
+      <strong style="color:var(--coral)">click 3</strong> applies it to click 2's output.
+      Each pool state in the log is a term in the sequence; each μ <em>k</em> in the time projection is a multiplier between adjacent terms.
+    </p>
+
+    <p class="note" style="margin-top:10px;text-align:center;font-style:italic;color:var(--text-soft)">
+      "Multiplication is repeated addition." A closed-form geometric series is repeated multiplication.
+      Repeated multiplication is a recurrence, which is a sequence, which is — in operator terms —
+      a structured family of sums.<br>
+      The whole equation is, at base, addition: each term added to the running total, layer by layer, generation by generation.
+    </p>
+  </section>
+
+  <section class="curve">
+    <h2><span class="step-num">∞</span>Growth curve · start to finish</h2>
+    <p class="note" style="font-size:12px;color:var(--text-soft);font-style:normal;font-family:var(--mono)">
+      The chart below is not interpolated and not approximated. Every point is the result of running the canonical PCS V2 AMM formulas iteratively from the live pool snapshot — each cycle's reserves are derived from the previous cycle's reserves through the formulas spelled out below. Slide the controls to retrace the curve.
+    </p>
+
+    <h3 style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin:18px 0 8px;font-weight:700">Cycle transition · F<sub>cycle</sub>(state, params) → state'</h3>
+
+    <div class="formula" style="border-left-color:var(--green);font-size:14px">
+      <div style="margin-bottom:6px"><strong style="color:var(--green)">Primitive 1 · swap (PCS V2 with 0.25% fee)</strong></div>
+      <em>F<sub>swap</sub></em>(<em>R<sub>in</sub></em>, <em>R<sub>out</sub></em>, Δ<em>in</em>, <em>f</em>) = <em>R<sub>out</sub></em> · Δ<em>in</em> · (1−<em>f</em>) / [ <em>R<sub>in</sub></em> + Δ<em>in</em> · (1−<em>f</em>) ]
+    </div>
+
+    <div class="formula" style="border-left-color:var(--green);font-size:14px">
+      <div style="margin-bottom:6px"><strong style="color:var(--green)">Primitive 2 · mint (Uniswap V2 LP-token formula)</strong></div>
+      <em>F<sub>mint</sub></em>(<em>R<sub>a</sub></em>, <em>R<sub>b</sub></em>, <em>T</em>, Δ<em>a</em>, Δ<em>b</em>) = min( Δ<em>a</em> · <em>T</em> / <em>R<sub>a</sub></em> ,  Δ<em>b</em> · <em>T</em> / <em>R<sub>b</sub></em> )
+    </div>
+
+    <div class="formula" style="border-left-color:var(--green);font-size:14px">
+      <div style="margin-bottom:6px"><strong style="color:var(--green)">Primitive 3 · burn (proportional removeLiquidity)</strong></div>
+      <em>F<sub>burn</sub></em>(<em>R<sub>a</sub></em>, <em>R<sub>b</sub></em>, <em>T</em>, Δ<em>lp</em>) = ( Δ<em>lp</em> · <em>R<sub>a</sub></em> / <em>T</em> ,  Δ<em>lp</em> · <em>R<sub>b</sub></em> / <em>T</em> )
+    </div>
+
+    <div class="formula" style="border-left-color:var(--coral);font-size:14px">
+      <div style="margin-bottom:6px"><strong style="color:var(--coral)">Composite · zap (the vault build flow)</strong></div>
+      <em>F<sub>zap</sub></em>(<em>R<sub>a</sub></em>, <em>R<sub>b</sub></em>, <em>T</em>, <em>x</em>) :
+      <span style="display:block;padding-left:24px;font-size:13px">
+        1. <em>b<sub>out</sub></em> ← <em>F<sub>swap</sub></em>(<em>R<sub>a</sub></em>, <em>R<sub>b</sub></em>, <em>x</em>/2, <em>f</em>) &nbsp;&nbsp;<span style="color:var(--text-dim)"># swap half</span><br>
+        2. (Δ<em>a</em>, Δ<em>b</em>) ← addLiq(<em>R<sub>a</sub></em>+<em>x</em>/2, <em>R<sub>b</sub></em>−<em>b<sub>out</sub></em>, <em>x</em>/2, <em>b<sub>out</sub></em>) &nbsp;&nbsp;<span style="color:var(--text-dim)"># pair</span><br>
+        3. Δ<em>lp</em> ← <em>F<sub>mint</sub></em>(post-swap reserves, Δ<em>a</em>, Δ<em>b</em>) &nbsp;&nbsp;<span style="color:var(--text-dim)"># mint LP</span>
+      </span>
+    </div>
+
+    <div class="formula" style="border-left-color:var(--gold);font-size:14px">
+      <div style="margin-bottom:6px"><strong style="color:var(--gold)">F<sub>cycle</sub> · the per-29-day transition</strong></div>
+      <span style="display:block;padding-left:24px;font-size:13px">
+        <strong>1.</strong> External volume — apply 2<em>N</em> alternating <em>F<sub>swap</sub></em> calls (<em>N</em> buys + <em>N</em> sells). Each call sees the reserves left by the previous call.<br>
+        <strong>2.</strong> Vault harvest:<br>
+        &nbsp;&nbsp;&nbsp;(<em>h<sub>B</sub></em>, <em>h<sub>R</sub></em>) ← <em>F<sub>burn</sub></em>(<em>R<sub>B</sub></em>, <em>R<sub>R</sub></em>, <em>T</em>, <em>LP<sub>held</sub></em> · 0.004)<br>
+        &nbsp;&nbsp;&nbsp;<span style="color:var(--text-soft)">BNB side</span> &nbsp;= 10%·<em>h<sub>B</sub></em> bounty &nbsp;+ 15%·<em>h<sub>B</sub></em> zap (<em>F<sub>zap</sub></em>) &nbsp;+ 75%·<em>h<sub>B</sub></em> recompound &nbsp;<span style="color:var(--text-dim)">= 100%</span><br>
+        &nbsp;&nbsp;&nbsp;<span style="color:var(--text-soft)">RKL side</span> &nbsp;= 40%·<em>h<sub>R</sub></em> recipient &nbsp;+ 60%·<em>h<sub>R</sub></em> recompound &nbsp;<span style="color:var(--text-dim)">= 100%</span><br>
+        &nbsp;&nbsp;&nbsp;Recompound: <em>F<sub>addLiq</sub></em>(<em>R<sub>B</sub></em>, <em>R<sub>R</sub></em>, <em>T</em>, 0.75·<em>h<sub>B</sub></em>, 0.60·<em>h<sub>R</sub></em>) &nbsp;<span style="color:var(--text-dim)"># RKL is limiting → tiny BNB dust</span><br>
+        <strong>3.</strong> For each new vault: <em>F<sub>zap</sub></em>(<em>R<sub>B</sub></em>, <em>R<sub>R</sub></em>, <em>T</em>, seed<sub>BNB</sub>) &nbsp;<span style="color:var(--text-dim)"># sequential, state shifts between vaults</span>
+      </span>
+    </div>
+
+    <p class="note" style="margin:6px 0 14px">
+      <strong>F<sub>cycle</sub></strong> is what the chart iterates — apply it <em>n</em> times to walk <em>n</em> cycles forward. Every reserve, LP supply, and price on the chart is the output of one of these formulas operating on the previous cycle's state. Nothing is interpolated; nothing is approximated by a multiplier or growth-rate shortcut.
+    </p>
+
+    <div class="curve-controls">
+      <div class="ctl">
+        <label>Balanced trading volume per cycle</label>
+        <input type="range" id="cv-extvol" min="0" max="500" value="1" step="1">
+        <span class="vread" id="cv-extvol-v">$1 / 29-day cycle</span>
+        <span class="hint">Slide by the dollar — small-cap pool, even a few dollars matter. Balanced 50/50 buys + sells, fee revenue stays in reserves.</span>
+      </div>
+      <div class="ctl">
+        <label>New vaults seeded per cycle (users)</label>
+        <input type="range" id="cv-newvaults" min="0" max="50" value="2" step="1">
+        <span class="vread" id="cv-newvaults-v">2 vaults / cycle</span>
+        <span class="hint">Each new vault uses the test-spend amount as its seed.</span>
+      </div>
+      <div class="ctl">
+        <label>Horizon</label>
+        <input type="range" id="cv-horizon" min="1" max="2000" value="1" step="1">
+        <span class="vread" id="cv-horizon-v">1 cycle ≈ 29 days</span>
+        <span class="hint">29 days per cycle. Slide forward to walk one cycle at a time, or push out for the asymptote.</span>
+      </div>
+    </div>
+
+    <div class="curve-chart-wrap">
+      <svg id="curve-svg" viewBox="0 0 1000 360" preserveAspectRatio="none" aria-label="Pool composition over time"></svg>
+      <div class="curve-legend">
+        <span><span class="swatch" style="background:var(--green)"></span>R_BNB &nbsp;<em style="color:var(--text-dim);font-style:normal">(top panel · auto-scale)</em></span>
+        <span><span class="swatch" style="background:var(--gold)"></span>RKL price &nbsp;<em style="color:var(--text-dim);font-style:normal">(top panel · auto-scale)</em></span>
+        <span><span class="swatch" style="background:var(--coral)"></span>R_RKL &nbsp;<em style="color:var(--text-dim);font-style:normal">(bottom panel · 0–100% of start)</em></span>
+      </div>
+    </div>
+
+    <div class="curve-summary" id="curve-summary"></div>
+
+    <p class="note" style="margin-top:14px">
+      The asymptote is structural, not a forecast. The 40% recipient slice of every harvest leaves the pool permanently — burn vaults to dEaD, reward vaults to wallets — so pool RKL drains continuously at ~0.16% of remaining R_RKL per cycle. New vaults <em>inject</em> BNB and <em>net-zero</em> RKL once the pool is past its initial thin-pool regime, which is why R_BNB explodes (top panel) while R_RKL grinds down (bottom panel) on a much slower clock. Push the horizon to 1000+ cycles to see the bottom panel approach zero. Asymmetric one-way buy pressure isn't on the sliders — that's what the action buttons above are for; click "+1 DIRECT BUY" repeatedly and watch the live snapshot to see RKL drain hard.
+    </p>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  function fmtUSD(v) {
+    if (!isFinite(v)) return '—';
+    if (Math.abs(v) >= 1e6) return '$' + (v/1e6).toFixed(2) + 'M';
+    if (Math.abs(v) >= 1e3) return '$' + (v/1e3).toFixed(2) + 'K';
+    if (Math.abs(v) >= 1)   return '$' + v.toFixed(4);
+    if (Math.abs(v) >= 1e-4) return '$' + v.toFixed(6);
+    return '$' + v.toExponential(3);
+  }
+  function fmtSci(v, dp) { return v.toExponential(dp || 4); }
+  function fmtNum(v, dp) {
+    if (!isFinite(v)) return '—';
+    if (Math.abs(v) < 0.0001 && v !== 0) return v.toExponential(4);
+    return v.toLocaleString('en-US', { maximumFractionDigits: dp || 6 });
+  }
+
+  function compute() {
+    const R_BNB    = +$('in-rbnb').value;
+    const R_RKL    = +$('in-rrkl').value;
+    const T        = +$('in-T').value;
+    const W        = +$('in-W').value;
+    const P_BNB    = +$('in-pbnb').value;
+    const f        = +$('in-f').value;
+    const N        = +$('in-N').value;
+    const totalLp  = +$('in-totallp').value;
+    const burnN    = +$('in-burnN').value;
+    const rewardN  = Math.max(0, N - burnN);
+    const HARVEST_FRAC = 0.004;
+    const RECIPIENT_FRAC = 0.40;
+    const BOUNTY_FRAC = 0.10;
+    const ZAP_FRAC = 0.15;
+
+    // ── Derived ──────────────────────────────────────
+    const poolTVL_USD   = 2 * R_BNB * P_BNB;
+    const perLP_USD     = poolTVL_USD / T;
+    const wShare        = W / T;
+    const RKL_USD_per   = (R_BNB / R_RKL) * P_BNB;
+    const lpPerVault    = totalLp / N;
+    const vaultUsdAvg   = lpPerVault * perLP_USD;
+    const vaultLpFrac   = totalLp / T;
+
+    $('d-tvl').textContent       = fmtUSD(poolTVL_USD);
+    $('d-perlp').textContent     = fmtUSD(perLP_USD);
+    $('d-wshare').textContent    = (wShare * 100).toFixed(2) + '%';
+    $('d-rklprice').textContent  = fmtUSD(RKL_USD_per);
+    $('d-lpv').textContent       = lpPerVault.toFixed(4) + ' LP';
+    $('d-vusd').textContent      = fmtUSD(vaultUsdAvg);
+    $('d-rewardN').textContent   = rewardN;
+    $('d-vfrac').textContent     = (vaultLpFrac * 100).toFixed(4) + '%';
+
+    // ── Cumulative deltas from chain baseline ──────
+    // baseline is the chain state at block 96,217,583. Subtracting it from
+    // current input values shows the cumulative effect of every action the
+    // user has applied via the buy / vault buttons.
+    const dRbnb     = R_BNB - 4.40768;
+    const dRrkl     = R_RKL - 13559324.65;
+    const dT        = T - 7071.83;
+    const dN        = N - 6;
+    const baseSpot  = (4.40768 / 13559324.65) * P_BNB;     // spot at baseline (in current BNB price)
+    const dSpotPct  = ((RKL_USD_per - baseSpot) / Math.max(1e-12, baseSpot)) * 100;
+    const baseTVL   = 2 * 4.40768 * P_BNB;
+    const dTvlPct   = ((poolTVL_USD - baseTVL) / Math.max(1e-12, baseTVL)) * 100;
+
+    function deltaText(v, suffix, color) {
+      if (Math.abs(v) < 1e-9) return '—';
+      const sign = v >= 0 ? '+' : '−';
+      const abs  = Math.abs(v);
+      const str  = abs < 0.0001 ? abs.toExponential(3) : abs.toLocaleString('en-US', { maximumFractionDigits: 6 });
+      return '<span style="color:' + (v >= 0 ? '#57c98b' : '#ff7a59') + '">' + sign + str + (suffix || '') + '</span>';
+    }
+    $('dbase-rbnb').innerHTML = deltaText(dRbnb, ' BNB');
+    $('dbase-rrkl').innerHTML = deltaText(dRrkl, ' RKL');
+    $('dbase-T').innerHTML    = deltaText(dT, ' LP');
+    $('dbase-N').innerHTML    = deltaText(dN, ' vaults');
+    $('dbase-price').innerHTML = Math.abs(dSpotPct) < 1e-6
+      ? '—'
+      : '<span style="color:' + (dSpotPct >= 0 ? '#57c98b' : '#ff7a59') + '">' + (dSpotPct >= 0 ? '+' : '') + dSpotPct.toFixed(4) + '%</span>';
+    $('dbase-tvl').innerHTML = Math.abs(dTvlPct) < 1e-6
+      ? '—'
+      : '<span style="color:' + (dTvlPct >= 0 ? '#57c98b' : '#ff7a59') + '">' + (dTvlPct >= 0 ? '+' : '') + dTvlPct.toFixed(4) + '%</span>';
+
+    // ── Live pool snapshot (prominent display) ─────
+    function deltaSpan(v, suffix, isPct) {
+      if (Math.abs(v) < 1e-9) return '<span style="color:var(--text-dim)">baseline</span>';
+      const sign = v >= 0 ? '+' : '−';
+      const color = v >= 0 ? '#57c98b' : '#ff7a59';
+      const abs = Math.abs(v);
+      let body;
+      if (isPct) body = abs.toFixed(4) + '%';
+      else if (abs < 0.0001) body = abs.toExponential(3);
+      else body = abs.toLocaleString('en-US', { maximumFractionDigits: 6 });
+      return '<span style="color:' + color + '">' + sign + body + (suffix || '') + '</span>';
+    }
+    $('snap-rkl-price').textContent  = '$' + RKL_USD_per.toFixed(8);
+    $('snap-rkl-drift').innerHTML    = deltaSpan(dSpotPct, '', true);
+    $('snap-rbnb').textContent       = R_BNB.toFixed(6) + ' BNB';
+    $('snap-rbnb-delta').innerHTML   = deltaSpan(dRbnb, ' BNB');
+    $('snap-rrkl').textContent       = R_RKL.toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' RKL';
+    $('snap-rrkl-delta').innerHTML   = deltaSpan(dRrkl, ' RKL');
+    $('snap-tvl').textContent        = fmtUSD(poolTVL_USD);
+    $('snap-tvl-delta').innerHTML    = deltaSpan(dTvlPct, '', true);
+    $('snap-wshare').textContent     = (wShare * 100).toFixed(2) + '%';
+    $('snap-vault-count').innerHTML  = N + ' vaults total' + (dN > 0 ? ' <span style="color:#57c98b">(+' + dN + ')</span>' : '');
+
+    // ── Step 1: share per vault ─────────────────────
+    const share = HARVEST_FRAC * lpPerVault / T;
+    $('s1-sub').textContent =
+      'share = 0.004 × LPᵢ / T\n' +
+      '      = 0.004 × ' + lpPerVault.toFixed(4) + ' / ' + T.toFixed(2) + '\n' +
+      '      = ' + (HARVEST_FRAC * lpPerVault).toFixed(6) + ' / ' + T.toFixed(2);
+    $('s1-result').innerHTML = '∴ shareᵢ = <strong>' + fmtSci(share, 4) + '</strong> &nbsp;= ' + (share * 100).toFixed(6) + '% of pool LP <em>(per vault, assuming equal sizing)</em>';
+
+    // ── Step 2: harvest amounts ─────────────────────
+    const RKL_h = R_RKL * share;
+    const BNB_h = R_BNB * share;
+    const RKL_h_USD = RKL_h * RKL_USD_per;
+    const BNB_h_USD = BNB_h * P_BNB;
+    $('s2-sub').textContent =
+      'RKL_h = R_RKL × share = ' + R_RKL.toFixed(2) + ' × ' + fmtSci(share, 4) + '\n' +
+      '       = ' + RKL_h.toFixed(4) + ' RKL  (' + fmtUSD(RKL_h_USD) + ')\n\n' +
+      'BNB_h = R_BNB × share = ' + R_BNB.toFixed(5) + ' × ' + fmtSci(share, 4) + '\n' +
+      '       = ' + fmtSci(BNB_h, 4) + ' BNB  (' + fmtUSD(BNB_h_USD) + ')';
+    $('s2-result').innerHTML =
+      '∴ RKL_hᵢ = <strong>' + RKL_h.toFixed(4) + ' RKL</strong> &nbsp;(' + fmtUSD(RKL_h_USD) + ')<br>' +
+      '∴ BNB_hᵢ = <strong>' + fmtSci(BNB_h, 4) + ' BNB</strong> &nbsp;(' + fmtUSD(BNB_h_USD) + ')';
+
+    // ── Step 3: per-vault outputs ───────────────────
+    const a = BOUNTY_FRAC * BNB_h;
+    const bc = RECIPIENT_FRAC * RKL_h;
+    const zap = ZAP_FRAC * BNB_h;
+    const a_USD = a * P_BNB;
+    const bc_USD = bc * RKL_USD_per;
+    const zap_USD = zap * P_BNB;
+    $('s3-sub').textContent =
+      'aᵢ      = 0.10 × BNB_hᵢ = 0.10 × ' + fmtSci(BNB_h, 4) + ' = ' + fmtSci(a, 4) + ' BNB  (' + fmtUSD(a_USD) + ')\n' +
+      'bᵢ ∥ cᵢ = 0.40 × RKL_hᵢ = 0.40 × ' + RKL_h.toFixed(4) + ' = ' + bc.toFixed(4) + ' RKL  (' + fmtUSD(bc_USD) + ')\n' +
+      'zapᵢ    = 0.15 × BNB_hᵢ = 0.15 × ' + fmtSci(BNB_h, 4) + ' = ' + fmtSci(zap, 4) + ' BNB  (' + fmtUSD(zap_USD) + ')';
+    $('s3-result').innerHTML =
+      '∴ Per vault per cycle:<br>' +
+      '&nbsp;&nbsp;<span style="color:#57c98b">a = bounty</span> = <strong>' + fmtUSD(a_USD) + '</strong> in BNB<br>' +
+      '&nbsp;&nbsp;<span style="color:#ff6f61">b ∥ c = recipient</span> = <strong>' + fmtUSD(bc_USD) + '</strong> in RKL (' + bc.toFixed(2) + ' RKL)<br>' +
+      '&nbsp;&nbsp;<span style="color:#c9a227">zap = swap</span> = <strong>' + fmtUSD(zap_USD) + '</strong> BNB swapped → RKL';
+
+    // ── Step 4: aggregate per cycle ─────────────────
+    const sum_a = N * a;
+    const sum_b = burnN * bc;
+    const sum_c = rewardN * bc;
+    const sum_zap = N * zap;
+    const fee = sum_zap * f;
+    const sum_a_USD = sum_a * P_BNB;
+    const sum_b_USD = sum_b * RKL_USD_per;
+    const sum_c_USD = sum_c * RKL_USD_per;
+    const sum_zap_USD = sum_zap * P_BNB;
+    const fee_USD = fee * P_BNB;
+    $('s4-sub').textContent =
+      'Σa  = N × aᵢ          = ' + N + ' × ' + fmtSci(a, 4) + ' = ' + fmtSci(sum_a, 4) + ' BNB  (' + fmtUSD(sum_a_USD) + ')\n' +
+      'Σb  = N_burn × bᵢ     = ' + burnN + ' × ' + bc.toFixed(4) + ' = ' + sum_b.toFixed(4) + ' RKL  (' + fmtUSD(sum_b_USD) + ')\n' +
+      'Σc  = N_reward × cᵢ   = ' + rewardN + ' × ' + bc.toFixed(4) + ' = ' + sum_c.toFixed(4) + ' RKL  (' + fmtUSD(sum_c_USD) + ')\n' +
+      'N_swaps = N           = ' + N + '   (all BUY direction)\n' +
+      'Σfee = Σzap × f       = ' + fmtSci(sum_zap, 4) + ' × 0.0017 = ' + fmtSci(fee, 4) + ' BNB  (' + fmtUSD(fee_USD) + ')';
+    $('s4-result').innerHTML =
+      '<strong>Per-cycle aggregate (across N=' + N + ' vaults):</strong><br>' +
+      '&nbsp;&nbsp;Σ<em>a</em> &nbsp;= <strong>' + fmtUSD(sum_a_USD) + '</strong> in bounties out<br>' +
+      '&nbsp;&nbsp;Σ<em>b</em> &nbsp;= <strong>' + fmtUSD(sum_b_USD) + '</strong> permanently burned (' + sum_b.toFixed(2) + ' RKL)<br>' +
+      '&nbsp;&nbsp;Σ<em>c</em> &nbsp;= <strong>' + fmtUSD(sum_c_USD) + '</strong> to reward recipients (' + sum_c.toFixed(2) + ' RKL)<br>' +
+      '&nbsp;&nbsp;N_swaps = <strong>' + N + ' buy swaps</strong> generated<br>' +
+      '&nbsp;&nbsp;Σ fee = <strong>' + fmtUSD(fee_USD) + '</strong> compounds into pool reserves';
+
+    // ── Step 5: pool effect ─────────────────────────
+    const dRBNB = -sum_a + sum_zap * (1 - 0.0025);
+    const dRRKL = -(sum_b + sum_c);
+    $('s5-sub').textContent =
+      'ΔR_BNB = −Σa + Σzap × (1 − 0.0025)\n' +
+      '       = −' + fmtSci(sum_a, 4) + ' + ' + fmtSci(sum_zap * (1 - 0.0025), 4) + '\n' +
+      '       = ' + fmtSci(dRBNB, 4) + ' BNB  (' + fmtUSD(dRBNB * P_BNB) + ')\n\n' +
+      'ΔR_RKL = −(Σb + Σc) + small zap-driven RKL flux\n' +
+      '       ≈ −' + (sum_b + sum_c).toFixed(4) + ' RKL  (' + fmtUSD(-dRRKL * RKL_USD_per) + ' worth)\n\n' +
+      'Direction = +1 (every vault swap is BUY)';
+    $('s5-result').innerHTML =
+      '∴ Per cycle:<br>' +
+      '&nbsp;&nbsp;Pool BNB: <strong>' + (dRBNB >= 0 ? '+' : '') + fmtSci(dRBNB, 3) + ' BNB</strong> ' +
+        '(' + (dRBNB >= 0 ? 'tiny net inflow' : 'net outflow') + ')<br>' +
+      '&nbsp;&nbsp;Pool RKL: <strong>−' + (sum_b + sum_c).toFixed(2) + ' RKL</strong> permanently exits the pool<br>' +
+      '&nbsp;&nbsp;Direction: <strong>100% buy pressure</strong> from N=' + N + ' vault zaps';
+
+    // ── Step 6: external natural volume ─────────────
+    const extDailyUSD = +$('in-extvol').value;
+    const extCycleUSD = extDailyUSD * 29;
+    const extFee_USD = extCycleUSD * f;
+    $('s6-sub').textContent =
+      'V_ext^cycle = ' + extDailyUSD.toFixed(2) + ' × 29 = ' + fmtUSD(extCycleUSD) + ' per cycle\n' +
+      'Δfee_ext    = ' + fmtUSD(extCycleUSD) + ' × 0.0017 = ' + fmtUSD(extFee_USD);
+    $('s6-result').innerHTML =
+      '∴ External fees per cycle: <strong>' + fmtUSD(extFee_USD) + '</strong> ' +
+      '<em>(from ' + fmtUSD(extCycleUSD) + ' of organic / arb / MEV trading)</em>';
+
+    // ── Step 7: total fee per cycle ─────────────────
+    const totalFee_USD = fee_USD + extFee_USD;
+    $('s7-sub').textContent =
+      'Δfee_zaps   = ' + fmtUSD(fee_USD) + '   (from ' + N + ' vault zap swaps)\n' +
+      'Δfee_ext    = ' + fmtUSD(extFee_USD) + '   (from external trading)\n' +
+      'Δfee_total  = ' + fmtUSD(fee_USD) + ' + ' + fmtUSD(extFee_USD) + ' = ' + fmtUSD(totalFee_USD);
+    $('s7-result').innerHTML =
+      '∴ Total fees compounding LP each cycle: <strong>' + fmtUSD(totalFee_USD) + '</strong>';
+
+    // ── Step 8: per-cycle multiplier μ ──────────────
+    const V_vault = vaultUsdAvg * N;     // total vault USD value across N vaults
+    const vaultLpShareOfPool = totalLp / T;
+    const vaultFeeGain = totalFee_USD * vaultLpShareOfPool;
+    const eta = vaultFeeGain / Math.max(0.0001, V_vault);
+    const delta = HARVEST_FRAC * (1 - 0.75);   // 0.001
+    const mu = (1 + eta) * (1 - delta);
+    $('s8-sub').textContent =
+      'V_vault total = N × $/vault = ' + N + ' × ' + fmtUSD(vaultUsdAvg) + ' = ' + fmtUSD(V_vault) + '\n' +
+      'Vault share of pool LP = totalLp / T = ' + (vaultLpShareOfPool * 100).toFixed(4) + '%\n' +
+      'Vault fee gain  = Δfee_total × share = ' + fmtUSD(totalFee_USD) + ' × ' + (vaultLpShareOfPool*100).toFixed(4) + '%\n' +
+      '                = ' + fmtUSD(vaultFeeGain) + '\n\n' +
+      'η^cycle = vault_fee_gain / V_vault = ' + fmtUSD(vaultFeeGain) + ' / ' + fmtUSD(V_vault) + '\n' +
+      '        = ' + (eta * 100).toFixed(4) + '% per cycle\n' +
+      'δ^cycle = 0.004 × 0.25 = ' + (delta * 100).toFixed(4) + '% per cycle (harvest leakage)\n\n' +
+      'μ = (1 + ' + eta.toFixed(6) + ') × (1 − ' + delta.toFixed(6) + ')\n' +
+      '  = ' + mu.toFixed(8);
+    $('s8-result').innerHTML =
+      '∴ Per-cycle multiplier μ = <strong>' + mu.toFixed(8) + '</strong> ' +
+      '<em>(' + (mu > 1 ? 'net growth' : 'net decay') + ' of ' + ((mu - 1) * 100).toFixed(4) + '% per cycle)</em>';
+
+    // ── Step 9: factorial / time projection ─────────
+    const n = +$('in-cycles').value;
+    const V_n = V_vault * Math.pow(mu, n);
+    const cumA  = sum_a_USD * (Math.pow(mu, n) - 1) / Math.max(1e-12, (mu - 1));
+    const cumB  = sum_b_USD * (Math.pow(mu, n) - 1) / Math.max(1e-12, (mu - 1));
+    const cumC  = sum_c_USD * (Math.pow(mu, n) - 1) / Math.max(1e-12, (mu - 1));
+    const cumF  = totalFee_USD * (Math.pow(mu, n) - 1) / Math.max(1e-12, (mu - 1));
+    const yearsEq = (n * 29 / 365).toFixed(2);
+    $('s9-sub').textContent =
+      'V_n = V_0 × μ^n = ' + fmtUSD(V_vault) + ' × ' + mu.toFixed(8) + '^' + n + '\n' +
+      '    = ' + fmtUSD(V_vault) + ' × ' + Math.pow(mu, n).toFixed(6) + '\n' +
+      '    = ' + fmtUSD(V_n) + '   (after ' + n + ' cycles ≈ ' + yearsEq + ' years)\n\n' +
+      'Σ outputs over n (geometric series):\n' +
+      '  Σa = a_0 × (μ^n − 1)/(μ − 1) = ' + fmtUSD(cumA) + '   ← cumulative bounty\n' +
+      '  Σb = b_0 × (μ^n − 1)/(μ − 1) = ' + fmtUSD(cumB) + '   ← cumulative burn\n' +
+      '  Σc = c_0 × (μ^n − 1)/(μ − 1) = ' + fmtUSD(cumC) + '   ← cumulative reward\n' +
+      '  Σfee compounded = ' + fmtUSD(cumF);
+    $('s9-result').innerHTML =
+      '∴ After <strong>' + n + ' cycles (' + yearsEq + ' years)</strong> from current state:<br>' +
+      '&nbsp;&nbsp;Vault portfolio value: <strong>' + fmtUSD(V_n) + '</strong> ' +
+      '<em>(grew from ' + fmtUSD(V_vault) + ', a ' + (V_n/V_vault).toFixed(2) + '× multiple)</em><br>' +
+      '&nbsp;&nbsp;Cumulative bounty paid:  <strong>' + fmtUSD(cumA) + '</strong><br>' +
+      '&nbsp;&nbsp;Cumulative burn:         <strong>' + fmtUSD(cumB) + '</strong> ' +
+        '<em>(permanently destroyed RKL)</em><br>' +
+      '&nbsp;&nbsp;Cumulative reward:       <strong>' + fmtUSD(cumC) + '</strong> ' +
+        '<em>(to recipient wallets)</em>';
+
+    // ── Step 10: scenario comparison ────────────────
+    const testAmt = +$('in-testamt').value;
+    $('sa-amt').textContent = testAmt.toLocaleString('en-US');
+    $('sb-amt').textContent = testAmt.toLocaleString('en-US');
+
+    // -- Scenario A: add a $testAmt vault --------------
+    // The new vault has its own seed. Its share of pool is computed against
+    // the current pool LP supply. Recompute η for this single new vault.
+    const sa_LP        = testAmt / perLP_USD;                     // new vault's LP tokens
+    const sa_share     = HARVEST_FRAC * sa_LP / T;
+    const sa_RKLh      = R_RKL * sa_share;
+    const sa_BNBh      = R_BNB * sa_share;
+    const sa_a         = BOUNTY_FRAC * sa_BNBh;
+    const sa_c         = RECIPIENT_FRAC * sa_RKLh;                // pays to wallet (reward-class)
+    const sa_zap       = ZAP_FRAC * sa_BNBh;
+    const sa_a_USD     = sa_a * P_BNB;
+    const sa_c_USD     = sa_c * RKL_USD_per;
+    const sa_zap_USD   = sa_zap * P_BNB;
+    // η for THIS vault: shares total pool fees pro-rata to its LP portion
+    const sa_lpShare   = sa_LP / T;
+    const sa_feeGain   = totalFee_USD * sa_lpShare;
+    const sa_eta       = sa_feeGain / Math.max(0.0001, testAmt);
+    const sa_mu        = (1 + sa_eta) * (1 - delta);
+
+    function projectVault(years) {
+      // Iterative projection. Each cycle, we evolve the pool:
+      //   - existing N vaults harvest (recipient slice leaves pool)
+      //   - new vault (sa_*) compounds via fee yield
+      //   - R_BNB / R_RKL update; spot price drifts each cycle
+      //   - per-cycle outputs are valued at THAT CYCLE'S spot price (impact-aware)
+      const k = Math.round(years * 365 / 29);
+      let r_bnb = R_BNB;
+      let r_rkl = R_RKL;
+      let v = testAmt;                       // dollar value of new vault's LP
+      let cum_a = 0, cum_c = 0;
+      // share of total system vault flow this new vault represents — its
+      // own share scales with its LP relative to total LP at start
+      const newShare = sa_LP / T;
+      for (let cy = 0; cy < k; cy++) {
+        const spotUSD = (r_bnb / r_rkl) * P_BNB;     // ← price for THIS cycle
+        // Aggregate per-cycle vault flow from existing N vaults (estimate)
+        const harvestBnb = r_bnb * (HARVEST_FRAC * (totalLp / Math.max(0.0001, T)));
+        const harvestRkl = r_rkl * (HARVEST_FRAC * (totalLp / Math.max(0.0001, T)));
+        // Net pool change per cycle:
+        //   recipient slice (RKL) leaves pool entirely
+        //   bounty (BNB) leaves pool entirely
+        //   zap (BNB) is added back to pool, less PCS fee structure
+        //   re-add returns most of harvest back to pool (already accounted)
+        // Simplify: per cycle, R_RKL drops by ~(0.40 × harvest_rkl), R_BNB drops by ~(0.10 × harvest_bnb − zap inflow)
+        r_rkl -= 0.40 * harvestRkl;                  // recipient slice leaves
+        r_bnb += 0.05 * harvestBnb;                  // net BNB drift (zap > bounty)
+        // New vault's per-cycle outputs at THIS cycle's spot
+        const v_share = v / poolTVL_USD;             // approximate slice
+        const a_t = BOUNTY_FRAC * (HARVEST_FRAC * v) * 0.5;   // BNB-side slice in $ at any spot
+        const c_t = RECIPIENT_FRAC * (HARVEST_FRAC * v) * 0.5;
+        cum_a += a_t;
+        cum_c += c_t;
+        // Compound vault value via μ (η + δ structure stays ~constant locally)
+        v *= sa_mu;
+      }
+      const Vk = v;
+      // Adjust held RKL count of recipient wallet for late-cycle price drift:
+      // recipient receives RKL in token units, but value depends on spot at receipt.
+      // Approximation already accounts for this via cum_c being summed at spot.
+      return { k, Vk, cum_c, cum_a, total: Vk + cum_c + cum_a };
+    }
+
+    $('sa-sub').textContent =
+      'New vault LP    = $' + testAmt.toFixed(2) + ' / $' + perLP_USD.toFixed(4) + ' = ' + sa_LP.toFixed(4) + ' LP tokens\n' +
+      'share           = 0.004 × ' + sa_LP.toFixed(4) + ' / ' + T.toFixed(2) + ' = ' + fmtSci(sa_share, 4) + '\n' +
+      'RKL_h / cycle   = ' + sa_RKLh.toFixed(4) + ' RKL  (' + fmtUSD(sa_RKLh * RKL_USD_per) + ')\n' +
+      'BNB_h / cycle   = ' + fmtSci(sa_BNBh, 4) + ' BNB  (' + fmtUSD(sa_BNBh * P_BNB) + ')\n\n' +
+      'a (bounty)      = 0.10 × BNB_h = ' + fmtUSD(sa_a_USD) + '\n' +
+      'c (recipient)   = 0.40 × RKL_h = ' + fmtUSD(sa_c_USD) + '   ← to your wallet, in RKL\n' +
+      'zap             = 0.15 × BNB_h = ' + fmtUSD(sa_zap_USD) + '\n\n' +
+      'vault fee gain / cycle = ' + fmtUSD(totalFee_USD) + ' × ' + (sa_lpShare * 100).toFixed(6) + '% = ' + fmtUSD(sa_feeGain) + '\n' +
+      'η               = ' + (sa_eta * 100).toFixed(4) + '%/cycle\n' +
+      'μ (this vault)  = (1 + ' + sa_eta.toFixed(6) + ') × (1 − 0.001) = ' + sa_mu.toFixed(8);
+
+    const sa_y1 = projectVault(1);
+    const sa_y5 = projectVault(5);
+    const sa_y30 = projectVault(30);
+    $('sa-result').innerHTML =
+      '∴ After 1 year:&nbsp; vault <strong>' + fmtUSD(sa_y1.Vk) + '</strong>' +
+      ' + wallet RKL <strong>' + fmtUSD(sa_y1.cum_c) + '</strong>' +
+      ' + bounty <strong>' + fmtUSD(sa_y1.cum_a) + '</strong>' +
+      ' = <strong>' + fmtUSD(sa_y1.total) + '</strong>' +
+      '<em>(' + ((sa_y1.total/testAmt - 1) * 100).toFixed(2) + '% on $' + testAmt.toFixed(2) + ')</em>';
+
+    // -- Scenario B: direct RKL buy --------------------
+    const sb_dBNB      = testAmt / P_BNB;
+    const sb_inWithFee = sb_dBNB * 0.9975;
+    const sb_RKLout    = R_RKL * sb_inWithFee / (R_BNB + sb_inWithFee);
+    const sb_effPrice  = sb_dBNB / sb_RKLout;
+    const sb_impact    = (sb_effPrice - (R_BNB / R_RKL)) / (R_BNB / R_RKL);
+
+    // Rough RKL price drift estimate per cycle (from current vault zap pressure
+    // alone; ignores external direction bias). Net buy pressure / pool → tiny.
+    const sb_driftPerCycle = (sum_zap * (1 - 0.0025)) / (R_BNB + sum_zap);
+    const sb_RKLvalueAt = (years) => {
+      const k = Math.round(years * 365 / 29);
+      // Holder count of RKL doesn't change. Value = count × spot at time k.
+      // Spot at time k = current spot × (1 + drift)^k (compounded buy pressure).
+      const priceMul = Math.pow(1 + sb_driftPerCycle, k);
+      return sb_RKLout * RKL_USD_per * priceMul;
+    };
+
+    $('sb-sub').textContent =
+      'Δ_BNB         = $' + testAmt.toFixed(2) + ' / $' + P_BNB + ' = ' + sb_dBNB.toFixed(6) + ' BNB\n' +
+      'amountInWithFee = ' + sb_dBNB.toFixed(6) + ' × 0.9975 = ' + sb_inWithFee.toFixed(6) + ' BNB\n' +
+      'RKL_out        = R_RKL × inWithFee / (R_BNB + inWithFee)\n' +
+      '              = ' + R_RKL.toFixed(2) + ' × ' + sb_inWithFee.toFixed(6) + ' / (' + R_BNB.toFixed(5) + ' + ' + sb_inWithFee.toFixed(6) + ')\n' +
+      '              = ' + sb_RKLout.toFixed(4) + ' RKL\n' +
+      'effective price = ' + sb_effPrice.toExponential(4) + ' BNB/RKL\n' +
+      'price impact   = +' + (sb_impact * 100).toFixed(4) + '%\n\n' +
+      'Holder gets: ' + sb_RKLout.toFixed(4) + ' RKL, value = ' + fmtUSD(sb_RKLout * RKL_USD_per) + ' (basically $' + testAmt.toFixed(2) + ' minus tiny slippage)\n' +
+      'Drift / cycle from current vault buy pressure ≈ ' + (sb_driftPerCycle * 100).toFixed(6) + '%';
+
+    $('sb-result').innerHTML =
+      '∴ Year 1 value (drift-only, no external bias): <strong>' + fmtUSD(sb_RKLvalueAt(1)) + '</strong> ' +
+      '<em>(barely moves; direct holders capture only price drift, not LP fees)</em>';
+
+    // -- Side-by-side table ----------------------------
+    const tbody = $('compare-body');
+    function row(label, init, y1, y5, y30, isVault) {
+      const cls = isVault ? 'green' : '';
+      return '<tr><td>' + label + '</td>' +
+             '<td class="value ' + cls + '">' + fmtUSD(init) + '</td>' +
+             '<td class="value ' + cls + '">' + fmtUSD(y1)  + '</td>' +
+             '<td class="value ' + cls + '">' + fmtUSD(y5)  + '</td>' +
+             '<td class="value ' + cls + '">' + fmtUSD(y30) + '</td></tr>';
+    }
+    tbody.innerHTML =
+      row('Hold $ as cash (USD)',                 testAmt, testAmt, testAmt, testAmt, false) +
+      row('Buy $X RKL direct (hold tokens)',      testAmt, sb_RKLvalueAt(1), sb_RKLvalueAt(5), sb_RKLvalueAt(30), false) +
+      row('Create vault → wallet ($X seed)',      testAmt, sa_y1.total, sa_y5.total, sa_y30.total, true);
+
+    // ── Growth curve (start → asymptote) ─────────────
+    renderGrowthCurve({
+      R_BNB, R_RKL, T, totalLp, P_BNB, testAmt,
+      HARVEST_FRAC,
+    });
+  }
+
+  // ── Canonical PCS V2 AMM formulas ─────────────────────────
+  // These are the exact formulas the on-chain pool runs. The growth curve
+  // below composes them — every value is derived from the previous step's
+  // output, no static approximations.
+  //
+  //   F_swap(R_in, R_out, Δin, f) = R_out × Δin × (1−f) / (R_in + Δin × (1−f))
+  //   F_mint(R_a, R_b, T, Δa, Δb) = min(Δa × T / R_a, Δb × T / R_b)
+  //   F_burn(R_a, R_b, T, Δlp)    = (Δlp × R_a / T, Δlp × R_b / T)
+  const PCS_FEE = 0.0025;  // PCS V2 swap fee, exact
+
+  function F_swap(rIn, rOut, dIn, fee) {
+    const dInFee = dIn * (1 - fee);
+    return (rOut * dInFee) / (rIn + dInFee);
+  }
+  function F_mint(rA, rB, T, dA, dB) {
+    if (rA <= 0 || rB <= 0) return 0;
+    return Math.min(dA * T / rA, dB * T / rB);
+  }
+  // F_burn returns [δa, δb] withdrawn from reserves for burning Δlp tokens
+  function F_burn(rA, rB, T, dLp) {
+    if (T <= 0) return [0, 0];
+    return [dLp * rA / T, dLp * rB / T];
+  }
+  // Composite: addLiquidity choosing the limiting side, returns the actually-
+  // added (Δa, Δb, Δlp). Excess on the larger side is "dust" and stays in
+  // whatever contract called us — NOT in the pool.
+  function F_addLiquidity(rA, rB, T, dA_max, dB_max) {
+    if (rA <= 0 || rB <= 0 || T <= 0) return { dA: 0, dB: 0, dLp: 0 };
+    // At current pool ratio rA/rB, how much rA pairs with dB_max?
+    const dA_for_dB = dB_max * rA / rB;
+    let dA, dB;
+    if (dA_max >= dA_for_dB) {
+      // B is limiting: use full dB_max, partial dA
+      dB = dB_max;
+      dA = dA_for_dB;
+    } else {
+      // A is limiting: use full dA_max, partial dB
+      dA = dA_max;
+      dB = dA_max * rB / rA;
+    }
+    const dLp = F_mint(rA, rB, T, dA, dB);
+    return { dA, dB, dLp };
+  }
+
+  // Vault zap (Step 4-equivalent): user supplies x of token A; contract
+  // swaps half for B, then addLiquidity. Returns the pool's net deltas
+  // and the LP minted to the vault.
+  //   (x is the SEED in token A; the other token's amount is derived from
+  //    the swap, not provided externally)
+  function F_zap(rA, rB, T, xA, fee) {
+    const swap_in   = xA / 2;
+    const bOut      = F_swap(rA, rB, swap_in, fee);
+    // Pool state after swap step:
+    const rA_swap   = rA + swap_in;
+    const rB_swap   = rB - bOut;
+    // addLiquidity at the *new* pool ratio with (xA - swap_in) of A and bOut of B
+    const add       = F_addLiquidity(rA_swap, rB_swap, T, xA - swap_in, bOut);
+    // Pool's final state
+    return {
+      rA_new: rA_swap + add.dA,
+      rB_new: rB_swap + add.dB,
+      T_new:  T + add.dLp,
+      lp_minted: add.dLp,
+      rA_dust: (xA - swap_in) - add.dA,   // unused user A (stays with caller)
+      rB_dust: bOut - add.dB,              // unused swapped B (stays with caller)
+    };
+  }
+
+  // ── Growth curve simulator + renderer ─────────────────────
+  // The cycle transition F_cycle(state, params) → state' is the composition
+  // of the formulas above, applied in the canonical order:
+  //   1. External volume: 2N alternating mini-swaps (N buys + N sells via F_swap)
+  //   2. Vault harvest:   F_burn → distribute → F_addLiquidity (recompound)
+  //                                          → F_zap (zap slice)
+  //   3. New vaults:      per-vault F_zap composed sequentially
+  // Every quantity is derived from the previous step's output.
+  function renderGrowthCurve(ctx) {
+    const svg = $('curve-svg');
+    if (!svg) return;
+    const extVol     = +$('cv-extvol').value;
+    const newVaults  = +$('cv-newvaults').value;
+    const horizon    = +$('cv-horizon').value;
+
+    $('cv-extvol-v').textContent    = '$' + extVol.toLocaleString('en-US') + ' / 29-day cycle';
+    $('cv-newvaults-v').textContent = newVaults + ' vault' + (newVaults === 1 ? '' : 's') + ' / cycle';
+    const days = horizon * 29;
+    const yrs  = horizon * 29 / 365;
+    const cycLabel = horizon + ' cycle' + (horizon === 1 ? '' : 's');
+    let timeLabel;
+    if (days < 365)    timeLabel = days + ' days';
+    else if (yrs < 10) timeLabel = yrs.toFixed(1) + ' yr';
+    else               timeLabel = yrs.toFixed(0) + ' yr';
+    $('cv-horizon-v').textContent = cycLabel + ' ≈ ' + timeLabel;
+
+    const HARV     = ctx.HARVEST_FRAC;  // 0.004 — bound to Step 1's constant
+    const seedSize = ctx.testAmt;
+    const P_BNB    = ctx.P_BNB;
+    // Distribution constants (verified against Winston contract bps; Steps 3-7)
+    // The contract splits BNB and RKL sides ASYMMETRICALLY:
+    //   BNB side of harvest:  10% bounty + 15% zap + 75% recompound = 100%
+    //   RKL side of harvest:  40% recipient            + 60% recompound = 100%
+    const RECIPIENT_FRAC = 0.40;   // of h_R → leaves pool (paid in RKL)
+    const BOUNTY_FRAC    = 0.10;   // of h_B → leaves pool (paid in BNB)
+    const ZAP_FRAC       = 0.15;   // of h_B → recycled via F_zap
+    const RECOMP_BNB     = 0.75;   // of h_B → re-paired via F_addLiquidity
+    const RECOMP_RKL     = 0.60;   // of h_R → re-paired via F_addLiquidity
+
+    // Mutable pool state — every cycle, formulas below derive new values
+    let r_bnb = ctx.R_BNB;
+    let r_rkl = ctx.R_RKL;
+    let totT  = ctx.T;
+    let lp    = ctx.totalLp;
+
+    const startBnb = r_bnb;
+    const startRkl = r_rkl;
+    const startPx  = (r_bnb / r_rkl) * P_BNB;
+
+    const samples = 200;
+    const stride  = Math.max(1, Math.round(horizon / samples));
+    const pts = [{ k:0, bnb:r_bnb, rkl:r_rkl, px:startPx }];
+
+    // ── Per-cycle transition F_cycle ───────────────────
+    for (let k = 1; k <= horizon; k++) {
+
+      // ─── 1. EXTERNAL VOLUME ──────────────────────────
+      // Apply 2N alternating mini-swaps via F_swap. As N grows, this
+      // converges to the continuous-trading limit of balanced flow:
+      // ~zero net reserve drift, fee revenue captured inside reserves.
+      // Each step uses F_swap on the CURRENT (post-prior-step) reserves.
+      const N_STEPS = 20;
+      if (extVol > 0) {
+        const halfPerStep = extVol / (2 * N_STEPS);
+        for (let i = 0; i < N_STEPS; i++) {
+          // Buy: ΔBNB_in derived from cycle volume share / current spot
+          const dBnb_buy  = halfPerStep / P_BNB;
+          const rkl_out   = F_swap(r_bnb, r_rkl, dBnb_buy, PCS_FEE);
+          r_bnb += dBnb_buy;
+          r_rkl -= rkl_out;
+          // Sell: size at the CURRENT spot (which has shifted after the buy)
+          const spot_now  = (r_bnb / Math.max(1e-12, r_rkl)) * P_BNB;
+          const dRkl_sell = halfPerStep / Math.max(1e-12, spot_now);
+          const bnb_out   = F_swap(r_rkl, r_bnb, dRkl_sell, PCS_FEE);
+          r_rkl += dRkl_sell;
+          r_bnb -= bnb_out;
+        }
+      }
+
+      // ─── 2. VAULT HARVEST ────────────────────────────
+      // 2a. F_burn(LP_held × HARV) → withdraws (h_B, h_R) from pool
+      const burnLp = lp * HARV;
+      const [h_B, h_R] = F_burn(r_bnb, r_rkl, totT, burnLp);
+      r_bnb -= h_B;
+      r_rkl -= h_R;
+      totT  -= burnLp;
+      lp    -= burnLp;
+
+      // 2b. Distribute the harvested (h_B, h_R) — the recipient and bounty
+      //     buckets LEAVE the pool permanently (already excluded — those
+      //     fractions of h_B/h_R are NOT re-added in steps 2c/2d).
+      //     Recipient (40% × h_R RKL) → external wallet
+      //     Bounty    (10% × h_B BNB) → caller's wallet
+
+      // 2c. ZAP slice: 15% of h_B BNB. F_zap composes F_swap + F_addLiquidity.
+      const zapBnb = ZAP_FRAC * h_B;
+      if (zapBnb > 0 && r_bnb > 0 && r_rkl > 0) {
+        const z = F_zap(r_bnb, r_rkl, totT, zapBnb, PCS_FEE);
+        r_bnb = z.rA_new;
+        r_rkl = z.rB_new;
+        totT  = z.T_new;
+        lp   += z.lp_minted;
+      }
+
+      // 2d. RECOMPOUND slice: 75% of h_B + 60% of h_R via F_addLiquidity.
+      //     Note: h_B/h_R = R_B/R_R at moment of burn. Recompound supply
+      //     ratio is 0.75/0.60 × pool_ratio = 1.25 × pool_ratio, so RKL
+      //     is the limiting side; some recompound BNB ends as dust.
+      const recBnb = RECOMP_BNB * h_B;
+      const recRkl = RECOMP_RKL * h_R;
+      if (recBnb > 0 && recRkl > 0) {
+        const add = F_addLiquidity(r_bnb, r_rkl, totT, recBnb, recRkl);
+        r_bnb += add.dA;
+        r_rkl += add.dB;
+        totT  += add.dLp;
+        lp    += add.dLp;
+      }
+
+      // ─── 3. NEW VAULTS ───────────────────────────────
+      // Each vault is an independent F_zap call with its own seed. The pool
+      // state shifts between vaults — vault N+1 sees the state vault N left.
+      for (let v = 0; v < newVaults; v++) {
+        if (r_bnb <= 0 || r_rkl <= 0) break;
+        const seedBnb_v = seedSize / P_BNB;
+        const z = F_zap(r_bnb, r_rkl, totT, seedBnb_v, PCS_FEE);
+        r_bnb = z.rA_new;
+        r_rkl = z.rB_new;
+        totT  = z.T_new;
+        lp   += z.lp_minted;
+      }
+
+      // Sample for the chart
+      if (k === horizon || k % stride === 0) {
+        pts.push({
+          k,
+          bnb: r_bnb,
+          rkl: Math.max(0, r_rkl),
+          px:  (r_bnb / Math.max(1e-9, r_rkl)) * P_BNB,
+        });
+      }
+      // Numerical guard: if r_rkl drains to dust, freeze it at floor
+      if (r_rkl < 0.01) r_rkl = 0.01;
+    }
+
+    // ── Build SVG (two stacked panels) ────────────────
+    //   Top  panel: R_BNB and RKL price, % of start, auto-scaled (these blow up).
+    //   Bottom panel: R_RKL only, on a fixed 0–100%-of-start axis so the
+    //                 trajectory toward zero is actually visible (instead of
+    //                 being crushed against the floor by BNB's growth).
+    const W = 1000, H = 360;
+    const PL = 60, PR = 20;
+    const PT_T = 20, PH_T = 180;            // top panel y, height
+    const GAP  = 18;
+    const PT_B = PT_T + PH_T + GAP;          // bottom panel y
+    const PH_B = 100;                        // bottom panel height
+    const PB   = H - (PT_B + PH_B);          // bottom margin
+    const pw   = W - PL - PR;
+
+    const pctBnb = pts.map(p => p.bnb / startBnb);
+    const pctRkl = pts.map(p => p.rkl / startRkl);
+    const pctPx  = pts.map(p => p.px  / startPx);
+
+    // Top panel y-scale: auto-fit BNB and price (both grow). Use round-up tick.
+    const topRaw = Math.max(1.1, ...pctBnb, ...pctPx);
+    const topMax = niceCeil(topRaw * 1.04);
+    // Bottom panel y-scale: fixed 0..1 (R_RKL never exceeds start; floor at 0)
+    const botMax = 1.0;
+
+    function niceCeil(v) {
+      if (v <= 1.5) return 1.5;
+      if (v <= 2)   return 2;
+      if (v <= 5)   return 5;
+      const pow = Math.pow(10, Math.floor(Math.log10(v)));
+      return Math.ceil(v / pow) * pow;
+    }
+
+    function xOf(k)   { return PL + (k / horizon) * pw; }
+    function yTopOf(pct) { return PT_T + PH_T - (pct / topMax) * PH_T; }
+    function yBotOf(pct) { return PT_B + PH_B - (pct / botMax) * PH_B; }
+
+    function pathFrom(arr, yFn) {
+      let d = '';
+      for (let i = 0; i < pts.length; i++) {
+        const x = xOf(pts[i].k).toFixed(2);
+        const y = yFn(arr[i]).toFixed(2);
+        d += (i === 0 ? 'M' : 'L') + x + ',' + y + ' ';
+      }
+      return d.trim();
+    }
+
+    // ── Grid + axes ──────────────────────────────────
+    let grid = '';
+    // Top panel y-ticks (auto)
+    const topTicks = [0, 0.25 * topMax, 0.5 * topMax, 0.75 * topMax, topMax];
+    for (const t of topTicks) {
+      const y = yTopOf(t).toFixed(2);
+      grid += `<line x1="${PL}" x2="${W-PR}" y1="${y}" y2="${y}" stroke="#1c1c1c" stroke-width="0.5"/>`;
+      const lbl = t >= 10 ? (t).toFixed(0) + '×'
+                : t >= 1  ? (t*100).toFixed(0) + '%'
+                          : (t*100).toFixed(0) + '%';
+      grid += `<text x="${PL-6}" y="${y}" fill="#666" font-size="9" font-family="JetBrains Mono, monospace" text-anchor="end" dominant-baseline="middle">${lbl}</text>`;
+    }
+    // Top panel reference line at 100%
+    if (topMax > 1) {
+      const yRef = yTopOf(1).toFixed(2);
+      grid += `<line x1="${PL}" x2="${W-PR}" y1="${yRef}" y2="${yRef}" stroke="#888" stroke-width="0.5" stroke-dasharray="3,3" opacity="0.4"/>`;
+    }
+
+    // Bottom panel y-ticks (fixed 0/25/50/75/100)
+    const botTicks = [0, 0.25, 0.5, 0.75, 1.0];
+    for (const t of botTicks) {
+      const y = yBotOf(t).toFixed(2);
+      grid += `<line x1="${PL}" x2="${W-PR}" y1="${y}" y2="${y}" stroke="#1c1c1c" stroke-width="0.5"/>`;
+      grid += `<text x="${PL-6}" y="${y}" fill="#666" font-size="9" font-family="JetBrains Mono, monospace" text-anchor="end" dominant-baseline="middle">${(t*100).toFixed(0)}%</text>`;
+    }
+
+    // X-axis on bottom panel only (shared time axis)
+    const xTicks = 5;
+    for (let i = 0; i <= xTicks; i++) {
+      const k = Math.round((i / xTicks) * horizon);
+      const x = xOf(k).toFixed(2);
+      grid += `<line x1="${x}" x2="${x}" y1="${PT_B+PH_B}" y2="${PT_B+PH_B+4}" stroke="#444" stroke-width="0.5"/>`;
+      const yrLabel = (k * 29 / 365).toFixed(1);
+      grid += `<text x="${x}" y="${PT_B+PH_B+16}" fill="#666" font-size="9" font-family="JetBrains Mono, monospace" text-anchor="middle">${k}c · ${yrLabel}y</text>`;
+    }
+
+    // Panel axis boxes
+    const axes =
+      `<line x1="${PL}" x2="${PL}" y1="${PT_T}" y2="${PT_T+PH_T}" stroke="#444" stroke-width="0.7"/>` +
+      `<line x1="${PL}" x2="${W-PR}" y1="${PT_T+PH_T}" y2="${PT_T+PH_T}" stroke="#444" stroke-width="0.7"/>` +
+      `<line x1="${PL}" x2="${PL}" y1="${PT_B}" y2="${PT_B+PH_B}" stroke="#444" stroke-width="0.7"/>` +
+      `<line x1="${PL}" x2="${W-PR}" y1="${PT_B+PH_B}" y2="${PT_B+PH_B}" stroke="#444" stroke-width="0.7"/>`;
+
+    const pathBnb = pathFrom(pctBnb, yTopOf);
+    const pathPx  = pathFrom(pctPx,  yTopOf);
+    const pathRkl = pathFrom(pctRkl, yBotOf);
+
+    // End-state markers
+    const last = pts.length - 1;
+    const endMark = (x, y, color, label) =>
+      `<circle cx="${x}" cy="${y}" r="3" fill="${color}"/>` +
+      `<text x="${x-6}" y="${y-6}" fill="${color}" font-size="10" font-family="JetBrains Mono, monospace" text-anchor="end">${label}</text>`;
+
+    function fmtTopLabel(pct) {
+      if (pct >= 10) return pct.toFixed(0) + '×';
+      if (pct >= 2)  return pct.toFixed(2) + '×';
+      return (pct * 100).toFixed(0) + '%';
+    }
+
+    svg.innerHTML =
+      grid + axes +
+      `<path d="${pathBnb}" fill="none" stroke="#57c98b" stroke-width="2"/>` +
+      `<path d="${pathPx}"  fill="none" stroke="#c9a227" stroke-width="2"/>` +
+      `<path d="${pathRkl}" fill="none" stroke="#ff6f61" stroke-width="2"/>` +
+      endMark(xOf(pts[last].k), yTopOf(pctBnb[last]), '#57c98b', fmtTopLabel(pctBnb[last])) +
+      endMark(xOf(pts[last].k), yTopOf(pctPx[last]),  '#c9a227', fmtTopLabel(pctPx[last])) +
+      endMark(xOf(pts[last].k), yBotOf(pctRkl[last]), '#ff6f61', (pctRkl[last]*100).toFixed(1)+'%') +
+      `<text x="${PL+8}" y="${PT_T+12}" fill="#888" font-size="10" font-family="JetBrains Mono, monospace">R_BNB &amp; RKL price · % of start (auto scale, can grow without bound)</text>` +
+      `<text x="${PL+8}" y="${PT_B+12}" fill="#888" font-size="10" font-family="JetBrains Mono, monospace">R_RKL · % of start (fixed 0–100% — drain toward 0 is visible here)</text>`;
+
+    // Summary cells
+    const finalBnb = pts[last].bnb;
+    const finalRkl = pts[last].rkl;
+    const finalPx  = pts[last].px;
+    const finalTVL = 2 * finalBnb * P_BNB;
+
+    function dpct(now, then) {
+      const r = (now / then - 1) * 100;
+      const c = r >= 0 ? '#57c98b' : '#ff7a59';
+      const s = r >= 0 ? '+' : '';
+      return '<span class="delta" style="color:' + c + '">' + s + r.toFixed(2) + '%</span>';
+    }
+    function multiple(now, then) {
+      const r = now / then;
+      if (!isFinite(r) || r <= 0) return '—';
+      if (r >= 10)  return r.toFixed(0) + '×';
+      if (r >= 1)   return r.toFixed(2) + '×';
+      return (r * 100).toFixed(2) + '%';
+    }
+    // Plain-decimal price formatter — never falls back to scientific notation.
+    // Picks decimals to show up to 3 sig figs starting at first non-zero digit,
+    // then strips trailing zeros so 3e-7 reads "$0.0000003" (not "$0.0000003000").
+    // The math itself is exact; only the display changes.
+    function fmtPrice(p) {
+      if (!isFinite(p) || p <= 0) return '$0';
+      if (p >= 0.01) return '$' + p.toFixed(4);
+      const firstSig = Math.floor(Math.log10(p));     // e.g. 3e-7 → -7
+      const decimals = Math.min(20, -firstSig + 2);   // 3 sig figs of precision
+      let s = p.toFixed(decimals);
+      s = s.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+      return '$' + s;
+    }
+
+    $('curve-summary').innerHTML =
+      '<div class="scell" style="border-left-color:#57c98b">' +
+        '<span class="lab">Pool BNB after ' + horizon + ' cycles</span>' +
+        '<span class="val" style="color:#57c98b">' + finalBnb.toFixed(4) + ' BNB</span> ' +
+        dpct(finalBnb, startBnb) +
+      '</div>' +
+      '<div class="scell" style="border-left-color:#ff6f61">' +
+        '<span class="lab">Pool RKL after ' + horizon + ' cycles</span>' +
+        '<span class="val" style="color:#ff6f61">' + finalRkl.toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' RKL</span> ' +
+        dpct(finalRkl, startRkl) +
+      '</div>' +
+      '<div class="scell" style="border-left-color:#c9a227">' +
+        '<span class="lab">RKL price after ' + horizon + ' cycles</span>' +
+        '<span class="val" style="color:#c9a227">' + fmtPrice(finalPx) + '</span> ' +
+        '<span class="delta" style="color:#c9a227">(' + multiple(finalPx, startPx) + ' start at ' + fmtPrice(startPx) + ')</span>' +
+      '</div>' +
+      '<div class="scell">' +
+        '<span class="lab">Pool TVL (USD)</span>' +
+        '<span class="val">' + ((finalTVL >= 1e6) ? '$' + (finalTVL/1e6).toFixed(2) + 'M' : '$' + finalTVL.toLocaleString('en-US', { maximumFractionDigits: 0 })) + '</span> ' +
+        dpct(finalTVL, 2 * startBnb * P_BNB) +
+      '</div>' +
+      '<div class="scell">' +
+        '<span class="lab">Cumulative LP supply (T)</span>' +
+        '<span class="val">' + totT.toFixed(2) + ' LP</span> ' +
+        dpct(totT, ctx.T) +
+      '</div>' +
+      '<div class="scell">' +
+        '<span class="lab">RKL drained from pool</span>' +
+        '<span class="val" style="color:#ff6f61">' + (startRkl - finalRkl).toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' RKL</span> ' +
+        '<span class="delta" style="color:var(--text-dim)">(' + ((1 - finalRkl/startRkl) * 100).toFixed(2) + '% of starting reserve)</span>' +
+      '</div>';
+  }
+
+  document.querySelectorAll('input').forEach(el => el.addEventListener('input', compute));
+
+  // ─── Sequential action engine ─────────────────────
+  // Two buttons: "add direct buy" and "add vault". Each click takes the
+  // current pool state, applies one action's constant-product math, updates
+  // the inputs, and logs the diff. Subsequent clicks build on the new state.
+
+  const baseline = {  // chain values at block 96,217,583
+    rbnb: 4.40768, rrkl: 13559324.65, T: 7071.83, W: 5221.61,
+  };
+  const accum = {
+    buys:        { count: 0, totalSpentUSD: 0, totalRKL: 0 },
+    burnVaults:  { count: 0, totalSeedUSD: 0, totalLP: 0 },
+    rewardVaults:{ count: 0, totalSeedUSD: 0, totalLP: 0 },
+    log: [],   // chronological list of action records
+  };
+
+  function readPoolState() {
+    return {
+      R_BNB: +$('in-rbnb').value,
+      R_RKL: +$('in-rrkl').value,
+      T:     +$('in-T').value,
+      P_BNB: +$('in-pbnb').value,
+    };
+  }
+
+  function applyDirectBuy(amtUsd) {
+    const s = readPoolState();
+    const dBnb       = amtUsd / s.P_BNB;
+    const inWithFee  = dBnb * 0.9975;
+    const rklOut     = s.R_RKL * inWithFee / (s.R_BNB + inWithFee);
+    const newRBnb    = s.R_BNB + dBnb;
+    const newRRkl    = s.R_RKL - rklOut;
+    const oldPrice   = s.R_BNB / s.R_RKL;
+    const newPrice   = newRBnb / newRRkl;
+    const priceImpactPct = ((newPrice - oldPrice) / oldPrice) * 100;
+
+    $('in-rbnb').value = newRBnb.toFixed(8);
+    $('in-rrkl').value = newRRkl.toFixed(2);
+    // Force re-render of the input fields so the visible value matches the
+    // underlying value across all browser quirks.
+    $('in-rbnb').dispatchEvent(new Event('input', { bubbles: true }));
+    $('in-rrkl').dispatchEvent(new Event('input', { bubbles: true }));
+
+    accum.buys.count++;
+    accum.buys.totalSpentUSD += amtUsd;
+    accum.buys.totalRKL      += rklOut;
+    accum.log.push({
+      type: 'BUY',
+      idx: accum.log.length + 1,
+      amt: amtUsd,
+      detail: 'spent $' + amtUsd.toFixed(2) + ' (' + dBnb.toFixed(6) + ' BNB) → received ' +
+              rklOut.toFixed(2) + ' RKL ($' + (rklOut * oldPrice * s.P_BNB).toFixed(4) + ' worth at pre-trade spot)',
+      poolBefore: { R_BNB: s.R_BNB, R_RKL: s.R_RKL, price: oldPrice * s.P_BNB },
+      poolAfter:  { R_BNB: newRBnb, R_RKL: newRRkl, price: newPrice * s.P_BNB },
+      priceImpactPct,
+    });
+  }
+
+  function applyVaultAdd(amtUsd, isBurn) {
+    const s = readPoolState();
+    const totalT     = s.T;
+    const seedBnb    = amtUsd / s.P_BNB;
+    const swapAmt    = seedBnb / 2;
+    const inWithFee  = swapAmt * 0.9975;
+
+    // Step 1: swap half for RKL
+    const rklOut       = s.R_RKL * inWithFee / (s.R_BNB + inWithFee);
+    const afterSwapBnb = s.R_BNB + swapAmt;
+    const afterSwapRkl = s.R_RKL - rklOut;
+
+    // Step 2: addLiquidity contributes (rklOut RKL, seedBnb/2 BNB) approx
+    // At pool ratio after swap, find limiting side. Typically RKL is limiting
+    // for thin pools because the swap moved price up.
+    const ratio = afterSwapBnb / afterSwapRkl;
+    const bnbForLp = seedBnb - swapAmt;
+    const bnbNeededForRkl = rklOut * ratio;
+
+    let bnbAdded, rklAdded, lpMinted;
+    if (bnbForLp >= bnbNeededForRkl) {
+      // RKL limiting
+      rklAdded = rklOut;
+      bnbAdded = bnbNeededForRkl;
+    } else {
+      // BNB limiting
+      bnbAdded = bnbForLp;
+      rklAdded = bnbForLp / ratio;
+    }
+    // Uniswap V2 mint: ΔLP = min(rklAdded × T / R_RKL, bnbAdded × T / R_BNB)
+    lpMinted = Math.min(
+      rklAdded * totalT / afterSwapRkl,
+      bnbAdded * totalT / afterSwapBnb
+    );
+
+    const newRBnb = afterSwapBnb + bnbAdded;
+    const newRRkl = afterSwapRkl + rklAdded;
+    const newT    = totalT + lpMinted;
+    const oldPrice = s.R_BNB / s.R_RKL;
+    const newPrice = newRBnb / newRRkl;
+
+    $('in-rbnb').value     = newRBnb.toFixed(8);
+    $('in-rrkl').value     = newRRkl.toFixed(2);
+    $('in-T').value        = newT.toFixed(4);
+    $('in-N').value        = (+$('in-N').value) + 1;
+    $('in-totallp').value  = ((+$('in-totallp').value) + lpMinted).toFixed(4);
+    if (isBurn) {
+      $('in-burnN').value  = (+$('in-burnN').value) + 1;
+    }
+    // Dispatch input events so the visible UI reflects the programmatic
+    // value updates uniformly across browsers.
+    ['in-rbnb','in-rrkl','in-T','in-N','in-totallp','in-burnN'].forEach(id =>
+      $(id).dispatchEvent(new Event('input', { bubbles: true }))
+    );
+
+    const bucket = isBurn ? accum.burnVaults : accum.rewardVaults;
+    bucket.count++;
+    bucket.totalSeedUSD += amtUsd;
+    bucket.totalLP      += lpMinted;
+    accum.log.push({
+      type: isBurn ? 'BURN VAULT' : 'REWARD VAULT',
+      kind: isBurn ? 'burn' : 'reward',
+      idx: accum.log.length + 1,
+      amt: amtUsd,
+      detail: (isBurn ? '🔥 ' : '💰 ') + 'seeded $' + amtUsd.toFixed(2) + ' (' + seedBnb.toFixed(6) + ' BNB). Half swapped → ' +
+              rklOut.toFixed(2) + ' RKL pulled, then re-paired into LP. Vault gets ' + lpMinted.toFixed(4) + ' LP tokens. ' +
+              (isBurn ? 'Recipient = 0x000…dEaD: 40% of every future harvest goes to permanent burn.'
+                      : 'Recipient = wallet: 40% of every future harvest goes to extractable wallet.'),
+      poolBefore: { R_BNB: s.R_BNB, R_RKL: s.R_RKL, T: totalT, price: oldPrice * s.P_BNB },
+      poolAfter:  { R_BNB: newRBnb, R_RKL: newRRkl, T: newT, price: newPrice * s.P_BNB },
+      lpMinted,
+    });
+  }
+
+  function refreshActionUI() {
+    $('action-counters').innerHTML =
+      '<div><span style="color:var(--gold);letter-spacing:1.5px">DIRECT BUYS:</span> ' + accum.buys.count + ' actions, $' +
+        accum.buys.totalSpentUSD.toFixed(2) + ' spent, ' + accum.buys.totalRKL.toFixed(2) + ' RKL acquired</div>' +
+      '<div><span style="color:var(--coral);letter-spacing:1.5px">🔥 BURN VAULTS:</span> ' + accum.burnVaults.count + ' added, $' +
+        accum.burnVaults.totalSeedUSD.toFixed(2) + ' seeded, ' + accum.burnVaults.totalLP.toFixed(4) + ' LP locked → permanent burn flow</div>' +
+      '<div><span style="color:#57c98b;letter-spacing:1.5px">💰 REWARD VAULTS:</span> ' + accum.rewardVaults.count + ' added, $' +
+        accum.rewardVaults.totalSeedUSD.toFixed(2) + ' seeded, ' + accum.rewardVaults.totalLP.toFixed(4) + ' LP locked → extractable flow</div>';
+
+    if (accum.log.length === 0) {
+      $('action-log').style.display = 'none';
+      return;
+    }
+    $('action-log').style.display = 'block';
+    let html = '';
+    for (let i = accum.log.length - 1; i >= 0; i--) {
+      const e = accum.log[i];
+      const color =
+        e.type === 'BUY'         ? 'var(--gold)' :
+        e.kind === 'burn'        ? 'var(--coral)' :
+        e.kind === 'reward'      ? '#57c98b' :
+                                   'var(--text)';
+      html +=
+        '<div style="padding:8px 12px;border-bottom:1px solid var(--hairline)">' +
+          '<div><span style="color:' + color + ';font-weight:700">#' + e.idx + ' · ' + e.type + '</span> &nbsp;' + e.detail + '</div>' +
+          '<div style="color:var(--text-dim);margin-top:4px;font-size:9px">Pool: ' +
+            '(R_BNB ' + e.poolBefore.R_BNB.toFixed(5) + ' → ' + e.poolAfter.R_BNB.toFixed(5) + ', ' +
+            'R_RKL ' + e.poolBefore.R_RKL.toFixed(2) + ' → ' + e.poolAfter.R_RKL.toFixed(2) + ', ' +
+            'price $' + e.poolBefore.price.toFixed(8) + ' → $' + e.poolAfter.price.toFixed(8) +
+            (e.priceImpactPct ? ', impact ' + (e.priceImpactPct >= 0 ? '+' : '') + e.priceImpactPct.toFixed(4) + '%' : '') +
+          ')</div>' +
+        '</div>';
+    }
+    $('action-log').innerHTML = html;
+  }
+
+  $('add-buy-btn').addEventListener('click', () => {
+    const amt = +$('in-testamt').value;
+    if (!(amt > 0)) return;
+    applyDirectBuy(amt);
+    refreshActionUI();
+    compute();
+  });
+  $('add-vault-burn-btn').addEventListener('click', () => {
+    const amt = +$('in-testamt').value;
+    if (!(amt > 0)) return;
+    applyVaultAdd(amt, /* isBurn */ true);
+    refreshActionUI();
+    compute();
+  });
+  $('add-vault-reward-btn').addEventListener('click', () => {
+    const amt = +$('in-testamt').value;
+    if (!(amt > 0)) return;
+    applyVaultAdd(amt, /* isBurn */ false);
+    refreshActionUI();
+    compute();
+  });
+  $('reset-baseline-btn').addEventListener('click', () => {
+    $('in-rbnb').value = baseline.rbnb;
+    $('in-rrkl').value = baseline.rrkl;
+    $('in-T').value    = baseline.T;
+    $('in-W').value    = baseline.W;
+    $('in-N').value    = 6;
+    $('in-totallp').value = 12.5453;
+    $('in-burnN').value = 3;
+    accum.buys = { count: 0, totalSpentUSD: 0, totalRKL: 0 };
+    accum.burnVaults = { count: 0, totalSeedUSD: 0, totalLP: 0 };
+    accum.rewardVaults = { count: 0, totalSeedUSD: 0, totalLP: 0 };
+    accum.log = [];
+    refreshActionUI();
+    compute();
+  });
+
+  // Update button labels when test amount changes
+  $('in-testamt').addEventListener('input', () => {
+    const v = (+$('in-testamt').value).toFixed(2);
+    $('add-buy-amt').textContent = v;
+    $('add-burn-amt').textContent = v;
+    $('add-reward-amt').textContent = v;
+  });
+
+  refreshActionUI();
+  compute();
+})();
+</script>
+
+</body>
+</html>

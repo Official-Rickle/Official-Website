@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <style>
+      .bg          { fill: #0a0a0a; }
+      .title       { fill: #f0f0f0; font-family: Georgia, 'Times New Roman', serif; font-weight: 700; letter-spacing: 3px; }
+      .subtitle    { fill: #888; font-family: Georgia, serif; font-style: italic; }
+      .math        { fill: #f0f0f0; font-family: 'Cambria Math', Cambria, 'Times New Roman', Georgia, serif; }
+      .math-italic { fill: #f0f0f0; font-family: 'Cambria Math', Cambria, 'Times New Roman', Georgia, serif; font-style: italic; }
+      .mono        { fill: #f0f0f0; font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+      .label       { fill: #888; font-family: Georgia, serif; }
+      .label-mono  { fill: #888; font-family: 'JetBrains Mono', ui-monospace, monospace; letter-spacing: 1.5px; text-transform: uppercase; }
+      .coral       { fill: #ff6f61; }
+      .green       { fill: #57c98b; }
+      .gold        { fill: #c9a227; }
+      .muted       { fill: #555; }
+      .arrow       { stroke: #555; stroke-width: 1.5; fill: none; }
+      .arrow-coral { stroke: #ff6f61; stroke-width: 1.8; fill: none; }
+      .arrow-green { stroke: #57c98b; stroke-width: 1.8; fill: none; }
+      .arrow-gold  { stroke: #c9a227; stroke-width: 1.8; fill: none; }
+      .box         { fill: #0c0c0c; stroke: #262626; stroke-width: 1; }
+      .box-vault   { fill: rgba(255,111,97,0.05); stroke: #ff6f61; stroke-width: 1; }
+      .box-pool    { fill: rgba(87,201,139,0.06); stroke: #57c98b; stroke-width: 1; }
+    </style>
+    <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <polygon points="0 0, 8 4, 0 8" fill="#888" />
+    </marker>
+    <marker id="arrowhead-coral" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <polygon points="0 0, 8 4, 0 8" fill="#ff6f61" />
+    </marker>
+    <marker id="arrowhead-green" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <polygon points="0 0, 8 4, 0 8" fill="#57c98b" />
+    </marker>
+    <marker id="arrowhead-gold" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <polygon points="0 0, 8 4, 0 8" fill="#c9a227" />
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1400" height="900"/>
+
+  <!-- TITLE -->
+  <text class="title"    x="700" y="56"  text-anchor="middle" font-size="28">PER-CYCLE EQUATION · 29 DAYS</text>
+  <text class="subtitle" x="700" y="84"  text-anchor="middle" font-size="14">Block 96,217,583 · BNB = $618 · N = 6 vaults</text>
+
+  <!-- TOP ROW: GIVEN STATE -->
+  <g transform="translate(40, 120)">
+    <text class="label-mono" x="0" y="0" font-size="11">Given (chain state, locked in)</text>
+    <line x1="0" y1="10" x2="1320" y2="10" stroke="#262626" stroke-width="0.5"/>
+
+    <g transform="translate(0, 30)">
+      <text class="math-italic coral" x="0"   y="20" font-size="22">R_BNB</text>
+      <text class="mono"              x="80"  y="20" font-size="14">= 4.40768 BNB</text>
+      <text class="label-mono"        x="220" y="20" font-size="10">($2,723.95)</text>
+    </g>
+    <g transform="translate(330, 30)">
+      <text class="math-italic coral" x="0"   y="20" font-size="22">R_RKL</text>
+      <text class="mono"              x="80"  y="20" font-size="14">= 13,559,324.65 RKL</text>
+      <text class="label-mono"        x="290" y="20" font-size="10">($2,723.95)</text>
+    </g>
+    <g transform="translate(750, 30)">
+      <text class="math-italic gold" x="0"   y="20" font-size="22">T</text>
+      <text class="mono"             x="40"  y="20" font-size="14">= 7,071.83 LP</text>
+      <text class="label-mono"       x="190" y="20" font-size="10">(Winston: 5,221.61 = 73.84%)</text>
+    </g>
+    <g transform="translate(0, 65)">
+      <text class="math-italic green" x="0"   y="20" font-size="22">f</text>
+      <text class="mono"              x="40"  y="20" font-size="14">= 0.0017</text>
+      <text class="label-mono"        x="120" y="20" font-size="10">(PCS LP fee per swap)</text>
+    </g>
+    <g transform="translate(330, 65)">
+      <text class="math-italic gold" x="0"   y="20" font-size="22">N</text>
+      <text class="mono"             x="40"  y="20" font-size="14">= 6 vaults</text>
+      <text class="label-mono"       x="170" y="20" font-size="10">(3 burn-class + 3 reward-class)</text>
+    </g>
+    <g transform="translate(750, 65)">
+      <text class="math-italic" x="0"   y="20" font-size="22">P_BNB</text>
+      <text class="mono"        x="80"  y="20" font-size="14">= $618 USD</text>
+    </g>
+  </g>
+
+  <!-- MIDDLE: MAIN EQUATION (per vault) -->
+  <g transform="translate(40, 250)">
+    <text class="label-mono" x="0" y="0" font-size="11">Per vault i (each cycle)</text>
+    <line x1="0" y1="10" x2="1320" y2="10" stroke="#262626" stroke-width="0.5"/>
+  </g>
+
+  <!-- Per-vault box -->
+  <g transform="translate(40, 280)">
+    <rect class="box-vault" x="0" y="0" width="380" height="280" rx="6"/>
+    <text class="label-mono coral" x="190" y="28" text-anchor="middle" font-size="12">VAULT i · LPᵢ tokens</text>
+
+    <text class="math-italic" x="20"  y="80" font-size="18">share</text>
+    <text class="math"        x="73"  y="80" font-size="18">=</text>
+    <text class="math"        x="92"  y="80" font-size="18">0.004 ×</text>
+    <text class="math-italic" x="172" y="80" font-size="18">LP</text>
+    <text class="math-italic" x="195" y="84" font-size="12">i</text>
+    <text class="math"        x="208" y="80" font-size="18">/</text>
+    <text class="math-italic" x="222" y="80" font-size="18" >T</text>
+
+    <text class="math-italic coral"  x="20"  y="115" font-size="18">RKL_h</text>
+    <text class="math"               x="92"  y="115" font-size="18">=</text>
+    <text class="math-italic coral"  x="112" y="115" font-size="18">R_RKL</text>
+    <text class="math"               x="186" y="115" font-size="18">×</text>
+    <text class="math-italic"        x="208" y="115" font-size="18">share</text>
+
+    <text class="math-italic coral"  x="20"  y="145" font-size="18">BNB_h</text>
+    <text class="math"               x="92"  y="145" font-size="18">=</text>
+    <text class="math-italic coral"  x="112" y="145" font-size="18">R_BNB</text>
+    <text class="math"               x="186" y="145" font-size="18">×</text>
+    <text class="math-italic"        x="208" y="145" font-size="18">share</text>
+
+    <line x1="20" y1="170" x2="360" y2="170" stroke="#262626" stroke-width="0.5"/>
+
+    <text class="math-italic green"  x="20"  y="200" font-size="18">aᵢ</text>
+    <text class="math"               x="50"  y="200" font-size="18">=</text>
+    <text class="math"               x="70"  y="200" font-size="18">0.10</text>
+    <text class="math"               x="118" y="200" font-size="18">×</text>
+    <text class="math-italic coral"  x="138" y="200" font-size="18">BNB_h</text>
+    <text class="label-mono"         x="220" y="200" font-size="10">→ caller bounty</text>
+
+    <text class="math-italic coral"  x="20"  y="225" font-size="18">bᵢ ∥ cᵢ</text>
+    <text class="math"               x="100" y="225" font-size="18">=</text>
+    <text class="math"               x="120" y="225" font-size="18">0.40</text>
+    <text class="math"               x="168" y="225" font-size="18">×</text>
+    <text class="math-italic coral"  x="188" y="225" font-size="18">RKL_h</text>
+    <text class="label-mono"         x="265" y="225" font-size="10">→ recipient</text>
+
+    <text class="math-italic gold"   x="20"  y="250" font-size="18">zapᵢ</text>
+    <text class="math"               x="70"  y="250" font-size="18">=</text>
+    <text class="math"               x="90"  y="250" font-size="18">0.15</text>
+    <text class="math"               x="138" y="250" font-size="18">×</text>
+    <text class="math-italic coral"  x="158" y="250" font-size="18">BNB_h</text>
+    <text class="label-mono"         x="240" y="250" font-size="10">→ 1 buy swap (paysf)</text>
+
+  </g>
+
+  <!-- ARROW from per-vault to aggregate -->
+  <path class="arrow" d="M 430 420 L 480 420" marker-end="url(#arrowhead)"/>
+  <text class="label" x="455" y="412" text-anchor="middle" font-size="11" font-style="italic">Σᵢ for i=1..N</text>
+
+  <!-- AGGREGATE box -->
+  <g transform="translate(490, 280)">
+    <rect class="box" x="0" y="0" width="450" height="280" rx="6"/>
+    <text class="label-mono" x="225" y="28" text-anchor="middle" font-size="12">AGGREGATE / CYCLE (across N vaults)</text>
+
+    <!-- Bounty -->
+    <text class="math"               x="20"  y="80" font-size="14">Σ</text>
+    <text class="math-italic green"  x="35"  y="80" font-size="14">aᵢ</text>
+    <text class="math"               x="60"  y="80" font-size="14">=</text>
+    <text class="mono green"         x="80"  y="80" font-size="14">0.10 × Σ BNB_h</text>
+    <text class="label-mono"         x="240" y="80" font-size="10">→ Σ bounties out</text>
+
+    <!-- Recipient (terminal-sink) -->
+    <text class="math"               x="20"  y="110" font-size="14">Σ</text>
+    <text class="math-italic coral"  x="35"  y="110" font-size="14">bᵢ</text>
+    <text class="math"               x="60"  y="110" font-size="14">=</text>
+    <text class="mono coral"         x="80"  y="110" font-size="14">0.40 × Σ RKL_h </text>
+    <text class="label-mono"         x="195" y="110" font-size="10">(burn-class only)</text>
+    <text class="label-mono coral"   x="320" y="110" font-size="10">→ permanent burn</text>
+
+    <!-- Recipient (reward) -->
+    <text class="math"               x="20"  y="140" font-size="14">Σ</text>
+    <text class="math-italic gold"   x="35"  y="140" font-size="14">cᵢ</text>
+    <text class="math"               x="60"  y="140" font-size="14">=</text>
+    <text class="mono gold"          x="80"  y="140" font-size="14">0.40 × Σ RKL_h </text>
+    <text class="label-mono"         x="195" y="140" font-size="10">(reward-class)</text>
+    <text class="label-mono gold"    x="320" y="140" font-size="10">→ extractable</text>
+
+    <line x1="20" y1="160" x2="430" y2="160" stroke="#262626" stroke-width="0.5"/>
+
+    <!-- Swap count -->
+    <text class="math"               x="20"  y="190" font-size="14">N_swaps</text>
+    <text class="math"               x="100" y="190" font-size="14">=</text>
+    <text class="mono"               x="120" y="190" font-size="14">N = 6</text>
+    <text class="label-mono"         x="180" y="190" font-size="10">(zaps, all BUY direction)</text>
+
+    <!-- Fee accrual -->
+    <text class="math"               x="20"  y="218" font-size="14">Σ Δfee</text>
+    <text class="math"               x="100" y="218" font-size="14">=</text>
+    <text class="mono"               x="120" y="218" font-size="14">f × Σ zapᵢ</text>
+    <text class="label-mono"         x="225" y="218" font-size="10">→ compounds reserves pro-rata</text>
+
+    <!-- Pool delta -->
+    <text class="math"               x="20"  y="248" font-size="14">ΔPool</text>
+    <text class="math"               x="100" y="248" font-size="14">=</text>
+    <text class="mono coral"         x="120" y="248" font-size="14">−Σ aᵢ on BNB side</text>
+    <text class="mono coral"         x="120" y="266" font-size="14">−Σ (bᵢ∥cᵢ) on RKL side</text>
+  </g>
+
+  <!-- Right side: numerical evaluation at current state -->
+  <g transform="translate(960, 280)">
+    <rect class="box" x="0" y="0" width="380" height="280" rx="6"/>
+    <text class="label-mono coral" x="190" y="28" text-anchor="middle" font-size="12">EVALUATED AT CURRENT STATE</text>
+    <text class="label-mono" x="190" y="46" text-anchor="middle" font-size="9">(6 vaults × 1.6126 LP each, ≈ $1.24 / vault)</text>
+
+    <text class="mono" x="20" y="85" font-size="13">Σ aᵢ (BNB out) = 2.4e-6 BNB</text>
+    <text class="mono green" x="20" y="103" font-size="13">                  ≈ $0.0015</text>
+
+    <text class="mono" x="20" y="135" font-size="13">Σ bᵢ + Σ cᵢ (RKL) = 29.7 RKL</text>
+    <text class="mono coral" x="20" y="153" font-size="13">                     ≈ $0.0060</text>
+
+    <text class="mono" x="20" y="185" font-size="13">  └ Σ bᵢ (burn-class) = 14.85 RKL</text>
+    <text class="mono coral" x="20" y="203" font-size="13">     ($0.0030 permanently destroyed)</text>
+
+    <text class="mono" x="20" y="231" font-size="13">  └ Σ cᵢ (reward) = 14.85 RKL</text>
+    <text class="mono gold" x="20" y="249" font-size="13">     ($0.0030 to recipient wallets)</text>
+
+    <text class="mono" x="20" y="271" font-size="13">Σ fee accrual ≈ 0.6 nBNB ($0.0000004)</text>
+  </g>
+
+  <!-- BOTTOM: STRUCTURE LEGEND -->
+  <g transform="translate(40, 600)">
+    <text class="label-mono" x="0" y="0" font-size="11">Structural rules (locked in by contract)</text>
+    <line x1="0" y1="10" x2="1320" y2="10" stroke="#262626" stroke-width="0.5"/>
+
+    <g transform="translate(0, 30)">
+      <text class="label-mono coral" x="0" y="18" font-size="11">b ∥ c</text>
+      <text class="label" x="80" y="18" font-size="12">mutually exclusive: each vault is either burn-class (recipient ∈ {dEaD, Winston, locked}) or reward-class (multisig, self, custom)</text>
+    </g>
+    <g transform="translate(0, 60)">
+      <text class="label-mono green" x="0" y="18" font-size="11">a</text>
+      <text class="label" x="80" y="18" font-size="12">always fires regardless of vault type — caller bounty paid to whoever calls harvest()</text>
+    </g>
+    <g transform="translate(0, 90)">
+      <text class="label-mono gold" x="0" y="18" font-size="11">zap</text>
+      <text class="label" x="80" y="18" font-size="12">always fires — generates 1 buy-direction swap per vault per cycle, paying f to LPs (compounds all LP including same vault)</text>
+    </g>
+    <g transform="translate(0, 120)">
+      <text class="label-mono" x="0" y="18" font-size="11">cycle</text>
+      <text class="label" x="80" y="18" font-size="12">29 days, hard-coded; cooldown enforced by contract</text>
+    </g>
+    <g transform="translate(0, 150)">
+      <text class="label-mono" x="0" y="18" font-size="11">N</text>
+      <text class="label" x="80" y="18" font-size="12">grows monotonically (vaults can be added, never removed); each new vault adds another (a, b ∥ c, zap) to every future cycle, perpetually</text>
+    </g>
+  </g>
+
+  <!-- Footer -->
+  <text class="subtitle" x="700" y="870" text-anchor="middle" font-size="11">All numbers traceable to contract reads at block 96,217,583. No assumptions.</text>
+</svg>

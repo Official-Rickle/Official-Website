@@ -485,6 +485,9 @@
     .trust-row .chev { width: 14px; height: 14px; color: var(--text-muted); transition: transform 0.18s; }
     .trust-row[open] .chev { transform: rotate(90deg); color: var(--coral); }
     .trust-row .chain-cell { display: flex; align-items: center; gap: 12px; }
+    .trust-source { font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; cursor: help; font-weight: 700; }
+    .trust-source.audit { color: #57c98b; background: rgba(87, 201, 139, 0.10); border: 1px solid rgba(87, 201, 139, 0.30); }
+    .trust-source.live  { color: var(--text-muted); background: var(--bg-2); border: 1px solid var(--hairline); }
     .chain-tag { width: 34px; height: 34px; display: grid; place-items: center; font-family: var(--mono); font-size: 9px; font-weight: 700; color: var(--text-soft); border: 1px solid var(--hairline-strong); border-radius: 50%; background: var(--surface-2); letter-spacing: 0.3px; overflow: hidden; flex-shrink: 0; }
     .chain-tag.has-logo { padding: 3px; }
     .chain-tag img { width: 100%; height: 100%; object-fit: contain; display: block; }
@@ -592,6 +595,18 @@
     .audit-card .stat-row:first-of-type { border-top: none; }
     .audit-card .stat-row .k { color: var(--text-dim); }
     .audit-card .stat-row .v { color: var(--text); font-family: var(--mono); }
+    .audit-card .audit-verify-row { padding-top: 8px; align-items: center; }
+    .audit-verify-btn {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase;
+      color: var(--text-soft); background: var(--bg-2); border: 1px solid var(--hairline);
+      padding: 4px 9px; border-radius: 2px; cursor: pointer;
+      transition: border-color 140ms ease, color 140ms ease;
+    }
+    .audit-verify-btn:hover:not(:disabled) { border-color: var(--coral); color: var(--text); }
+    .audit-verify-btn:disabled { opacity: 0.6; cursor: progress; }
+    .audit-verify-status { font-size: 10px; font-family: var(--mono); color: var(--text-muted); cursor: help; }
+    .audit-verify-status.ok  { color: #57c98b; }
+    .audit-verify-status.err { color: #ff7a59; }
     .audit-empty { grid-column: 1 / -1; text-align: center; color: var(--text-dim); font-size: 11px; padding: 24px; }
     .audit-inspector { background: var(--bg-2); border: 1px solid var(--hairline); border-radius: 3px; padding: 14px; }
     .audit-inspector h3 { font-size: 12px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--text); margin: 0 0 8px; }
@@ -968,12 +983,83 @@
       .tally-grid { grid-template-columns: repeat(2, 1fr); }
       .ph-head { flex-direction: column; align-items: flex-start; gap: 6px; }
     }
+
+    /* ─── My Sources of Truth (user-keys.js) ─────────────────────── */
+    /* Header trigger — mirrors the .join-us pill on the opposite side */
+    .user-keys-btn {
+      position: absolute; top: 0; left: 0;
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 7px 13px;
+      font-family: var(--mono);
+      font-size: 10px; font-weight: 600; letter-spacing: 2.2px;
+      text-transform: uppercase;
+      color: var(--text-soft);
+      background: var(--surface);
+      border: 1px solid var(--hairline-strong);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: border-color 160ms ease, color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+    .user-keys-btn:hover {
+      border-color: var(--coral); color: var(--text);
+      background: var(--surface-hover);
+      box-shadow: 0 0 18px rgba(255, 111, 97, 0.18);
+    }
+    .user-keys-btn svg { width: 13px; height: 13px; fill: currentColor; flex-shrink: 0; }
+    .user-keys-btn .dot { width: 6px; height: 6px; border-radius: 999px; background: #555; transition: background 160ms ease; }
+    .user-keys-btn.has-keys .dot { background: #57c98b; box-shadow: 0 0 6px rgba(87, 201, 139, 0.6); }
+    @media (max-width: 600px) { .user-keys-btn { position: static; margin: 0 auto 16px; } }
+
+    /* Drawer overlay */
+    .uk-drawer { position: fixed; inset: 0; z-index: 9999; pointer-events: none; opacity: 0; transition: opacity 160ms ease; }
+    .uk-drawer.uk-open { pointer-events: auto; opacity: 1; }
+    .uk-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); }
+    .uk-panel {
+      position: absolute; top: 0; right: 0; bottom: 0;
+      width: 100%; max-width: 520px;
+      background: var(--bg, #0a0a0a);
+      border-left: 1px solid var(--hairline-strong);
+      box-shadow: -8px 0 32px rgba(0,0,0,0.5);
+      padding: 22px 24px;
+      overflow-y: auto;
+      transform: translateX(100%);
+      transition: transform 220ms ease;
+    }
+    .uk-drawer.uk-open .uk-panel { transform: translateX(0); }
+    .uk-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .uk-header h3 { margin: 0; font-size: 14px; letter-spacing: 2.2px; text-transform: uppercase; color: var(--coral); font-weight: 800; }
+    .uk-close { background: none; border: none; color: var(--text-soft); font-size: 28px; line-height: 1; cursor: pointer; padding: 0 4px; }
+    .uk-close:hover { color: var(--coral); }
+    .uk-blurb { font-size: 12px; color: var(--text-dim); line-height: 1.55; margin: 0 0 18px; }
+    .uk-section { margin-bottom: 18px; }
+    .uk-section h4 { font-size: 11px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--text-muted); margin: 0 0 6px; font-weight: 700; }
+    .uk-section-help { font-size: 11px; color: var(--text-dim); line-height: 1.5; margin: 0 0 12px; }
+    .uk-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .uk-label { flex: 0 0 110px; font-size: 11px; color: var(--text-soft); display: flex; flex-direction: column; gap: 2px; }
+    .uk-label small { font-size: 9px; color: var(--text-muted); letter-spacing: 0.5px; }
+    .uk-input {
+      flex: 1; min-width: 0; padding: 6px 10px;
+      background: var(--bg-2); border: 1px solid var(--hairline); color: var(--text);
+      font-family: var(--mono); font-size: 11px; border-radius: 2px;
+    }
+    .uk-input:focus { outline: none; border-color: var(--coral); }
+    .uk-status { flex: 0 0 18px; text-align: center; font-size: 14px; color: var(--text-muted); cursor: help; }
+    .uk-status.uk-ok { color: #57c98b; }
+    .uk-status.uk-err { color: #ff7a59; }
+    .uk-status.uk-checking { color: var(--text-muted); }
+    .uk-actions { display: flex; gap: 8px; margin: 18px 0 12px; }
+    .uk-footer { font-size: 10px; color: var(--text-muted); line-height: 1.5; margin: 0; padding-top: 10px; border-top: 1px solid var(--hairline); }
   </style>
 </head>
 <body>
   <div id="loading-bar"></div>
   <div class="page">
     <header class="top">
+      <button class="user-keys-btn" id="user-keys-btn" type="button" aria-label="My sources of truth — RPC and explorer keys">
+        <span class="dot" aria-hidden="true"></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 0 1 6 0v3H9zm3 4a1.5 1.5 0 0 1 .75 2.8V19a.75.75 0 0 1-1.5 0v-2.2A1.5 1.5 0 0 1 12 14z"/></svg>
+        <span>My Keys</span>
+      </button>
       <a class="join-us" href="https://discord.gg/WCAGQ7e5b8" target="_blank" rel="noopener noreferrer" aria-label="Join us on Discord">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
         <span>Join Us</span>
@@ -1316,7 +1402,19 @@
     'https://base-rpc.publicnode.com':         ['https://mainnet.base.org'],
     'https://rpc.stable.xyz':                  [],
   };
-  function rpcsFor(rpc) { return [rpc, ...(RPC_FALLBACKS[rpc] || [])]; }
+  // Reverse map: primary RPC URL → chain key. Built once at startup so
+  // rpcsFor() can look up "is there a user-supplied RPC for this chain?"
+  // without scanning the RPC object on every call.
+  const _RPC_TO_CHAIN = Object.fromEntries(Object.entries(RPC).map(([k, v]) => [v, k]));
+  function rpcsFor(rpc) {
+    const fallbacks = RPC_FALLBACKS[rpc] || [];
+    // If the visitor supplied their own RPC for this chain (via the
+    // "My Sources of Truth" drawer in user-keys.js), use it as primary
+    // and keep the public defaults as graceful fallback.
+    const chain = _RPC_TO_CHAIN[rpc];
+    const userRpc = (chain && window.__userKeys) ? window.__userKeys.getRpcForChain(chain) : null;
+    return userRpc ? [userRpc, rpc, ...fallbacks] : [rpc, ...fallbacks];
+  }
   window.__rpcsFor = rpcsFor;
 
   // Per-host throttle: caps in-flight calls (concurrency) AND enforces a
@@ -1753,6 +1851,51 @@
 
   // ---- audits ----
   async function auditETH() {
+    // Audit-first path (same pattern as auditChain). Falls back to RPC if
+    // window.__audit doesn't have rkl-eth data ready.
+    if (window.__audit) {
+      const fromAudit = await tryAuditEthFromAudit();
+      if (fromAudit) return fromAudit;
+    }
+    return auditEthViaRpc();
+  }
+
+  async function tryAuditEthFromAudit() {
+    try {
+      await window.__audit.ready;
+      const stats = window.__audit.tokenStats('rkl-eth');
+      if (!stats || !stats.totalSupply) return null;
+      const holdersDoc = await window.__audit.tokenHolders('rkl-eth');
+      if (!holdersDoc || !Array.isArray(holdersDoc.rows)) return null;
+      const balanceOf = new Map();
+      for (const r of holdersDoc.rows) balanceOf.set(r.addr.toLowerCase(), BigInt(r.balance));
+      const get = (addr) => balanceOf.get((addr || '').toLowerCase()) || 0n;
+
+      const sup     = BigInt(stats.totalSupply);
+      const safeBal = get(SAFE);
+      const lockedItems = ETH_LOCKED .map(w => ({ ...w, amount: get(w.addr) }));
+      const bridgeItems = ETH_BRIDGES.map(b => ({ ...b, amount: get(b.addr) }));
+
+      const burned    = lockedItems.filter(x => x.kind === 'burned').reduce((s, x) => s + x.amount, 0n);
+      const locked3   = lockedItems.filter(x => x.kind === 'locked').reduce((s, x) => s + x.amount, 0n);
+      const bridgeAll = bridgeItems.reduce((s, x) => s + x.amount, 0n);
+      const bridgeDead = bridgeItems.filter(b => b.dead).reduce((s, x) => s + x.amount, 0n);
+      const wallets = sup - burned - locked3 - bridgeAll - safeBal;
+      return {
+        key: 'ETH', name: 'Ethereum', decimals: 18, supply: sup,
+        burned, locked: locked3 + bridgeAll, trust: safeBal, wallets,
+        _burnedDead: burned, _lockedWallets: locked3, _bridgeAll: bridgeAll, _bridgeDead: bridgeDead, _safe: safeBal, _trueFloat: wallets,
+        breakdown: [...lockedItems, ...bridgeItems.map(b => ({ ...b, kind: 'locked' }))],
+        _source: 'audit',
+        _auditLastBlock: stats.lastBlock,
+      };
+    } catch (e) {
+      console.warn('[auditETH] audit-first failed, falling back to RPC:', e.message);
+      return null;
+    }
+  }
+
+  async function auditEthViaRpc() {
     // One batched HTTP request: totalSupply + safe balance + every locked
     // wallet + every bridge balance. Was 1+N+M+1 round-trips; now 1.
     const calls = [
@@ -1780,10 +1923,82 @@
       // For consolidated math: split out
       _burnedDead: burned, _lockedWallets: locked3, _bridgeAll: bridgeAll, _bridgeDead: bridgeDead, _safe: safeBal, _trueFloat: wallets,
       breakdown: [...lockedItems, ...bridgeItems.map(b => ({ ...b, kind: 'locked' }))],
+      _source: 'rpc',
     };
   }
 
   async function auditChain(key, name, rpc, token) {
+    // Audit-first path: when window.__audit has stats + holders for this
+    // chain's token, derive the same return shape from audit JSON instead
+    // of fanning out a live RPC batch. Validation drift is reported
+    // asynchronously by validateChainFromAudit (called in parallel by the
+    // page renderer) — does not block initial render.
+    const tokenKey = CHAIN_TO_TOKEN[key];
+    if (tokenKey && window.__audit) {
+      const fromAudit = await tryAuditChainFromAudit(key, name, token, tokenKey);
+      if (fromAudit) return fromAudit;
+    }
+    return auditChainViaRpc(key, name, rpc, token);
+  }
+
+  // Map page chain keys (BSC/ETH/POL/...) to audit token keys. Only chains
+  // that have audit coverage appear here; others fall through to RPC.
+  const CHAIN_TO_TOKEN = {
+    BSC: 'rkl-bsc',
+    ETH: 'rkl-eth',
+    POL: 'rkl-pol',     // active once the audit pipeline indexes it
+    // GNO/ARB: not yet audited; auditChain will use RPC path
+  };
+
+  // Build the auditChain() return shape from cached audit data. Returns
+  // null if any required piece is missing (in which case caller falls
+  // back to RPC).
+  async function tryAuditChainFromAudit(key, name, token, tokenKey) {
+    try {
+      await window.__audit.ready;
+      const stats = window.__audit.tokenStats(tokenKey);
+      if (!stats || !stats.totalSupply) return null;
+      const holdersDoc = await window.__audit.tokenHolders(tokenKey);
+      if (!holdersDoc || !Array.isArray(holdersDoc.rows)) return null;
+      // O(N) build into a Map for O(1) lookup of the addresses we care about.
+      const balanceOf = new Map();
+      for (const r of holdersDoc.rows) balanceOf.set(r.addr.toLowerCase(), BigInt(r.balance));
+      const get = (addr) => balanceOf.get((addr || '').toLowerCase()) || 0n;
+
+      const vault = VAULT[key] || null;
+      const lockList = SAT_LOCKED[key] || [];
+      const sup     = BigInt(stats.totalSupply);
+      const dead    = get(DEAD);
+      const safeBal = get(SAFE);
+      const vaultBal = vault ? get(vault) : 0n;
+      const lockBals = lockList.map(w => get(w.addr));
+      const lockSum = lockBals.reduce((s, b) => s + b, 0n);
+      const locked = vaultBal + lockSum;
+      const wallets = sup - dead - safeBal - locked;
+      const breakdown = [{ label: 'Dead · 0x000…dEaD', addr: DEAD, amount: dead, kind: 'burned' }];
+      if (vault && vaultBal > 0n) {
+        breakdown.push({ label: `Locked · Winston Vault (${vault.slice(0, 6)}…${vault.slice(-4)})`, addr: vault, amount: vaultBal, kind: 'locked' });
+      }
+      lockList.forEach((w, i) => {
+        if (lockBals[i] > 0n) breakdown.push({ label: w.label, addr: w.addr, amount: lockBals[i], kind: 'locked' });
+      });
+      return {
+        key, name, decimals: 18, supply: sup,
+        burned: dead, locked, trust: safeBal, wallets,
+        _burnedDead: dead, _lockedWallets: locked, _bridgeAll: 0n, _bridgeDead: 0n, _safe: safeBal, _trueFloat: wallets,
+        breakdown,
+        _source: 'audit',                  // provenance — tells the renderer this came from JSON
+        _auditLastBlock: stats.lastBlock,
+      };
+    } catch (e) {
+      console.warn('[auditChain] audit-first failed for ' + key + ', falling back to RPC:', e.message);
+      return null;
+    }
+  }
+
+  // Original RPC-batched path. Used for chains without audit coverage and
+  // as a fallback when audit data is missing for the chain's token.
+  async function auditChainViaRpc(key, name, rpc, token) {
     const vault = VAULT[key] || null;
     const lockList = SAT_LOCKED[key] || [];
     // One batched HTTP request: totalSupply + balanceOf(DEAD/SAFE/vault) +
@@ -1818,6 +2033,7 @@
       burned: dead, locked, trust: safeBal, wallets,
       _burnedDead: dead, _lockedWallets: locked, _bridgeAll: 0n, _bridgeDead: 0n, _safe: safeBal, _trueFloat: wallets,
       breakdown,
+      _source: 'rpc',
     };
   }
 
@@ -2146,10 +2362,17 @@
     const lpAmt = (lps || []).reduce((s, p) => s + (p.rklAmount || 0n), 0n);
     const walletsOnly = data.wallets > lpAmt ? data.wallets - lpAmt : 0n;
     const circulating = lpAmt + walletsOnly;  // == data.wallets pre-split, by design
+    // Provenance badge: data._source is 'audit' or 'rpc' (set by auditChain /
+    // auditETH per their fast-path branch). Audit-derived rows show a small
+    // green badge; RPC rows show a muted "live" tag. Lets users distinguish
+    // committed JSON (verifiable in repo) from page-load-time RPC reads.
+    const sourceBadge = data._source === 'audit'
+      ? '<span class="trust-source audit" title="Loaded from committed audit JSON. Click \'verify on chain\' in the Forensic Snapshot to confirm.">audit</span>'
+      : '<span class="trust-source live" title="Read live from RPC at page load.">live</span>';
     return `
       <details class="trust-row">
         <summary>
-          <div class="chain-cell">${chainTag(c.key)}<span class="chain-name">${c.name}</span></div>
+          <div class="chain-cell">${chainTag(c.key)}<span class="chain-name">${c.name}</span>${sourceBadge}</div>
           <div class="num">${fmtCompact(data.burned, dec)}<small>${pct(data.burned, data.supply)}</small></div>
           <div class="num">${fmtCompact(data.locked, dec)}<small>${pct(data.locked, data.supply)}</small></div>
           <div class="num">${fmtCompact(data.trust, dec)}<small>${pct(data.trust, data.supply)}</small></div>
@@ -2868,7 +3091,21 @@
 
     if (manifest.generatedAt) {
       const d = new Date(manifest.generatedAt * 1000);
-      asOfEl.textContent = d.toUTCString().replace('GMT', 'UTC');
+      const ageMs = Date.now() - d.getTime();
+      const ageDays = Math.max(0, Math.floor(ageMs / 86400000));
+      // Highlight a stale audit (>35 days = past one full snapshot cycle).
+      // Coral when stale, dim when fresh — gives a clear visual signal that
+      // a re-run is overdue without needing a separate banner.
+      const ageStr = ageDays === 0 ? 'today'
+                   : ageDays === 1 ? '1 day ago'
+                   : ageDays + ' days ago';
+      const stale = ageDays >= 35;
+      asOfEl.innerHTML = d.toUTCString().replace('GMT', 'UTC')
+        + ' <span style="font-family:var(--mono);font-size:10px;color:'
+        + (stale ? 'var(--coral)' : 'var(--text-muted)')
+        + ';margin-left:6px" title="'
+        + (stale ? 'Audit is overdue — run yarn snapshot in tools/ponder/' : 'Audit freshness')
+        + '">· ' + ageStr + (stale ? ' · stale' : '') + '</span>';
     }
 
     // 2. Load each token's stats in parallel — small files, snappy.
@@ -2900,10 +3137,51 @@
           '<div class="stat-row"><span class="k">Holders</span><span class="v">' + (meta.holdersWithBalance ?? '—').toLocaleString('en-US') + '</span></div>' +
           '<div class="stat-row"><span class="k">Total minted</span><span class="v">' + fmtBigToken(s.totalMinted) + '</span></div>' +
           '<div class="stat-row"><span class="k">Total burned</span><span class="v">' + fmtBigToken(s.totalBurned) + '</span></div>' +
-          '<div class="stat-row"><span class="k">Transfers</span><span class="v">' + (s.transferCount || 0).toLocaleString('en-US') + '</span></div>'
+          '<div class="stat-row"><span class="k">Transfers</span><span class="v">' + (s.transferCount || 0).toLocaleString('en-US') + '</span></div>' +
+          '<div class="stat-row audit-verify-row">' +
+            '<button class="audit-verify-btn" data-tk="' + tk + '" type="button">verify on chain</button>' +
+            '<span class="audit-verify-status" data-tk-status="' + tk + '"></span>' +
+          '</div>'
         : '<div class="stat-row"><span class="k err">stats missing</span></div>');
       cardsEl.appendChild(card);
     }
+
+    // Wire the per-card verify buttons. Each one calls window.__audit.validateToken
+    // when clicked — single eth_call (or Etherscan call if user has key) that
+    // compares chain's current totalSupply to the audit's stored value.
+    cardsEl.querySelectorAll('.audit-verify-btn').forEach((btn) => {
+      btn.onclick = async () => {
+        const tk = btn.getAttribute('data-tk');
+        const status = cardsEl.querySelector('[data-tk-status="' + tk + '"]');
+        btn.disabled = true;
+        btn.textContent = 'verifying…';
+        status.className = 'audit-verify-status';
+        status.textContent = '';
+        try {
+          if (!window.__audit) throw new Error('audit-loader not available');
+          await window.__audit.ready;
+          const r = await window.__audit.validateToken(tk);
+          if (r.current) {
+            status.className = 'audit-verify-status ok';
+            status.textContent = '✓ matches chain';
+            status.title = 'audit lastBlock: ' + r.lastBlock;
+          } else {
+            status.className = 'audit-verify-status err';
+            const driftAbs = r.drift < 0n ? -r.drift : r.drift;
+            const fmt = fmtBigToken(driftAbs.toString());
+            status.textContent = (r.drift > 0n ? '+' : '−') + fmt + ' since audit';
+            status.title = 'audit: ' + r.audit + '\nlive: ' + r.live + '\ndrift: ' + r.drift;
+          }
+        } catch (e) {
+          status.className = 'audit-verify-status err';
+          status.textContent = '✗ ' + (e.message || 'failed');
+          status.title = e.message || '';
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'verify on chain';
+        }
+      };
+    });
 
     // 4. Wire the inspector. Lazy-loads holders.json files on first search.
     document.getElementById('audit-search-btn').onclick = () => doInspect();
@@ -2987,6 +3265,8 @@
     });
   });
   </script>
+  <script src="/assets/user-keys.js" defer></script>
+  <script src="/assets/audit-loader.js" defer></script>
   <script src="/assets/governance.js" defer></script>
   <script src="/assets/vault.js" defer></script>
 </body>
